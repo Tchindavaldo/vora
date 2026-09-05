@@ -55,6 +55,17 @@ export const radius = {
   pill: 999,
 } as const;
 
+/**
+ * Hauteur commune des bottom sheets, hors marge de securite basse.
+ *
+ * Elle vaut celle du sheet d'accueil (titre + champ de recherche + rangee de
+ * raccourcis) : c'est le premier panneau que voit l'utilisateur, et
+ * tous les suivants s'alignent dessus pour que la carte garde exactement la
+ * meme surface visible d'un ecran a l'autre. Sans cela, chaque panneau
+ * redimensionnerait la carte en apparaissant, et le trace sauterait.
+ */
+export const SHEET_HEIGHT = 310;
+
 export const typography = {
   title: { fontSize: 22, fontWeight: '700' as const, color: colors.text },
   subtitle: { fontSize: 16, fontWeight: '600' as const, color: colors.text },

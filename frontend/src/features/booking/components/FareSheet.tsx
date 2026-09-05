@@ -2,6 +2,7 @@ import React from 'react';
 import {
   ActivityIndicator,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -9,7 +10,14 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { colors, radius, shadows, spacing, typography } from '../../../theme';
+import {
+  colors,
+  radius,
+  shadows,
+  SHEET_HEIGHT,
+  spacing,
+  typography,
+} from '../../../theme';
 import {
   formatDistance,
   formatXaf,
@@ -62,9 +70,34 @@ export function FareSheet({
   const insets = useSafeAreaInsets();
 
   return (
-    <View style={[styles.sheet, { paddingBottom: insets.bottom + spacing.lg }]}>
-      <View style={styles.handle} />
-
+    <View
+      style={[
+        styles.sheet,
+        {
+          // Voir DestinationSheet : la marge systeme s'ajoute a la hauteur, et
+          // le contenu defile dans la zone restante.
+          height: SHEET_HEIGHT + insets.bottom,
+          paddingBottom: insets.bottom,
+        },
+      ]}
+    >
+      {/*
+        Pendant le calcul, le panneau ne montre QUE le loader, centre : la
+        destination et la croix de fermeture n'ont rien a dire tant que le
+        trajet est inconnu, et les afficher ferait sauter la mise en page quand
+        les tarifs arrivent.
+      */}
+      {isLoading ? (
+        <View style={styles.loading}>
+          <ActivityIndicator color={colors.primary} />
+          <Text style={styles.stateText}>Calcul de l’itinéraire…</Text>
+        </View>
+      ) : (
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
       <View style={styles.header}>
         <View style={styles.destination}>
           <Ionicons name="location" size={18} color={colors.primary} />
@@ -83,13 +116,6 @@ export function FareSheet({
         </Pressable>
       </View>
 
-      {isLoading && (
-        <View style={styles.state}>
-          <ActivityIndicator color={colors.primary} />
-          <Text style={styles.stateText}>Calcul de l’itinéraire…</Text>
-        </View>
-      )}
-
       {error !== null && (
         <View style={styles.state}>
           <Text style={styles.errorText}>{error}</Text>
@@ -104,7 +130,7 @@ export function FareSheet({
         </View>
       )}
 
-      {!isLoading && error === null && (
+      {error === null && (
         <>
           {distanceMeters !== null && (
             <Text style={styles.distance}>
@@ -142,6 +168,8 @@ export function FareSheet({
             <Text style={styles.confirmLabel}>Commander</Text>
           </Pressable>
         </>
+      )}
+      </ScrollView>
       )}
     </View>
   );
@@ -181,20 +209,26 @@ function TierRow({
 
 const styles = StyleSheet.create({
   sheet: {
+    // Meme hauteur que le sheet d'accueil : voir SHEET_HEIGHT.
+    height: SHEET_HEIGHT,
     backgroundColor: colors.surface,
     borderTopLeftRadius: radius.sheet,
     borderTopRightRadius: radius.sheet,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
     ...shadows.sheet,
   },
-  handle: {
-    alignSelf: 'center',
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: colors.border,
-    marginBottom: spacing.lg,
+  scroll: {
+    flex: 1,
+  },
+  // Loader seul : occupe toute la hauteur du panneau, label sous l'indicateur.
+  loading: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.md,
+  },
+  content: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
   },
   header: {
     flexDirection: 'row',

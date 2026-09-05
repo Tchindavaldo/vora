@@ -2,9 +2,10 @@ import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { MapCanvas, type MapMarker } from '../map/MapCanvas';
-import { colors, radius, shadows, spacing } from '../../theme';
+import { colors, shadows, SHEET_HEIGHT, spacing } from '../../theme';
 import { DEFAULT_REGION } from '../../config/env';
 
 import type { RoadPoint } from '../../services/roads';
@@ -42,6 +43,7 @@ import {
  */
 export function HomeScreen() {
   const location = useUserLocation();
+  const insets = useSafeAreaInsets();
 
   // Positions posees sur de vraies rues, recuperees une fois la geolocalisation
   // resolue.
@@ -209,6 +211,10 @@ export function HomeScreen() {
         markers={markers}
         onRoadsAvailable={handleRoadsAvailable}
         recenterToken={recenterToken}
+        // Le sheet masque le bas de l'ecran : la carte reste plein ecran et
+        // passe dessous, mais son centre optique remonte au milieu de la zone
+        // visible pour que la position de l'utilisateur y soit centree.
+        bottomPadding={SHEET_HEIGHT + insets.bottom}
         route={booking.routePoints}
         fitRouteToken={booking.fitRouteToken}
       />

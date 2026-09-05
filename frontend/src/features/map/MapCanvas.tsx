@@ -101,6 +101,14 @@ type Props = {
    */
   recenterToken?: number;
   /**
+   * Hauteur masquee par le panneau du bas, en pixels.
+   *
+   * La carte reste plein ecran et passe sous le panneau ; ce decalage sert a
+   * placer le centre optique au milieu de la zone RESTEE VISIBLE, pour que la
+   * position de l'utilisateur ne se retrouve pas a moitie cachee.
+   */
+  bottomPadding?: number;
+  /**
    * Trace de l'itineraire, du depart vers la destination. `undefined` = aucun
    * trajet en cours.
    *
@@ -150,10 +158,16 @@ export function MapCanvas({
   pitch = DEFAULT_PITCH,
   onRoadsAvailable,
   recenterToken = 0,
+  bottomPadding = 0,
   route,
   fitRouteToken = 0,
 }: Props) {
   const mapStyle = useMapStyle();
+
+  // Lu dans l'effet de recentrage, qui ne depend volontairement que du token.
+  const bottomPaddingRef = useRef(bottomPadding);
+  bottomPaddingRef.current = bottomPadding;
+
   const mapRef = useRef<MapRef>(null);
   const cameraRef = useRef<CameraRef>(null);
 
@@ -183,6 +197,14 @@ export function MapCanvas({
         zoom,
         pitch,
         bearing: 0,
+        // Meme decalage que la camera : recentrer doit poser le point au
+        // milieu de la zone visible, pas sous le panneau.
+        padding: {
+          top: 0,
+          right: 0,
+          bottom: bottomPaddingRef.current,
+          left: 0,
+        },
         duration: RECENTER_DURATION_MS,
       });
     } catch (error) {
@@ -298,6 +320,11 @@ export function MapCanvas({
         center={[center.longitude, center.latitude]}
         zoom={zoom}
         pitch={pitch}
+        // La carte occupe tout l'ecran et passe SOUS le sheet, mais son centre
+        // optique doit tomber au milieu de la partie restee visible : sans ce
+        // decalage, la position de l'utilisateur apparait trop basse, a moitie
+        // cachee par le panneau.
+        padding={{ top: 0, right: 0, bottom: bottomPadding, left: 0 }}
         duration={600}
       />
 
