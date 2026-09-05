@@ -5,7 +5,6 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,11 +19,7 @@ import {
   typography,
 } from '../../../theme';
 import { formatXaf, TIER_LABELS } from '../../../services/pricing';
-import {
-  COMMENT_MAX_LENGTH,
-  STAR_LABELS,
-  type RatingStars,
-} from '../../../services/ratings';
+import { STAR_LABELS, type RatingStars } from '../../../services/ratings';
 import type { Driver, Ride } from '../../../services/rides';
 
 type Props = {
@@ -32,12 +27,9 @@ type Props = {
   driver: Driver;
   stars: RatingStars | null;
   onSelectStars: (stars: RatingStars) => void;
-  comment: string;
-  onChangeComment: (comment: string) => void;
-  isSending: boolean;
   isSent: boolean;
-  error: string | null;
-  onSubmit: () => void;
+  /** Passe a l'ecran de commentaire. Inactif tant qu'aucune etoile n'est mise. */
+  onNext: () => void;
   /** Ferme l'evaluation et revient a l'accueil, notee ou non. */
   onClose: () => void;
 };
@@ -59,12 +51,8 @@ export function RatingSheet({
   driver,
   stars,
   onSelectStars,
-  comment,
-  onChangeComment,
-  isSending,
   isSent,
-  error,
-  onSubmit,
+  onNext,
   onClose,
 }: Props) {
   const insets = useSafeAreaInsets();
@@ -166,32 +154,14 @@ export function RatingSheet({
           {stars === null ? 'Touchez une étoile pour noter' : STAR_LABELS[stars]}
         </Text>
 
-        <TextInput
-          style={styles.comment}
-          value={comment}
-          onChangeText={onChangeComment}
-          placeholder="Un commentaire ? (facultatif)"
-          placeholderTextColor={colors.textMuted}
-          multiline
-          maxLength={COMMENT_MAX_LENGTH}
-          accessibilityLabel="Commentaire sur la course"
-        />
-
-        {error !== null && <Text style={styles.error}>{error}</Text>}
-
         <Pressable
-          onPress={onSubmit}
-          disabled={stars === null || isSending}
-          style={[
-            styles.submit,
-            (stars === null || isSending) && styles.submitDisabled,
-          ]}
+          onPress={onNext}
+          disabled={stars === null}
+          style={[styles.submit, stars === null && styles.submitDisabled]}
           accessibilityRole="button"
-          accessibilityLabel="Envoyer mon évaluation"
+          accessibilityLabel="Passer au commentaire"
         >
-          <Text style={styles.submitLabel}>
-            {isSending ? 'Envoi…' : 'Envoyer'}
-          </Text>
+          <Text style={styles.submitLabel}>Suivant</Text>
         </Pressable>
 
         <Pressable
@@ -267,25 +237,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: spacing.sm,
   },
-  comment: {
-    ...typography.label,
-    color: colors.text,
-    marginTop: spacing.lg,
-    minHeight: 72,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    textAlignVertical: 'top',
-  },
-  error: {
-    ...typography.label,
-    color: colors.danger,
-    marginTop: spacing.sm,
-  },
   submit: {
-    marginTop: spacing.md,
+    marginTop: spacing.lg,
     backgroundColor: colors.primary,
     borderRadius: radius.pill,
     paddingVertical: spacing.lg,

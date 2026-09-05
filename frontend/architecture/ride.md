@@ -26,7 +26,8 @@ HomeScreen (course commandée)
 | `useRideRating.ts` | Note, commentaire et envoi de l'évaluation (R8, R12) |
 | `components/SearchingDriverSheet.tsx` | État d'attente |
 | `components/RideTrackingSheet.tsx` | Suivi : les quatre statuts, monnaie en espèces, SOS, partage |
-| `components/RatingSheet.tsx` | Évaluation du chauffeur (copie dédiée, R16) |
+| `components/RatingSheet.tsx` | Évaluation, temps 1 : étoiles + Suivant (copie dédiée, R16) |
+| `components/RatingCommentScreen.tsx` | Évaluation, temps 2 : commentaire **plein écran** |
 | `../../services/rides.ts` | Backend **simulé** — seul fichier à remplacer par l'API |
 | `../../services/ratings.ts` | Envoi de la note, **simulé** — futur `POST /rides/:id/rating` |
 
@@ -63,10 +64,17 @@ l'évaluation envoyée ou passée.
 6. `useDriverApproach` anime le marqueur à 120 ms le long de ce tracé, puis le
    long de l'itinéraire de la course. Le cap vient du **segment courant** : le
    véhicule reste parallèle à la chaussée dans chaque virage.
-7. Statut `completed` → « Terminer » ouvre l'**évaluation** : étoiles
-   obligatoires, commentaire facultatif (280 car. max). « Plus tard » ferme sans
-   noter — une évaluation forcée ne produit que des 5 étoiles donnés pour sortir.
-   L'envoi échoué reste en `idle` avec un message et la note conservée (R8).
+7. Statut `completed` → « Terminer » ouvre l'**évaluation**, en deux temps :
+   - `RatingSheet` (bottom sheet) : les étoiles, puis « Suivant ». « Plus tard »
+     ferme sans noter — une évaluation forcée ne produit que des 5 étoiles
+     donnés pour sortir.
+   - `RatingCommentScreen` (**plein écran**) : commentaire facultatif, 280 car.
+     max. Plein écran et non un sheet : le sheet a une hauteur fixe et le
+     clavier recouvrirait le champ. `KeyboardAvoidingView` remonte le contenu,
+     comme dans `DestinationSearchScreen`.
+   - Envoi réussi → retour au sheet, qui affiche le remerciement. Envoi échoué →
+     on reste sur le texte saisi avec le message d'erreur (R8) : `submit`
+     renvoie un booléen pour ça.
 8. « Annuler la course », bouton pleine largeur en bas du panneau de suivi
    (possible jusqu'à la montée à bord) coupe tous les timers et
    revient à l'estimation, **itinéraire conservé** : le calcul de route n'est

@@ -28,14 +28,20 @@ export function useRideRating() {
   const [step, setStep] = useState<RatingStep>('idle');
   const [error, setError] = useState<string | null>(null);
 
-  /** Envoie la note. Sans etoile choisie, il n'y a rien a envoyer. */
-  const submit = async (ride: Ride) => {
-    if (stars === null || step === 'sending') return;
+  /**
+   * Envoie la note. Sans etoile choisie, il n'y a rien a envoyer.
+   *
+   * Renvoie `true` seulement si l'envoi a abouti : l'appelant s'en sert pour
+   * decider s'il quitte l'ecran de saisie ou s'il y reste avec le message
+   * d'erreur et la note conservee (R8).
+   */
+  const submit = async (ride: Ride): Promise<boolean> => {
+    if (stars === null || step === 'sending') return false;
 
     const rating = buildRating(ride, stars, comment);
     if (rating === null) {
       setError("Cette course n'a pas de chauffeur à évaluer.");
-      return;
+      return false;
     }
 
     setStep('sending');
@@ -44,10 +50,12 @@ export function useRideRating() {
     try {
       await submitRating(rating);
       setStep('sent');
+      return true;
     } catch (cause) {
       console.warn('[useRideRating] envoi impossible', cause);
       setStep('idle');
       setError("Impossible d'envoyer votre note. Réessayez.");
+      return false;
     }
   };
 

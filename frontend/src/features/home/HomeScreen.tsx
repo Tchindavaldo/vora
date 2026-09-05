@@ -30,6 +30,7 @@ import { useRideRequest } from '../ride/useRideRequest';
 import { useRideOrder } from './useRideOrder';
 import { useRideRating } from '../ride/useRideRating';
 import { RatingSheet } from '../ride/components/RatingSheet';
+import { RatingCommentScreen } from '../ride/components/RatingCommentScreen';
 import { SearchingDriverSheet } from '../ride/components/SearchingDriverSheet';
 import { RideTrackingSheet } from '../ride/components/RideTrackingSheet';
 import { useDriverApproach } from '../ride/useDriverApproach';
@@ -202,14 +203,44 @@ export function HomeScreen() {
    */
   const [isRating, setIsRating] = useState(false);
 
+  /**
+   * Commentaire ouvert : deuxieme temps de l'evaluation, en plein ecran.
+   *
+   * Il ne peut pas vivre dans le bottom sheet : celui-ci a une hauteur fixe et
+   * le clavier le recouvre des que le champ prend le focus.
+   */
+  const [isCommenting, setIsCommenting] = useState(false);
+
   const handleRideDone = () => setIsRating(true);
 
   /** Evaluation envoyee ou passee : on efface tout et on revient a l'accueil. */
   const handleRatingClose = () => {
     setIsRating(false);
+    setIsCommenting(false);
     rating.reset();
     order.reset();
   };
+
+  // Commentaire : plein ecran pour que le clavier ne recouvre pas la saisie.
+  const rated = ride.ride;
+  if (isCommenting && rating.stars !== null && rated?.driver != null) {
+    return (
+      <RatingCommentScreen
+        driver={rated.driver}
+        stars={rating.stars}
+        comment={rating.comment}
+        onChangeComment={rating.setComment}
+        isSending={rating.isSending}
+        error={rating.error}
+        onSubmit={async () => {
+          // On ne quitte la saisie que si l'envoi a abouti : en cas d'echec, le
+          // passager reste sur son texte avec le message d'erreur (R8).
+          if (await rating.submit(rated)) setIsCommenting(false);
+        }}
+        onBack={() => setIsCommenting(false)}
+      />
+    );
+  }
 
   if (searchQuery !== null) {
     return (
@@ -304,14 +335,8 @@ export function HomeScreen() {
             driver={ride.ride.driver}
             stars={rating.stars}
             onSelectStars={rating.setStars}
-            comment={rating.comment}
-            onChangeComment={rating.setComment}
-            isSending={rating.isSending}
             isSent={rating.isSent}
-            error={rating.error}
-            onSubmit={() => {
-              if (ride.ride !== null) rating.submit(ride.ride);
-            }}
+            onNext={() => setIsCommenting(true)}
             onClose={handleRatingClose}
           />
         ) : ride.isCreating || ride.error !== null ||
