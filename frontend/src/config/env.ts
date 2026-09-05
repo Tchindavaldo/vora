@@ -38,16 +38,20 @@ function resolveMapStyleUrl(): string | null {
 /**
  * Style de carte par defaut.
  *
- * `streets-v2` sert de base, puis `useMapStyle` en retire les couches inutiles
- * au VTC (commerces, restauration, culture, tourisme, sport, numeros de rue).
- * On garde ainsi ses reperes utiles — sante, transports, station-service,
- * education, lieux-dits — sans la saturation d'origine.
+ * `streets-v4` sert de base, puis `useMapStyle` en retire les categories
+ * inutiles au VTC. Cette version range chaque famille de POI dans son propre
+ * `source-layer` (`poi_healthcare`, `poi_food`...), ce qui permet de filtrer
+ * par categorie plutot que par nom de couche — une regle qui survit aux
+ * renommages. Elle apporte aussi passages pietons et feux tricolores, absents
+ * de la v2.
  *
  * Ecartes apres mesure : `dataviz-light` et `backdrop` (0 POI, carte vide,
- * concus pour de la data-visualisation), `basic-v2` (1 POI, fond beige),
- * `bright-v2` (12 categories de POI, encore trop charge).
+ * concus pour de la data-visualisation), `basic-v2` (1 POI, fond beige et
+ * vegetation qui donnent un aspect de foret), `bright-v2` (12 categories de
+ * POI, trop charge), `outdoor-v4` et `landscape-v4` (topographiques : courbes
+ * de niveau et sentiers de randonnee, hors sujet en ville).
  */
-const DEFAULT_MAP_STYLE = 'streets-v2';
+const DEFAULT_MAP_STYLE = 'streets-v4';
 
 export const env = {
   mapStyleUrl: resolveMapStyleUrl(),

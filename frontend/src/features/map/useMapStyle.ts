@@ -7,22 +7,34 @@ import { env } from '../../config/env';
  * Categories de POI retirees du style.
  *
  * Un style tout pret est calibre pour une carte generaliste, pas pour du VTC.
- * On garde ce qui sert de point de repere pour situer une destination — sante,
- * transports, station-service, education, parcs, lieux-dits — et on retire ce
- * qui n'ajoute que du bruit autour des vehicules.
+ * On garde ce qui sert de repere pour situer une destination — sante,
+ * transports, gares et arrets, education, services publics et parcs — et on
+ * retire ce qui n'ajoute que du bruit autour des vehicules.
  *
- * Identifiants des couches de `streets-v2` (MapTiler).
+ * Le filtrage porte sur le `source-layer` et non sur le nom de la couche :
+ * `streets-v4` range chaque famille de POI dans sa propre source, ce qui rend
+ * la regle stable si MapTiler renomme une couche.
+ */
+const HIDDEN_SOURCE_LAYERS = [
+  'poi_food',
+  'poi_shopping',
+  'poi_culture',
+  'poi_tourism',
+  'poi_sport',
+  'poi_accommodation',
+  'building_number',
+  'tree',
+];
+
+/**
+ * Couches retirees par identifiant, quand la source entiere doit rester.
+ * `poi_public` porte a la fois Public et Park : on garde les deux, mais les
+ * ecussons d'autoroute americains n'ont aucun sens ici.
  */
 const HIDDEN_LAYER_IDS = [
-  'Shopping',
-  'Food',
-  'Culture',
-  'Tourism',
-  'Sport',
-  'Housenumber',
-  'Highway shield (US)',
-  'Highway shield interstate (US)',
-  'Highway shield interstate top (US)',
+  'Highway shields bicolor',
+  'Highway shields bicolor top',
+  'Roller coaster labels',
 ];
 
 type State =
@@ -63,9 +75,13 @@ export function useMapStyle(): State {
           status: 'ready',
           style: {
             ...style,
-            layers: style.layers.filter(
-              (layer) => !HIDDEN_LAYER_IDS.includes(layer.id),
-            ),
+            layers: style.layers.filter((layer) => {
+              const source = (layer as { 'source-layer'?: string })[
+                'source-layer'
+              ];
+              if (source && HIDDEN_SOURCE_LAYERS.includes(source)) return false;
+              return !HIDDEN_LAYER_IDS.includes(layer.id);
+            }),
           },
         });
       } catch {
