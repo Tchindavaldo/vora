@@ -1,0 +1,43 @@
+# Fichiers exclus de l'upload vers EAS Build.
+#
+# EAS part de la racine du depot (monorepo) : sans ce fichier, il envoie le
+# backend, la documentation et les regles Claude Code a chaque build, alors
+# que seul frontend/ est compile.
+#
+# NOTE : .easignore REMPLACE .gitignore pour l'upload. Tout ce que .gitignore
+# excluait doit donc etre repete ici — a commencer par les secrets.
+
+# --- Secrets (R9) : jamais uploades ---
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p8
+*.p12
+*.jks
+*.keystore
+*.mobileprovision
+
+# --- Dependances et build (reconstruits par EAS) ---
+node_modules/
+.expo/
+dist/
+web-build/
+build/
+out/
+*.tsbuildinfo
+*.log
+
+# --- Hors perimetre du build mobile ---
+backend/
+architecture/
+.claude/
+*.md
+!frontend/**/*.md
+
+# --- Divers ---
+.git/
+.idea/
+.vscode/
+.DS_Store
