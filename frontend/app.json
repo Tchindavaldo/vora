@@ -12,7 +12,8 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.rauval.krwego",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "VORA utilise votre position pour afficher les chauffeurs à proximité et calculer votre itinéraire."
+        "NSLocationWhenInUseUsageDescription": "VORA utilise votre position pour afficher les chauffeurs à proximité et calculer votre itinéraire.",
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -24,8 +25,8 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "permissions": [
-        "ACCESS_COARSE_LOCATION",
-        "ACCESS_FINE_LOCATION"
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
       ],
       "predictiveBackGestureEnabled": false
     },
@@ -40,6 +41,11 @@
           "locationWhenInUsePermission": "VORA utilise votre position pour afficher les chauffeurs à proximité et calculer votre itinéraire."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "278c27ed-eb47-4267-a228-947d4615101f"
+      }
+    }
   }
 }
