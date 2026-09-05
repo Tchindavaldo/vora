@@ -1,6 +1,8 @@
 import React from 'react';
 import { Image, StyleSheet, View } from 'react-native';
 
+import { useMapBearing } from '../../map/MapCanvas';
+
 /**
  * Categories de vehicules, alignees sur les paliers de tarif proposes a
  * l'estimation : moto-taxi, berline economique, berline confort.
@@ -36,8 +38,8 @@ const VEHICLE_SIZES: Record<VehicleKind, number> = {
 type Props = {
   kind: VehicleKind;
   /**
-   * Cap en degres (0 = le vehicule pointe vers le haut de l'ecran, 90 = vers
-   * la droite). Sert a aligner le vehicule sur l'axe de sa rue.
+   * Cap GEOGRAPHIQUE en degres (0 = nord, 90 = est). Sert a aligner le
+   * vehicule sur l'axe de sa rue.
    */
   bearing?: number;
 };
@@ -55,11 +57,20 @@ type Props = {
 export function VehicleMarker({ kind, bearing = 0 }: Props) {
   const size = VEHICLE_SIZES[kind];
 
+  // Le contenu d'un marqueur est pose a plat sur l'ecran : il ne tourne pas
+  // avec la carte. Pour rester parallele a sa rue quand l'utilisateur fait
+  // pivoter la vue, le vehicule doit compenser le cap de la camera.
+  const cameraBearing = useMapBearing();
+
   return (
     <View
       style={[
         styles.marker,
-        { width: size, height: size, transform: [{ rotate: `${bearing}deg` }] },
+        {
+          width: size,
+          height: size,
+          transform: [{ rotate: `${bearing - cameraBearing}deg` }],
+        },
       ]}
     >
       <Image
