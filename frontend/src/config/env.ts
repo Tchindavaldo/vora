@@ -38,16 +38,17 @@ function resolveMapStyleUrl(): string | null {
 /**
  * Style de carte par defaut.
  *
- * `dataviz-light` : fond gris tres clair (97 %) et seulement 2 couches de
- * vegetation. `basic-v2` et `streets-v2` posent un fond beige plus 3 couches
- * vertes, ce qui donne a la ville un aspect de foret et fait disparaitre les
- * marqueurs dans le decor.
+ * `bright-v2` : le meilleur equilibre pour une app de mobilite. Il porte 12
+ * categories de POI (sante, transport, station-service, commerces, education)
+ * — indispensables comme points de repere pour choisir une destination — mais
+ * seulement 4 couches de noms de rues, contre 8 pour `streets-v2` qui saturait
+ * la carte.
  *
- * Autres valeurs testees et disponibles : `backdrop` (fond blanc pur, encore
- * plus sobre), `basic-v2` (beige), `streets-v2` et `bright-v2` (charges en
- * labels), `toner-v2` (noir et blanc contraste).
+ * Ecartes apres mesure : `dataviz-light` et `backdrop` (0 POI, carte vide,
+ * concus pour de la data-visualisation), `basic-v2` (1 POI, fond beige),
+ * `streets-v2` (bon en POI mais 8 couches de noms de rues).
  */
-const DEFAULT_MAP_STYLE = 'dataviz-light';
+const DEFAULT_MAP_STYLE = 'bright-v2';
 
 export const env = {
   mapStyleUrl: resolveMapStyleUrl(),

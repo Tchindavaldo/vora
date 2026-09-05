@@ -9,7 +9,7 @@ Application mobile passager (React Native / Expo, TypeScript).
 | Framework | Expo SDK 54 + React Native | Un seul code Android/iOS, itération rapide — décisif sur 48 h |
 | Langage | TypeScript | Contrats explicites entre features, erreurs vues à la compilation |
 | Carte | MapLibre GL Native (`@maplibre/maplibre-react-native` v11) | Open source, styles vectoriels personnalisables, aucun coût ni carte bancaire |
-| Tuiles | MapTiler, style `dataviz-light` | 100 000 chargements/mois gratuits ; ce style est le plus sobre (voir plus bas) |
+| Tuiles |  MapTiler, style `bright-v2` | 100 000 chargements/mois gratuits ; ce style équilibre POI et lisibilité (voir plus bas) |
 | Géolocalisation | `expo-location` | Intégré à Expo, gère les permissions des deux plateformes |
 | Icônes | `@expo/vector-icons` (Ionicons) | Déjà présent, cohérent avec R15 (aucun emoji dans l'UI) |
 | Dessin vectoriel | `react-native-svg` | Véhicules vus de dessus, dessinés dans le code plutôt qu'importés |
@@ -18,18 +18,24 @@ Application mobile passager (React Native / Expo, TypeScript).
 
 Comparaison mesurée sur les styles MapTiler disponibles :
 
-| Style | Couches de labels | Fond | Couches de végétation |
+| Style | POI | Noms de rues | Fond |
 |---|---|---|---|
-| `streets-v2` | 33 | beige | 3 |
-| `bright-v2` | 32 | clair | 3 |
-| `basic-v2` | 7 | beige | 3 |
-| **`dataviz-light`** | **11** | **gris 97 %** | **2** |
-| `backdrop` | 11 | blanc pur | 1 |
+| **`bright-v2`** | **12** | **4** | **clair** |
+| `streets-v2` | 11 | 8 | beige |
+| `basic-v2` | 1 | 1 | beige |
+| `dataviz-light` | 0 | 1 | gris 97 % |
+| `backdrop` | 0 | 1 | blanc pur |
 
-`streets-v2` saturait la carte de noms de rues ; `basic-v2` gardait un fond
-beige et trois couches vertes qui donnaient à la ville un aspect de forêt et
-noyaient les marqueurs. `dataviz-light` retenu. `backdrop` est le repli si l'on
-veut encore plus sobre.
+`bright-v2` retenu : une app de mobilité a besoin des points de repère
+(hôpitaux, stations-service, commerces, transports) pour que l'utilisateur
+situe sa destination — c'est le cœur du métier, pas de la décoration. Il en
+porte 12 catégories tout en n'ayant que 4 couches de noms de rues, là où
+`streets-v2` en empile 8 et sature la carte.
+
+Écartés : `dataviz-light` et `backdrop` n'ont **aucun POI** (conçus pour de la
+data-visualisation, la carte paraît vide) ; `basic-v2` n'en a qu'un et pose un
+fond beige avec trois couches de végétation qui donnent à la ville un aspect de
+forêt.
 
 Le style se change par `EXPO_PUBLIC_MAP_STYLE_URL` sans toucher au code.
 
