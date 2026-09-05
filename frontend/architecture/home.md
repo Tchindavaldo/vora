@@ -46,8 +46,10 @@ HomeScreen
 6. Le bouton recentrer incrémente un `recenterToken` passé à `MapCanvas`, ce
    qui ramène la caméra sur la position courante — pas de `ref` impérative
    exposée à l'écran (R11).
-7. Appui sur le champ de recherche ou un raccourci → handlers vides pour
-   l'instant (`TODO` dans `HomeScreen.tsx`), en attente de l'écran de recherche.
+7. Appui sur le champ de recherche ou un raccourci → `HomeScreen` affiche
+   `DestinationSearchScreen` à la place de l'accueil (voir `search.md`). Un
+   raccourci pré-remplit la saisie avec son libellé. Pas de librairie de
+   navigation tant que l'app n'a que deux écrans (R18).
 
 ## Ancrage local (brief §11)
 
@@ -73,6 +75,5 @@ jury (brief §23).
 
 ## Reste à faire
 
-- Navigation vers l'écran de recherche de destination
 - Skeleton de chargement sur le sheet pendant la résolution de la position
 - Bandeau hors-ligne (distinct du bandeau géoloc)

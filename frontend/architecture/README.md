@@ -39,9 +39,13 @@ forêt.
 
 Le style se change par `EXPO_PUBLIC_MAP_STYLE_URL` sans toucher au code.
 
-**Routage et géocodage** : pas encore branchés. Prévus — OpenRouteService
-(itinéraire) et Photon ou MapTiler Geocoding (recherche d'adresse). Ils
-viendront s'ajouter dans `src/services/`.
+**Géocodage** : MapTiler Geocoding, encapsulé dans `src/services/geocoding.ts`
+(R11). Retenu parce que la clé des tuiles couvre déjà cet usage — aucun service
+supplémentaire à configurer avant la démo. Les requêtes portent `proximity`
+(position courante) et `country=cm` pour écarter les homonymes étrangers.
+
+**Routage** : pas encore branché. Prévu — OpenRouteService, dans
+`src/services/routing.ts`.
 
 ⚠️ MapLibre est un module natif : **l'app ne tourne pas dans Expo Go**. Il faut
 un development build (voir « Lancer le projet » plus bas).
@@ -61,8 +65,13 @@ src/
       demoData.ts          données simulées — À REMPLACER par l'API
       components/          HomeHeader, DestinationSheet, VehicleMarker,
                            UserLocationDot, LocationNotice
+    search/                recherche de destination (R17 étape 3)
+      DestinationSearchScreen.tsx  écran plein : liste puis confirmation
+      usePlaceSearch.ts    debounce, annulation, messages d'erreur (R8)
+      components/          SearchField, PlaceRow, LandmarkField
     booking/               (vide) estimation et confirmation de course
   services/
+    geocoding.ts           MapTiler Geocoding — seul fichier qui le connaît
     roadsFromMap.ts        routes lues dans les tuiles déjà affichées — utilisé
     roads.ts               mêmes types + variante Overpass — non utilisée
   contexts/                (vide) AuthContext, RideContext, LocationContext
@@ -74,6 +83,7 @@ src/
 | Doc | Feature |
 |---|---|
 | `home.md` | `src/features/home/` — écran d'accueil |
+| `search.md` | `src/features/search/` — recherche de destination |
 
 ## Décisions de design notables
 
@@ -138,7 +148,6 @@ Ensuite, les lancements suivants se font avec `npx expo start --dev-client`.
 
 ## À faire ensuite
 
-1. Écran de recherche de destination (champ réel + suggestions Photon)
-2. Service de routage (`src/services/routing.ts`) et tracé de l'itinéraire
-3. Écran d'estimation (paliers Moto / Eco / Confort, distance, mode de paiement)
-4. Remplacer `demoData.ts` par `GET /drivers/nearby`
+1. Service de routage (`src/services/routing.ts`) et tracé de l'itinéraire
+2. Écran d'estimation (paliers Moto / Eco / Confort, distance, mode de paiement)
+3. Remplacer `demoData.ts` par `GET /drivers/nearby`
