@@ -1,0 +1,44 @@
+{
+  "expo": {
+    "name": "VORA",
+    "slug": "vora",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "vora",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.vora.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "VORA utilise votre position pour afficher les chauffeurs à proximité et calculer votre itinéraire."
+      }
+    },
+    "android": {
+      "package": "com.vora.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "permissions": [
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_FINE_LOCATION"
+      ],
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "@maplibre/maplibre-react-native",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "VORA utilise votre position pour afficher les chauffeurs à proximité et calculer votre itinéraire."
+        }
+      ]
+    ]
+  }
+}

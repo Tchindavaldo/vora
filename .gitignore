@@ -1,0 +1,62 @@
+# Depot VORA — Hackathon NuxCine 2026
+# Un seul depot pour frontend/, backend/ et la documentation.
+
+# --- Secrets (R9 / brief §23) ---
+# Aucun .env ne doit etre commite. Seuls les .env.example le sont.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p8
+*.p12
+*.jks
+*.keystore
+*.mobileprovision
+google-services.json
+GoogleService-Info.plist
+
+# --- Dependances ---
+node_modules/
+.pnp
+.pnp.js
+vendor/
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# --- Expo / React Native ---
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+.metro-health-check*
+*.orig.*
+.kotlin/
+
+# Dossiers natifs generes par `expo prebuild`. Ils sont reconstructibles :
+# on ne les versionne pas tant qu'on n'a pas de modification native manuelle.
+/frontend/ios/
+/frontend/android/
+
+# --- Build / sortie ---
+build/
+out/
+*.tsbuildinfo
+*.log
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# --- Editeurs & OS ---
+.DS_Store
+Thumbs.db
+.idea/
+*.swp
+*.swo
+
+# --- Claude Code ---
+# settings.json (hooks partages) EST versionne : il fait partie des regles
+# projet. Seuls les reglages locaux de chaque poste sont ignores.
+.claude/settings.local.json
