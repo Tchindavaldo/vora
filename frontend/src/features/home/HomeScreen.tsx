@@ -1,5 +1,11 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import { Alert, Pressable, Share, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -24,6 +30,12 @@ import {
 import { useBookingFlow } from '../booking/useBookingFlow';
 import { FareSheet } from '../booking/components/FareSheet';
 import { DestinationPin } from '../booking/components/DestinationPin';
+import { useRideRequest } from '../ride/useRideRequest';
+import { SearchingDriverSheet } from '../ride/components/SearchingDriverSheet';
+import { RideTrackingSheet } from '../ride/components/RideTrackingSheet';
+import { useDriverApproach } from '../ride/useDriverApproach';
+import { useApproachRoute } from '../ride/useApproachRoute';
+import { useRideCamera } from '../ride/useRideCamera';
 import { LocationNotice } from './components/LocationNotice';
 import { UserLocationDot } from './components/UserLocationDot';
 import { VehicleMarker } from './components/VehicleMarker';
@@ -99,11 +111,31 @@ export function HomeScreen() {
   // Course en preparation : destination, itineraire et tarifs (R17 etapes 4-5).
   const booking = useBookingFlow(location.coords);
 
+  // Course commandee : creation, chauffeur, suivi (R17 etapes 6-8).
+  const ride = useRideRequest();
+
+  // Vrai itineraire du chauffeur vers le passager : le vehicule doit rouler sur
+  // la chaussee, pas couper a vol d'oiseau.
+  const approach = useApproachRoute(ride.ride);
+
+  // Position animee du chauffeur, sur le trace d'approche puis sur celui de la
+  // course.
+  const driverPosition = useDriverApproach(
+    ride.ride,
+    approach.points,
+    booking.routePoints,
+  );
+
+  // Une fois un chauffeur assigne, la carte ne montre plus QUE le sien : les
+  // vehicules disponibles alentour n'ont plus rien a dire, et les laisser
+  // rendrait impossible de suivre celui qui vient vous chercher.
+  const hasAssignedDriver = driverPosition !== null;
+
   const markers = useMemo<MapMarker[]>(() => {
     // Tant que les positions ne sont pas arretees, aucun vehicule : voir le
     // commentaire sur `roadPoints`.
     const vehicles: MapMarker[] =
-      roadPoints === null
+      roadPoints === null || hasAssignedDriver
         ? []
         : NEARBY_VEHICLES.map((vehicle, index) => {
             // Position animee si elle existe, sinon la position posee sur la
@@ -147,6 +179,22 @@ export function HomeScreen() {
       });
     }
 
+    // Chauffeur de la course : seul vehicule affiche a partir de son
+    // affectation, oriente dans son sens de marche.
+    if (driverPosition !== null) {
+      vehicles.push({
+        id: 'driver',
+        longitude: driverPosition.longitude,
+        latitude: driverPosition.latitude,
+        render: () => (
+          <VehicleMarker
+            kind={ride.ride?.tier ?? 'eco'}
+            bearing={driverPosition.bearing}
+          />
+        ),
+      });
+    }
+
     return vehicles;
   }, [
     location.coords,
@@ -154,7 +202,16 @@ export function HomeScreen() {
     roadPoints,
     motions,
     booking.choice,
+    hasAssignedDriver,
+    driverPosition,
+    ride.ride?.tier,
   ]);
+
+  const rideStatus = ride.ride?.status ?? null;
+
+  // Cadrages de la carte pendant le suivi : recadrages automatiques aux
+  // changements de statut, et retour a la vue d'ensemble a la demande.
+  const camera = useRideCamera(rideStatus, approach.points, booking.routePoints);
 
   // Incremente a chaque appui sur "recentrer" : voir `recenterToken` dans
   // MapCanvas.
@@ -186,8 +243,75 @@ export function HomeScreen() {
     booking.start(choice);
   };
 
+  /**
+   * "Commander" : cree la course et lance la recherche d'un chauffeur.
+   *
+   * Le montant envoye est celui du palier retenu. Il sera recalcule par le
+   * backend a l'arrivee de l'API : un prix venu du telephone ne fait pas foi
+   * (R13).
+   */
   const handleOrder = () => {
-    // TODO (R17 etapes 6-7) : creer la course puis chercher un chauffeur.
+    const choice = booking.choice;
+    const fare = booking.fares.find((item) => item.tier === booking.selectedTier);
+    if (choice === null || fare === undefined) return;
+
+    ride.request({
+      origin: location.coords,
+      destination: {
+        longitude: choice.place.longitude,
+        latitude: choice.place.latitude,
+      },
+      destinationLabel: choice.place.label,
+      tier: fare.tier,
+      amountXaf: fare.amountXaf,
+    });
+  };
+
+  /** Annule la course et revient a l'estimation, itineraire conserve. */
+  const handleCancelRide = () => ride.cancel();
+
+  /** Course terminee : on efface tout et on revient a l'accueil. */
+  const handleRideDone = () => {
+    ride.cancel();
+    booking.cancel();
+  };
+
+  /**
+   * Partage de course (R10) : le passager envoie a un proche le chauffeur, sa
+   * plaque et sa destination. La feuille de partage du systeme est utilisee
+   * plutot qu'un service maison — elle atteint tous les canaux deja installes
+   * sur le telephone (WhatsApp en tete, a Douala).
+   */
+  const handleShareRide = () => {
+    const current = ride.ride;
+    if (current === null || current.driver === null) return;
+
+    const message =
+      `Je suis en course VORA vers ${current.destinationLabel}. ` +
+      `Chauffeur : ${current.driver.name}, ${current.driver.vehicleModel} ` +
+      `(${current.driver.plate}).`;
+
+    Share.share({ message }).catch(() => {
+      // Feuille de partage indisponible : on le dit plutot que d'echouer en
+      // silence (R8).
+      console.warn('[ride] partage de course indisponible');
+      Alert.alert('Partage indisponible', 'Impossible d’ouvrir le partage.');
+    });
+  };
+
+  /**
+   * SOS (R10). ⚠️ SIMULE : sans backend, aucune alerte n'est reellement
+   * transmise. On l'annonce a l'utilisateur au lieu de laisser croire qu'un
+   * secours a ete prevenu (brief §23).
+   */
+  const handleSos = () => {
+    Alert.alert(
+      'Alerte d’urgence',
+      'Démonstration : aucune alerte n’est réellement transmise. En production, ' +
+        'votre position et les informations du chauffeur seraient envoyées à ' +
+        'votre contact d’urgence et à l’assistance VORA.',
+      [{ text: 'Fermer' }],
+    );
   };
 
   if (searchQuery !== null) {
@@ -217,6 +341,12 @@ export function HomeScreen() {
         bottomPadding={SHEET_HEIGHT + insets.bottom}
         route={booking.routePoints}
         fitRouteToken={booking.fitRouteToken}
+        // Le trajet d'approche n'est trace que pendant qu'il sert : une fois le
+        // passager a bord, il n'a plus rien a dire et encombrerait la carte.
+        approach={rideStatus === 'accepted' ? approach.points : undefined}
+        fitPoints={camera.fitPoints}
+        fitPointsToken={camera.fitPointsToken}
+        fitPointsPadding={camera.fitPointsPadding}
       />
 
       <HomeHeader
@@ -233,6 +363,23 @@ export function HomeScreen() {
         />
 
         <View style={styles.recenterRow} pointerEvents="box-none">
+          {/*
+            Cadrage sur l'itineraire en cours, a cote du recentrage : les deux
+            repondent a la meme envie — "remets la carte comme il faut" — l'un
+            sur soi, l'autre sur le trajet. Il n'apparait que s'il y a un trajet
+            a cadrer.
+          */}
+          {camera.activeRoutePoints.length >= 2 && (
+            <Pressable
+              style={styles.recenterButton}
+              onPress={camera.fitActiveRoute}
+              accessibilityRole="button"
+              accessibilityLabel="Afficher tout l’itinéraire"
+            >
+              <Ionicons name="git-branch" size={20} color={colors.text} />
+            </Pressable>
+          )}
+
           <Pressable
             style={styles.recenterButton}
             onPress={handleRecenter}
@@ -249,7 +396,34 @@ export function HomeScreen() {
           et les empiler laisserait un champ de recherche sous un trajet deja
           choisi.
         */}
-        {booking.choice === null ? (
+        {/*
+          Une fois la course commandee, le panneau d'estimation cede la place a
+          la recherche de chauffeur puis a sa fiche : trois etats successifs
+          d'une meme question, jamais empiles.
+        */}
+        {ride.isCreating || ride.error !== null ||
+        (ride.ride !== null && ride.ride.status === 'searching') ? (
+          <SearchingDriverSheet
+            destinationLabel={booking.choice?.place.label ?? ''}
+            tier={booking.selectedTier}
+            amountXaf={
+              booking.fares.find((item) => item.tier === booking.selectedTier)
+                ?.amountXaf ?? 0
+            }
+            error={ride.error}
+            onRetry={handleOrder}
+            onCancel={handleCancelRide}
+          />
+        ) : ride.ride !== null && ride.ride.driver !== null ? (
+          <RideTrackingSheet
+            ride={ride.ride}
+            driver={ride.ride.driver}
+            onCancel={handleCancelRide}
+            onSos={handleSos}
+            onShare={handleShareRide}
+            onDone={handleRideDone}
+          />
+        ) : booking.choice === null ? (
           <DestinationSheet
             shortcuts={SHORTCUTS}
             onSearchPress={handleSearchPress}
@@ -289,8 +463,12 @@ const styles = StyleSheet.create({
     bottom: 0,
     gap: spacing.md,
   },
+  // Les boutons de cadrage, alignes a droite : itineraire puis position.
   recenterRow: {
-    alignItems: 'flex-end',
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    gap: spacing.sm,
     paddingHorizontal: spacing.lg,
   },
   recenterButton: {

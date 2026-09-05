@@ -8,8 +8,6 @@ import React, {
 import { StyleSheet, Text, View } from 'react-native';
 import {
   Camera,
-  GeoJSONSource,
-  Layer,
   LogManager,
   Map,
   Marker,
@@ -22,6 +20,7 @@ import type { RoadQueryTarget } from '../../services/roadsFromMap';
 import { colors, spacing, typography } from '../../theme';
 import { env, DEFAULT_REGION } from '../../config/env';
 import { useMapStyle } from './useMapStyle';
+import { ApproachLine, RouteLine } from './RouteLayers';
 
 /**
  * Encapsulation du fournisseur de carte (R11).
@@ -43,6 +42,13 @@ import { useMapStyle } from './useMapStyle';
  * "source must have tiles" (sa source d'attribution ne porte pas de tuiles).
  * Ces avertissements viennent du style amont, pas de notre code, et ne
  * changent rien au rendu : ils ne font que noyer les logs utiles.
+ *
+ * NOTE : sur reseau lent, MapTiler peut aussi renvoyer un timeout sur ses
+ * SPRITES ("Failed to load sprite"). Ce sont les icones du style (POI,
+ * transports), pas les tuiles : la carte s'affiche normalement, seules ces
+ * icones manquent. On ne masque pas ces erreurs — une panne reseau reelle doit
+ * rester visible dans les logs (R8) — et il n'y a rien a corriger cote
+ * application : MapLibre les recharge au prochain chargement du style.
  */
 LogManager.setLogLevel('error');
 
@@ -117,12 +123,35 @@ type Props = {
    */
   route?: { longitude: number; latitude: number }[];
   /**
+   * Trajet d'APPROCHE du chauffeur vers le passager. Trace en pointilles pour
+   * le distinguer de la course elle-meme : les deux sont a l'ecran en meme
+   * temps, et une seule couleur les rendrait indiscernables.
+   */
+  approach?: { longitude: number; latitude: number }[];
+  /**
    * Cadre la camera sur tout l'itineraire a chaque increment.
    *
    * Meme mecanique que `recenterToken` : un compteur plutot qu'une ref
    * imperative, pour que l'ecran demande un cadrage sans toucher a MapLibre.
    */
   fitRouteToken?: number;
+  /**
+   * Points a faire tenir dans la vue au prochain increment de `fitPointsToken`.
+   *
+   * Sert aux recadrages du suivi de course : voir le chauffeur qui arrive ET sa
+   * propre position, puis le vehicule ET la destination. La liste peut contenir
+   * un trace complet aussi bien que deux points isoles.
+   */
+  fitPoints?: { longitude: number; latitude: number }[];
+  fitPointsToken?: number;
+  /**
+   * Marge SUPPLEMENTAIRE autour de `fitPoints`, en pixels.
+   *
+   * Plus la marge est large, plus la camera recule : c'est ce qui permet a
+   * l'ecran de demander un cadrage un peu plus aere sans que MapCanvas ait a
+   * connaitre les etats de la course.
+   */
+  fitPointsPadding?: number;
 };
 
 /**
@@ -148,9 +177,6 @@ const FIT_PADDING_TOP = 120;
 const FIT_PADDING_SIDE = 60;
 const FIT_PADDING_BOTTOM = 320;
 
-/** Epaisseur du trace, en pixels. */
-const ROUTE_WIDTH = 5;
-
 export function MapCanvas({
   center,
   zoom,
@@ -160,7 +186,11 @@ export function MapCanvas({
   recenterToken = 0,
   bottomPadding = 0,
   route,
+  approach,
   fitRouteToken = 0,
+  fitPoints,
+  fitPointsToken = 0,
+  fitPointsPadding = 0,
 }: Props) {
   const mapStyle = useMapStyle();
 
@@ -222,30 +252,34 @@ export function MapCanvas({
    * camera de la couvrir : l'utilisateur doit voir d'un coup d'oeil son depart
    * et sa destination, pas un bout de ligne qui sort de l'ecran.
    */
-  useEffect(() => {
-    if (fitRouteToken === 0 || !route || route.length < 2) return;
+  const fitTo = useRef<
+    (points: { longitude: number; latitude: number }[], extra?: number) => void
+  >(() => {});
 
-    let west = route[0].longitude;
-    let east = route[0].longitude;
-    let south = route[0].latitude;
-    let north = route[0].latitude;
+  fitTo.current = (points, extra = 0) => {
+    if (points.length < 2) return;
 
-    for (const point of route) {
+    let west = points[0].longitude;
+    let east = points[0].longitude;
+    let south = points[0].latitude;
+    let north = points[0].latitude;
+
+    for (const point of points) {
       if (point.longitude < west) west = point.longitude;
       if (point.longitude > east) east = point.longitude;
       if (point.latitude < south) south = point.latitude;
       if (point.latitude > north) north = point.latitude;
     }
 
-    // Marge basse plus large : le panneau d'estimation couvre le bas de
-    // l'ecran et masquerait la fin du trace.
+    // Marge basse plus large : le panneau couvre le bas de l'ecran et
+    // masquerait la fin du trace.
     try {
       cameraRef.current?.fitBounds([west, south, east, north], {
         padding: {
-          top: FIT_PADDING_TOP,
-          right: FIT_PADDING_SIDE,
-          bottom: FIT_PADDING_BOTTOM,
-          left: FIT_PADDING_SIDE,
+          top: FIT_PADDING_TOP + extra,
+          right: FIT_PADDING_SIDE + extra,
+          bottom: FIT_PADDING_BOTTOM + extra,
+          left: FIT_PADDING_SIDE + extra,
         },
         duration: RECENTER_DURATION_MS,
       });
@@ -253,10 +287,35 @@ export function MapCanvas({
       // Camera demontee entre-temps : le cadrage n'a plus de cible (R8).
       console.warn('Cadrage ignore : camera indisponible', error);
     }
+  };
+
+  const routeRef = useRef(route);
+  routeRef.current = route;
+
+  useEffect(() => {
+    if (fitRouteToken === 0) return;
+    fitTo.current(routeRef.current ?? []);
     // Sur le seul token : le cadrage repond a une demande de l'ecran, pas au
     // recalcul de l'itineraire a chaque rendu.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fitRouteToken]);
+
+  const fitPointsRef = useRef(fitPoints);
+  fitPointsRef.current = fitPoints;
+
+  /**
+   * Cadrage sur un ensemble de points quelconque, demande par l'ecran pendant
+   * le suivi de course : le chauffeur qui arrive et la position du passager,
+   * puis le vehicule et la destination.
+   */
+  const fitPointsPaddingRef = useRef(fitPointsPadding);
+  fitPointsPaddingRef.current = fitPointsPadding;
+
+  useEffect(() => {
+    if (fitPointsToken === 0) return;
+    fitTo.current(fitPointsRef.current ?? [], fitPointsPaddingRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fitPointsToken]);
 
   // Cap courant de la camera, pour que les marqueurs orientes restent alignes
   // sur leur rue pendant que l'utilisateur fait pivoter la carte.
@@ -328,47 +387,10 @@ export function MapCanvas({
         duration={600}
       />
 
-      {route && route.length >= 2 && (
-        <GeoJSONSource
-          id="route"
-          data={{
-            type: 'Feature',
-            properties: {},
-            geometry: {
-              type: 'LineString',
-              coordinates: route.map((point) => [
-                point.longitude,
-                point.latitude,
-              ]),
-            },
-          }}
-        >
-          {/*
-            Deux couches : un liset sombre sous le trace, pour que la ligne
-            reste lisible aussi bien sur l'asphalte gris que sur les zones
-            claires de la carte.
-          */}
-          <Layer
-            id="route-casing"
-            type="line"
-            layout={{ 'line-cap': 'round', 'line-join': 'round' }}
-            paint={{
-              'line-color': colors.text,
-              'line-width': ROUTE_WIDTH + 3,
-              'line-opacity': 0.25,
-            }}
-          />
-          <Layer
-            id="route-line"
-            type="line"
-            layout={{ 'line-cap': 'round', 'line-join': 'round' }}
-            paint={{
-              'line-color': colors.primary,
-              'line-width': ROUTE_WIDTH,
-            }}
-          />
-        </GeoJSONSource>
-      )}
+      <RouteLine points={route ?? []} />
+
+      <ApproachLine points={approach ?? []} />
+
 
       <MapBearingContext.Provider value={bearing}>
         {markers.map((marker) => (

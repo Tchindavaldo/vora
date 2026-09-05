@@ -21,6 +21,10 @@ export const colors = {
   // Statut : chauffeurs disponibles.
   online: '#12B76A',
 
+  // Alerte. RESERVE aux actions d'urgence (SOS) : sa rarete est ce qui la rend
+  // reperable d'un coup d'oeil (R10).
+  danger: '#D92D20',
+
   // Neutres.
   text: '#101828',
   textMuted: '#667085',
