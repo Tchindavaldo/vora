@@ -42,18 +42,27 @@ export function HomeScreen() {
   // apparaissent a leur place definitive et n'en bougent plus.
   const [roadPoints, setRoadPoints] = useState<RoadPoint[] | null>(null);
 
+  // On depend des COORDONNEES, pas de l'objet `location.coords` : celui-ci est
+  // recree a chaque rendu, et la carte en declenche beaucoup (le suivi du cap
+  // de camera en produit un par image pendant une rotation). Dependre de
+  // l'objet relancerait la requete en boucle, chaque relance annulant la
+  // precedente — Overpass n'aboutirait jamais.
+  const { longitude, latitude } = location.coords;
+
   useEffect(() => {
     if (location.status === 'loading') return;
 
     let cancelled = false;
-    fetchRoadPoints(location.coords, NEARBY_VEHICLES.length).then((points) => {
-      if (!cancelled) setRoadPoints(points);
-    });
+    fetchRoadPoints({ longitude, latitude }, NEARBY_VEHICLES.length).then(
+      (points) => {
+        if (!cancelled) setRoadPoints(points);
+      },
+    );
 
     return () => {
       cancelled = true;
     };
-  }, [location.status, location.coords]);
+  }, [location.status, longitude, latitude]);
 
   // Les vehicules roulent le long de leur rue. Tant que les positions ne sont
   // pas connues, le hook ne renvoie rien et la carte reste sans vehicule.

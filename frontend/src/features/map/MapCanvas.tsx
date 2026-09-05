@@ -83,6 +83,18 @@ export function MapCanvas({
   // pivoter la carte, pour que les marqueurs orientes restent alignes.
   const [bearing, setBearing] = useState(0);
 
+  /**
+   * N'enregistre le cap que s'il a change de facon perceptible.
+   *
+   * La carte emet un evenement par image pendant un geste. Repercuter chacun
+   * d'eux re-rendrait tout l'ecran a la meme cadence, ce qui a deja suffi a
+   * empecher les requetes reseau d'aboutir. Un degre est en-deca de ce qui se
+   * voit sur une icone de 38 px.
+   */
+  const trackBearing = (next: number) => {
+    setBearing((current) => (Math.abs(next - current) < 1 ? current : next));
+  };
+
   // Pas de style disponible (cle absente) : on affiche un fond neutre plutot
   // que de laisser MapLibre echouer sur une URL nulle (R8).
   if (!env.hasMapStyle) {
@@ -109,8 +121,8 @@ export function MapCanvas({
       // Pendant le geste de rotation, et non seulement a la fin : sans mise a
       // jour continue, les vehicules resteraient de travers tant que le doigt
       // n'a pas quitte l'ecran.
-      onRegionIsChanging={(event) => setBearing(event.nativeEvent.bearing)}
-      onRegionDidChange={(event) => setBearing(event.nativeEvent.bearing)}
+      onRegionIsChanging={(event) => trackBearing(event.nativeEvent.bearing)}
+      onRegionDidChange={(event) => trackBearing(event.nativeEvent.bearing)}
     >
       <Camera
         center={[center.longitude, center.latitude]}

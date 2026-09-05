@@ -197,10 +197,20 @@ export function useMapStyle(): State {
             // paint (opacite, transitions de zoom).
             const background = BACKGROUND_COLORS[layer.id];
             if (background) {
+              // Une propriete de peinture n'existe que pour le type de couche
+              // qui la porte : poser `fill-color` sur autre chose qu'un `fill`
+              // fait japper MapLibre ("layer doesn't support this property") et
+              // la valeur est ignoree. On ne touche donc que les deux types
+              // qu'on sait traiter.
               const key =
                 layer.type === 'background'
                   ? 'background-color'
-                  : 'fill-color';
+                  : layer.type === 'fill'
+                    ? 'fill-color'
+                    : null;
+
+              if (!key) return layer;
+
               return {
                 ...layer,
                 paint: {
@@ -228,13 +238,21 @@ export function useMapStyle(): State {
             if (layer.type !== 'symbol' || !layer.layout) return layer;
 
             const layout = layer.layout as Record<string, unknown>;
-            const scaled = {
-              ...layer,
-              layout: {
-                ...layout,
-                'text-size': scaleSize(layout['text-size'], TEXT_SCALE),
-              },
-            };
+
+            // Un symbole peut ne porter qu'une icone, sans texte. Lui ajouter
+            // un `text-size` inventé a partir de rien produit la nuee de
+            // "layer doesn't support this property" au parsing du style, sans
+            // rien changer au rendu. On ne redimensionne que ce qui existe.
+            const scaled =
+              layout['text-size'] === undefined
+                ? layer
+                : {
+                    ...layer,
+                    layout: {
+                      ...layout,
+                      'text-size': scaleSize(layout['text-size'], TEXT_SCALE),
+                    },
+                  };
 
             // Noms de rues. Deux corrections au style d'origine :
             //
