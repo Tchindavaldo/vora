@@ -9,9 +9,29 @@ Application mobile passager (React Native / Expo, TypeScript).
 | Framework | Expo SDK 54 + React Native | Un seul code Android/iOS, itération rapide — décisif sur 48 h |
 | Langage | TypeScript | Contrats explicites entre features, erreurs vues à la compilation |
 | Carte | MapLibre GL Native (`@maplibre/maplibre-react-native` v11) | Open source, styles vectoriels personnalisables, aucun coût ni carte bancaire |
-| Tuiles | MapTiler | 100 000 chargements/mois gratuits, style clair personnalisable |
+| Tuiles | MapTiler, style `dataviz-light` | 100 000 chargements/mois gratuits ; ce style est le plus sobre (voir plus bas) |
 | Géolocalisation | `expo-location` | Intégré à Expo, gère les permissions des deux plateformes |
 | Icônes | `@expo/vector-icons` (Ionicons) | Déjà présent, cohérent avec R15 (aucun emoji dans l'UI) |
+| Dessin vectoriel | `react-native-svg` | Véhicules vus de dessus, dessinés dans le code plutôt qu'importés |
+
+### Choix du style de carte
+
+Comparaison mesurée sur les styles MapTiler disponibles :
+
+| Style | Couches de labels | Fond | Couches de végétation |
+|---|---|---|---|
+| `streets-v2` | 33 | beige | 3 |
+| `bright-v2` | 32 | clair | 3 |
+| `basic-v2` | 7 | beige | 3 |
+| **`dataviz-light`** | **11** | **gris 97 %** | **2** |
+| `backdrop` | 11 | blanc pur | 1 |
+
+`streets-v2` saturait la carte de noms de rues ; `basic-v2` gardait un fond
+beige et trois couches vertes qui donnaient à la ville un aspect de forêt et
+noyaient les marqueurs. `dataviz-light` retenu. `backdrop` est le repli si l'on
+veut encore plus sobre.
+
+Le style se change par `EXPO_PUBLIC_MAP_STYLE_URL` sans toucher au code.
 
 **Routage et géocodage** : pas encore branchés. Prévus — OpenRouteService
 (itinéraire) et Photon ou MapTiler Geocoding (recherche d'adresse). Ils
@@ -56,10 +76,17 @@ crédible d'une maquette.
 `Pressable` qui poussera vers l'écran de recherche. Ouvrir le clavier ici
 ferait remonter le sheet et casserait la transition, sans bénéfice.
 
-**Les marqueurs véhicules sont des pastilles rondes avec icône vue de côté**,
-jamais des silhouettes vues de dessus : à 32 px, une silhouette se réduit à une
-tache illisible. Ils ne sont pas pivotés — une rotation n'a de sens qu'avec un
-vrai cap GPS.
+**Les marqueurs véhicules sont dessinés en SVG, vus de dessus.** C'est la seule
+projection cohérente avec une carte, et la seule qui rende l'orientation
+lisible : une icône vue de côté ne peut pas suivre l'axe d'une rue. Le volume
+vient de trois couches empilées (ombre, carrosserie, vitrage) ; les feux
+arrière rouges donnent le sens de marche d'un coup d'œil.
+
+**Chaque véhicule porte un cap et pivote.** En production il viendra du GPS du
+chauffeur. Les véhicules ne sont pas contraints de suivre le tracé des rues :
+cela demanderait la géométrie du réseau routier et du map-matching, hors de
+portée sur 48 h et sans valeur pour le jury — les positions réelles seront
+naturellement sur les routes.
 
 **Le point utilisateur n'est affiché que si la position est réelle.** Un point
 « vous êtes ici » sur une ville par défaut serait un mensonge.
