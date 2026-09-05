@@ -1,10 +1,17 @@
-import React, { createContext, useContext, useRef, useState } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import {
   Camera,
   LogManager,
   Map,
   Marker,
+  type CameraRef,
   type MapRef,
 } from '@maplibre/maplibre-react-native';
 
@@ -85,11 +92,10 @@ type Props = {
   /**
    * Compteur de recentrage : chaque increment ramene la camera sur `center`.
    *
-   * La `Camera` MapLibre est declarative — elle ne bouge que si une de ses
-   * props change. Apres un deplacement au doigt, le centre demande est
-   * inchange : repasser la meme valeur ne provoquerait rien. On fait donc
-   * varier une prop dont c'est le seul role, plutot que d'exposer aux ecrans
-   * une ref imperative sur la camera (R11).
+   * Apres un deplacement au doigt, le centre demande n'a pas change : repasser
+   * la meme valeur en prop ne provoque donc rien. On declenche le recentrage
+   * sur variation de ce compteur, la ref imperative de la camera restant
+   * interne a ce fichier — les ecrans ne manipulent pas MapLibre (R11).
    */
   recenterToken?: number;
 };
@@ -116,6 +122,25 @@ export function MapCanvas({
 }: Props) {
   const mapStyle = useMapStyle();
   const mapRef = useRef<MapRef>(null);
+  const cameraRef = useRef<CameraRef>(null);
+
+  /**
+   * Recentrage sur demande de l'ecran.
+   *
+   * Au premier rendu, `recenterToken` vaut 0 et la camera se place deja via ses
+   * props : on ne rejoue rien. Ensuite, chaque increment ramene la vue sur la
+   * position courante.
+   */
+  useEffect(() => {
+    if (recenterToken === 0) return;
+    cameraRef.current?.flyTo({
+      center: [center.longitude, center.latitude],
+      duration: 600,
+    });
+    // Volontairement sur le seul token : recentrer doit repondre a l'appui, pas
+    // au moindre rafraichissement de la position GPS.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recenterToken]);
 
   // Cap courant de la camera, pour que les marqueurs orientes restent alignes
   // sur leur rue pendant que l'utilisateur fait pivoter la carte.
@@ -175,9 +200,7 @@ export function MapCanvas({
       }}
     >
       <Camera
-        // Remonter la camera est ce qui la fait reappliquer son centre : c'est
-        // le seul levier declaratif disponible quand seule la vue a bouge.
-        key={recenterToken}
+        ref={cameraRef}
         center={[center.longitude, center.latitude]}
         zoom={zoom}
         pitch={pitch}
