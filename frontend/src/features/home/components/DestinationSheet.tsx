@@ -1,9 +1,16 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { colors, radius, shadows, spacing, typography } from '../../../theme';
+import {
+  colors,
+  radius,
+  shadows,
+  SHEET_HEIGHT,
+  spacing,
+  typography,
+} from '../../../theme';
 
 export type Shortcut = {
   id: string;
@@ -33,11 +40,23 @@ export function DestinationSheet({
 }: Props) {
   const insets = useSafeAreaInsets();
 
+  // Hauteur fixe (SHEET_HEIGHT) a laquelle la marge systeme s'AJOUTE : la barre
+  // de navigation du telephone garde son espace au lieu de rogner le contenu.
+  // Le contenu lui-meme defile dans la zone restante, sans que son design ait a
+  // changer selon la taille de l'ecran.
   return (
-    <View style={[styles.sheet, { paddingBottom: insets.bottom + spacing.lg }]}>
-      <View style={styles.handle} />
-
-      <Text style={styles.title}>Où allez-vous ?</Text>
+    <View
+      style={[
+        styles.sheet,
+        { height: SHEET_HEIGHT + insets.bottom, paddingBottom: insets.bottom },
+      ]}
+    >
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        <Text style={styles.title}>Où allez-vous ?</Text>
 
       <Pressable
         onPress={onSearchPress}
@@ -65,28 +84,31 @@ export function DestinationSheet({
             </View>
             <Text style={styles.shortcutLabel}>{shortcut.label}</Text>
           </Pressable>
-        ))}
-      </View>
+          ))}
+        </View>
+      </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   sheet: {
+    // Hauteur fixe partagee par tous les sheets : voir SHEET_HEIGHT.
+    height: SHEET_HEIGHT,
     backgroundColor: colors.surface,
+    // La hauteur etant fixe, un contenu plus grand deborderait sous le bord de
+    // l'ecran : on le decoupe au lieu de le laisser passer dessous.
+    overflow: 'hidden',
     borderTopLeftRadius: radius.sheet,
     borderTopRightRadius: radius.sheet,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
     ...shadows.sheet,
   },
-  handle: {
-    alignSelf: 'center',
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: colors.border,
-    marginBottom: spacing.lg,
+  scroll: {
+    flex: 1,
+  },
+  content: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
   },
   title: {
     ...typography.title,

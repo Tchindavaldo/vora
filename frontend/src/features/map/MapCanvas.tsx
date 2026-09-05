@@ -8,6 +8,8 @@ import React, {
 import { StyleSheet, Text, View } from 'react-native';
 import {
   Camera,
+  GeoJSONSource,
+  Layer,
   LogManager,
   Map,
   Marker,
@@ -98,6 +100,29 @@ type Props = {
    * interne a ce fichier — les ecrans ne manipulent pas MapLibre (R11).
    */
   recenterToken?: number;
+  /**
+   * Hauteur masquee par le panneau du bas, en pixels.
+   *
+   * La carte reste plein ecran et passe sous le panneau ; ce decalage sert a
+   * placer le centre optique au milieu de la zone RESTEE VISIBLE, pour que la
+   * position de l'utilisateur ne se retrouve pas a moitie cachee.
+   */
+  bottomPadding?: number;
+  /**
+   * Trace de l'itineraire, du depart vers la destination. `undefined` = aucun
+   * trajet en cours.
+   *
+   * Une liste de points, pas une geometrie GeoJSON : les ecrans ne manipulent
+   * jamais les types du fournisseur (R11).
+   */
+  route?: { longitude: number; latitude: number }[];
+  /**
+   * Cadre la camera sur tout l'itineraire a chaque increment.
+   *
+   * Meme mecanique que `recenterToken` : un compteur plutot qu'une ref
+   * imperative, pour que l'ecran demande un cadrage sans toucher a MapLibre.
+   */
+  fitRouteToken?: number;
 };
 
 /**
@@ -115,6 +140,17 @@ export const DEFAULT_PITCH = 25;
 /** Duree du vol de recentrage, en millisecondes. */
 const RECENTER_DURATION_MS = 1500;
 
+/**
+ * Marges du cadrage sur l'itineraire, en pixels. Le bas est plus large : le
+ * panneau d'estimation y est pose et masquerait la fin du trace.
+ */
+const FIT_PADDING_TOP = 120;
+const FIT_PADDING_SIDE = 60;
+const FIT_PADDING_BOTTOM = 320;
+
+/** Epaisseur du trace, en pixels. */
+const ROUTE_WIDTH = 5;
+
 export function MapCanvas({
   center,
   zoom,
@@ -122,8 +158,16 @@ export function MapCanvas({
   pitch = DEFAULT_PITCH,
   onRoadsAvailable,
   recenterToken = 0,
+  bottomPadding = 0,
+  route,
+  fitRouteToken = 0,
 }: Props) {
   const mapStyle = useMapStyle();
+
+  // Lu dans l'effet de recentrage, qui ne depend volontairement que du token.
+  const bottomPaddingRef = useRef(bottomPadding);
+  bottomPaddingRef.current = bottomPadding;
+
   const mapRef = useRef<MapRef>(null);
   const cameraRef = useRef<CameraRef>(null);
 
@@ -153,6 +197,14 @@ export function MapCanvas({
         zoom,
         pitch,
         bearing: 0,
+        // Meme decalage que la camera : recentrer doit poser le point au
+        // milieu de la zone visible, pas sous le panneau.
+        padding: {
+          top: 0,
+          right: 0,
+          bottom: bottomPaddingRef.current,
+          left: 0,
+        },
         duration: RECENTER_DURATION_MS,
       });
     } catch (error) {
@@ -162,6 +214,49 @@ export function MapCanvas({
     // au moindre rafraichissement de la position GPS.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recenterToken]);
+
+  /**
+   * Cadrage sur l'itineraire complet.
+   *
+   * On calcule la boite englobante des points du trace et on demande a la
+   * camera de la couvrir : l'utilisateur doit voir d'un coup d'oeil son depart
+   * et sa destination, pas un bout de ligne qui sort de l'ecran.
+   */
+  useEffect(() => {
+    if (fitRouteToken === 0 || !route || route.length < 2) return;
+
+    let west = route[0].longitude;
+    let east = route[0].longitude;
+    let south = route[0].latitude;
+    let north = route[0].latitude;
+
+    for (const point of route) {
+      if (point.longitude < west) west = point.longitude;
+      if (point.longitude > east) east = point.longitude;
+      if (point.latitude < south) south = point.latitude;
+      if (point.latitude > north) north = point.latitude;
+    }
+
+    // Marge basse plus large : le panneau d'estimation couvre le bas de
+    // l'ecran et masquerait la fin du trace.
+    try {
+      cameraRef.current?.fitBounds([west, south, east, north], {
+        padding: {
+          top: FIT_PADDING_TOP,
+          right: FIT_PADDING_SIDE,
+          bottom: FIT_PADDING_BOTTOM,
+          left: FIT_PADDING_SIDE,
+        },
+        duration: RECENTER_DURATION_MS,
+      });
+    } catch (error) {
+      // Camera demontee entre-temps : le cadrage n'a plus de cible (R8).
+      console.warn('Cadrage ignore : camera indisponible', error);
+    }
+    // Sur le seul token : le cadrage repond a une demande de l'ecran, pas au
+    // recalcul de l'itineraire a chaque rendu.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fitRouteToken]);
 
   // Cap courant de la camera, pour que les marqueurs orientes restent alignes
   // sur leur rue pendant que l'utilisateur fait pivoter la carte.
@@ -225,8 +320,55 @@ export function MapCanvas({
         center={[center.longitude, center.latitude]}
         zoom={zoom}
         pitch={pitch}
+        // La carte occupe tout l'ecran et passe SOUS le sheet, mais son centre
+        // optique doit tomber au milieu de la partie restee visible : sans ce
+        // decalage, la position de l'utilisateur apparait trop basse, a moitie
+        // cachee par le panneau.
+        padding={{ top: 0, right: 0, bottom: bottomPadding, left: 0 }}
         duration={600}
       />
+
+      {route && route.length >= 2 && (
+        <GeoJSONSource
+          id="route"
+          data={{
+            type: 'Feature',
+            properties: {},
+            geometry: {
+              type: 'LineString',
+              coordinates: route.map((point) => [
+                point.longitude,
+                point.latitude,
+              ]),
+            },
+          }}
+        >
+          {/*
+            Deux couches : un liset sombre sous le trace, pour que la ligne
+            reste lisible aussi bien sur l'asphalte gris que sur les zones
+            claires de la carte.
+          */}
+          <Layer
+            id="route-casing"
+            type="line"
+            layout={{ 'line-cap': 'round', 'line-join': 'round' }}
+            paint={{
+              'line-color': colors.text,
+              'line-width': ROUTE_WIDTH + 3,
+              'line-opacity': 0.25,
+            }}
+          />
+          <Layer
+            id="route-line"
+            type="line"
+            layout={{ 'line-cap': 'round', 'line-join': 'round' }}
+            paint={{
+              'line-color': colors.primary,
+              'line-width': ROUTE_WIDTH,
+            }}
+          />
+        </GeoJSONSource>
+      )}
 
       <MapBearingContext.Provider value={bearing}>
         {markers.map((marker) => (

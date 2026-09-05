@@ -44,8 +44,12 @@ Le style se change par `EXPO_PUBLIC_MAP_STYLE_URL` sans toucher au code.
 supplémentaire à configurer avant la démo. Les requêtes portent `proximity`
 (position courante) et `country=cm` pour écarter les homonymes étrangers.
 
-**Routage** : pas encore branché. Prévu — OpenRouteService, dans
-`src/services/routing.ts`.
+**Routage** : OpenRouteService, encapsulé dans `src/services/routing.ts` (R11),
+appelé sur `api.heigit.org/openrouteservice/v2/` (l'ancien domaine
+`api.openrouteservice.org` est en cours de retrait). Retenu pour ses profils de
+véhicule distincts — `driving-car` et `cycling-regular`, ce dernier approchant
+le trajet réel d'un moto-taxi. 2 000 requêtes/jour gratuites. Détail dans
+`booking.md`.
 
 ⚠️ MapLibre est un module natif : **l'app ne tourne pas dans Expo Go**. Il faut
 un development build (voir « Lancer le projet » plus bas).
@@ -55,7 +59,8 @@ un development build (voir « Lancer le projet » plus bas).
 ```text
 src/
   config/env.ts            lecture des variables d'environnement (R9)
-  theme/index.ts           design system : couleurs, espacements, ombres
+  theme/index.ts           design system : couleurs, espacements, ombres,
+                           SHEET_HEIGHT (hauteur commune des bottom sheets)
   features/
     map/MapCanvas.tsx      encapsulation MapLibre (R11) — seul fichier qui l'importe
     home/                  écran d'accueil passager
@@ -69,9 +74,14 @@ src/
       DestinationSearchScreen.tsx  écran plein : liste puis confirmation
       usePlaceSearch.ts    debounce, annulation, messages d'erreur (R8)
       components/          SearchField, PlaceRow, LandmarkField
-    booking/               (vide) estimation et confirmation de course
+    booking/               itinéraire et estimation (R17 étapes 4-5)
+      useBookingFlow.ts    destination, itinéraire, tarifs, palier retenu
+      useRoute.ts          appel du routage, annulation, retry (R8)
+      components/          FareSheet, DestinationPin
   services/
     geocoding.ts           MapTiler Geocoding — seul fichier qui le connaît
+    routing.ts             OpenRouteService — idem pour l'itinéraire
+    pricing.ts             grille tarifaire, service pur (R16)
     roadsFromMap.ts        routes lues dans les tuiles déjà affichées — utilisé
     roads.ts               mêmes types + variante Overpass — non utilisée
   contexts/                (vide) AuthContext, RideContext, LocationContext

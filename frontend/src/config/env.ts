@@ -15,6 +15,7 @@ const raw = {
   maptilerKey: process.env.EXPO_PUBLIC_MAPTILER_KEY,
   mapStyleUrl: process.env.EXPO_PUBLIC_MAP_STYLE_URL,
   apiUrl: process.env.EXPO_PUBLIC_API_URL,
+  orsKey: process.env.EXPO_PUBLIC_ORS_KEY,
 };
 
 /**
@@ -64,6 +65,13 @@ export const env = {
    * degrade au lieu d'appeler l'API pour rien (R8).
    */
   geocodingKey: raw.maptilerKey ?? null,
+
+  /**
+   * Cle OpenRouteService (`services/routing.ts`). `null` quand elle manque ->
+   * l'ecran d'estimation affiche son etat degrade au lieu d'appeler l'API pour
+   * rien (R8).
+   */
+  routingKey: raw.orsKey ?? null,
 
   /** true quand la carte est utilisable. Sert a afficher l'etat degrade. */
   get hasMapStyle(): boolean {
