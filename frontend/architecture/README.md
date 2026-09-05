@@ -68,11 +68,14 @@ src/
     home/                  écran d'accueil passager
       HomeScreen.tsx       assemblage carte + header + sheet
       useRideOrder.ts      estimation → paiement → commande, sorti de l'écran (R4)
+      useHomeNavigation.ts écrans pleins superposés : recherche, historique,
+                           profil, contacts (pas de librairie de nav — R18)
       useHomeMarkers.tsx   marqueurs : véhicules, position, destination, chauffeur
       useUserLocation.ts   position utilisateur avec repli (R8)
       useVehicleMotion.ts  déplacement des véhicules le long de leur rue
       demoData.ts          données simulées — À REMPLACER par l'API
-      components/          HomeHeader, DestinationSheet, VehicleMarker,
+      components/          HomeHeader, HomeSheets (cascade des panneaux),
+                           DestinationSheet, VehicleMarker,
                            UserLocationDot, LocationNotice
     search/                recherche de destination (R17 étape 3)
       DestinationSearchScreen.tsx  écran plein : liste puis confirmation
@@ -90,10 +93,15 @@ src/
       useApproachRoute.ts  itinéraire du chauffeur vers le passager
       useDriverApproach.ts position animée du chauffeur sur la carte
       useRideCamera.ts     cadrages de la carte pendant le suivi
-      useRideSafety.ts     partage de course et alerte d'urgence (R10)
+      useRideSafety.ts     partage, alerte, assistance, signalement (R10)
       useRideRating.ts     note, commentaire, envoi de l'évaluation (R8)
       components/          SearchingDriverSheet, RideTrackingSheet,
-                           RatingSheet, RatingCommentScreen
+                           RatingSheet, RatingCommentScreen,
+                           EmergencySheet, ReportSheet
+    profile/               profil, paramètres et contacts d'urgence (R10)
+      ProfileScreen.tsx    sections sécurité / courses / compte
+      EmergencyContactsScreen.tsx  ajout et suppression des contacts
+      useEmergencyContacts.ts      liste partagée + validation des saisies
     history/               historique des courses et de leurs reçus (brief §8)
       TransactionHistoryScreen.tsx  écran plein : total, liste, états dégradés
       useTransactions.ts   lecture : chargement, succès, erreur (R8, R12)
@@ -106,6 +114,7 @@ src/
     payment.ts             verdicts de paiement SIMULÉS, à remplacer par l'API
     ratings.ts             envoi de l'évaluation SIMULÉ, à remplacer par l'API
     transactions.ts        historique SIMULÉ en mémoire, à remplacer par l'API
+    safety.ts              alerte et signalement SIMULÉS, à remplacer par l'API
     roadsFromMap.ts        routes lues dans les tuiles déjà affichées — utilisé
     roads.ts               mêmes types + variante Overpass — non utilisée
   contexts/                (vide) AuthContext, RideContext, LocationContext
@@ -122,6 +131,7 @@ src/
 | `ride.md` | `src/features/ride/` — course : commande, chauffeur, suivi |
 | `payment.md` | `src/features/payment/` — mode de paiement et monnaie en espèces |
 | `history.md` | `src/features/history/` — historique des courses et de leurs reçus |
+| `safety.md` | `src/features/ride/` + `src/features/profile/` — SOS, partage, signalement, contacts d'urgence |
 
 ## Décisions de design notables
 

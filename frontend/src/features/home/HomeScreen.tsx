@@ -16,31 +16,35 @@ import {
 import { useUserLocation } from './useUserLocation';
 import { useVehicleMotion } from './useVehicleMotion';
 import { HomeHeader } from './components/HomeHeader';
-import { DestinationSheet, type Shortcut } from './components/DestinationSheet';
+import { HomeSheets } from './components/HomeSheets';
+import type { Shortcut } from './components/DestinationSheet';
 import {
   DestinationSearchScreen,
   type DestinationChoice,
 } from '../search/DestinationSearchScreen';
 import { useBookingFlow } from '../booking/useBookingFlow';
-import { FareSheet } from '../booking/components/FareSheet';
 import { usePayment } from '../payment/usePayment';
-import { PaymentSheet } from '../payment/components/PaymentSheet';
-import { CashChangeSheet } from '../payment/components/CashChangeSheet';
 import { useRideRequest } from '../ride/useRideRequest';
 import { useRideOrder } from './useRideOrder';
+import { useHomeNavigation } from './useHomeNavigation';
 import { useRideRating } from '../ride/useRideRating';
-import { RatingSheet } from '../ride/components/RatingSheet';
 import { RatingCommentScreen } from '../ride/components/RatingCommentScreen';
-import { SearchingDriverSheet } from '../ride/components/SearchingDriverSheet';
-import { RideTrackingSheet } from '../ride/components/RideTrackingSheet';
 import { useDriverApproach } from '../ride/useDriverApproach';
 import { useApproachRoute } from '../ride/useApproachRoute';
 import { useRideCamera } from '../ride/useRideCamera';
 import { useRideSafety } from '../ride/useRideSafety';
 import { TransactionHistoryScreen } from '../history/TransactionHistoryScreen';
+import { ProfileScreen } from '../profile/ProfileScreen';
+import { EmergencyContactsScreen } from '../profile/EmergencyContactsScreen';
+import { useEmergencyContacts } from '../profile/useEmergencyContacts';
 import { LocationNotice } from './components/LocationNotice';
 import { useHomeMarkers } from './useHomeMarkers';
-import { DEMO_USER_INITIAL, NEARBY_VEHICLES, SHORTCUTS } from './demoData';
+import {
+  DEMO_USER_INITIAL,
+  DEMO_USER_NAME,
+  NEARBY_VEHICLES,
+  SHORTCUTS,
+} from './demoData';
 
 /**
  * Ecran d'accueil passager.
@@ -113,8 +117,12 @@ export function HomeScreen() {
   // Mode de paiement, choisi entre l'estimation et la recherche de chauffeur.
   const payment = usePayment();
 
-  // Partage de course et SOS (R10).
-  const safety = useRideSafety(ride.ride);
+  // Partage, SOS, assistance et signalement (R10). La position courante part
+  // avec l'alerte : sans elle, prevenir un proche ne sert pas a grand-chose.
+  const safety = useRideSafety(ride.ride, location.coords);
+
+  // Contacts prevenus par l'alerte, definis dans le profil.
+  const emergencyContacts = useEmergencyContacts();
 
   // Estimation -> paiement -> commande. Sorti de l'ecran pour le garder
   // lisible (R4) : voir `useRideOrder`.
@@ -171,26 +179,21 @@ export function HomeScreen() {
   const handleRecenter = () => setRecenterToken((token) => token + 1);
 
   /**
-   * Ecran de recherche de destination.
-   *
-   * Pas de librairie de navigation pour l'instant (R18 : aucune dependance
-   * sans necessite) — l'app n'a que deux ecrans et la recherche se superpose a
-   * l'accueil. `null` = accueil seul ; une chaine = recherche ouverte, avec la
-   * saisie initiale venant eventuellement d'un raccourci.
+   * Ecrans pleins superposes a l'accueil : recherche, historique, profil,
+   * contacts d'urgence. Voir `useHomeNavigation` — pas de librairie de
+   * navigation (R18).
    */
-  const [searchQuery, setSearchQuery] = useState<string | null>(null);
-
-  const handleSearchPress = () => setSearchQuery('');
+  const nav = useHomeNavigation();
 
   const handleShortcutPress = (shortcut: Shortcut) => {
     // Le libelle du raccourci sert d'amorce de recherche. Quand le profil
     // utilisateur existera, un raccourci portera son adresse enregistree et
     // ouvrira directement l'estimation.
-    setSearchQuery(shortcut.label);
+    nav.openSearch(shortcut.label);
   };
 
   const handleDestinationConfirm = (choice: DestinationChoice) => {
-    setSearchQuery(null);
+    nav.close();
     booking.start(choice);
   };
 
@@ -225,13 +228,6 @@ export function HomeScreen() {
     rating.reset();
   };
 
-  /**
-   * Historique des courses, ouvert depuis le bouton menu. Comme la recherche,
-   * il se superpose a l'accueil : l'app n'a toujours pas de librairie de
-   * navigation (R18).
-   */
-  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
-
   // Commentaire : plein ecran pour que le clavier ne recouvre pas la saisie.
   const rated = ride.ride;
   if (isCommenting && rating.stars !== null && rated?.driver != null) {
@@ -253,16 +249,32 @@ export function HomeScreen() {
     );
   }
 
-  if (isHistoryOpen) {
-    return <TransactionHistoryScreen onClose={() => setIsHistoryOpen(false)} />;
+  if (nav.route?.name === 'contacts') {
+    return <EmergencyContactsScreen onClose={nav.openProfile} />;
   }
 
-  if (searchQuery !== null) {
+  if (nav.route?.name === 'profile') {
+    return (
+      <ProfileScreen
+        userName={DEMO_USER_NAME}
+        userInitial={DEMO_USER_INITIAL}
+        onOpenEmergencyContacts={nav.openContacts}
+        onOpenHistory={nav.openHistory}
+        onClose={nav.close}
+      />
+    );
+  }
+
+  if (nav.route?.name === 'history') {
+    return <TransactionHistoryScreen onClose={nav.close} />;
+  }
+
+  if (nav.route?.name === 'search') {
     return (
       <DestinationSearchScreen
         origin={location.coords}
-        initialQuery={searchQuery}
-        onClose={() => setSearchQuery(null)}
+        initialQuery={nav.route.query}
+        onClose={nav.close}
         onConfirm={handleDestinationConfirm}
       />
     );
@@ -295,8 +307,8 @@ export function HomeScreen() {
       <HomeHeader
         nearbyCount={NEARBY_VEHICLES.length}
         userInitial={DEMO_USER_INITIAL}
-        onMenuPress={() => setIsHistoryOpen(true)}
-        onProfilePress={() => {}}
+        onMenuPress={nav.openHistory}
+        onProfilePress={nav.openProfile}
       />
 
       <View style={styles.bottomStack} pointerEvents="box-none">
@@ -333,97 +345,24 @@ export function HomeScreen() {
           </Pressable>
         </View>
 
-        {/*
-          Une course en preparation remplace le sheet de saisie par
-          l'estimation : les deux repondent a la meme question, "ou va-t-on",
-          et les empiler laisserait un champ de recherche sous un trajet deja
-          choisi.
-        */}
-        {/*
-          Une fois le tarif retenu, l'estimation cede la place au paiement puis,
-          la course commandee, a la recherche de chauffeur et a sa fiche :
-          quatre etats successifs d'une meme question, jamais empiles.
-        */}
-        {isRating && ride.ride !== null && ride.ride.driver !== null ? (
-          <RatingSheet
-            ride={ride.ride}
-            driver={ride.ride.driver}
-            stars={rating.stars}
-            onSelectStars={rating.setStars}
-            isSent={rating.isSent}
-            onNext={() => setIsCommenting(true)}
-            onClose={handleRatingClose}
-          />
-        ) : ride.isCreating || ride.error !== null ||
-        (ride.ride !== null && ride.ride.status === 'searching') ? (
-          <SearchingDriverSheet
-            destinationLabel={booking.choice?.place.label ?? ''}
-            tier={booking.selectedTier}
-            amountXaf={
-              booking.fares.find((item) => item.tier === booking.selectedTier)
-                ?.amountXaf ?? 0
-            }
-            error={ride.error}
-            notice={ride.ride?.declineReason ?? null}
-            onRetry={order.order}
-            onCancel={handleCancelRide}
-          />
-        ) : ride.ride !== null && ride.ride.driver !== null ? (
-          <RideTrackingSheet
-            ride={ride.ride}
-            driver={ride.ride.driver}
-            onCancel={handleCancelRide}
-            onSos={safety.sos}
-            onShare={safety.share}
-            onDone={handleRideDone}
-          />
-        ) : order.isPaying &&payment.step === 'cash' && booking.choice !== null ? (
-          <CashChangeSheet
-            destinationLabel={booking.choice.place.label}
-            distanceMeters={booking.distanceMeters}
-            tier={booking.selectedTier}
-            amountXaf={order.selectedFare?.amountXaf ?? 0}
-            billInput={payment.billInput}
-            onChangeBill={payment.setBillInput}
-            offer={order.cashOffer}
-            onOrder={order.orderWithCash}
-            onBack={payment.back}
-          />
-        ) : order.isPaying &&booking.choice !== null ? (
-          <PaymentSheet
-            destinationLabel={booking.choice.place.label}
-            distanceMeters={booking.distanceMeters}
-            tier={booking.selectedTier}
-            amountXaf={order.selectedFare?.amountXaf ?? 0}
-            selectedMethod={payment.method}
-            onSelectMethod={payment.selectMethod}
-            payment={payment.payment}
-            isProcessing={payment.isProcessing}
-            isSettled={payment.isSettled}
-            onNext={order.nextFromPayment}
-            onContinue={order.order}
-            onBack={order.cancelPayment}
-          />
-        ) : booking.choice === null ? (
-          <DestinationSheet
-            shortcuts={SHORTCUTS}
-            onSearchPress={handleSearchPress}
-            onShortcutPress={handleShortcutPress}
-          />
-        ) : (
-          <FareSheet
-            destinationLabel={booking.choice.place.label}
-            fares={booking.fares}
-            selectedTier={booking.selectedTier}
-            onSelectTier={booking.selectTier}
-            distanceMeters={booking.distanceMeters}
-            isLoading={booking.isLoading}
-            error={booking.error}
-            onRetry={booking.retry}
-            onConfirm={order.goToPayment}
-            onCancel={booking.cancel}
-          />
-        )}
+        {/* Quel panneau s'affiche selon l'avancement : voir `HomeSheets`. */}
+        <HomeSheets
+          booking={booking}
+          payment={payment}
+          ride={ride}
+          order={order}
+          rating={rating}
+          safety={safety}
+          emergencyContacts={emergencyContacts.items}
+          shortcuts={SHORTCUTS}
+          isRating={isRating}
+          onSearchPress={() => nav.openSearch()}
+          onShortcutPress={handleShortcutPress}
+          onCancelRide={handleCancelRide}
+          onRideDone={handleRideDone}
+          onOpenComment={() => setIsCommenting(true)}
+          onRatingClose={handleRatingClose}
+        />
       </View>
     </View>
   );

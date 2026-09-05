@@ -8,9 +8,9 @@
 
 **Phase actuelle** : frontend initialisé — accueil, recherche de destination,
 itinéraire, estimation de prix, paiement simulé, commande, recherche de
-chauffeur, suivi de la course jusqu'à sa fin, évaluation du chauffeur et
-historique des courses (R17 étapes 2 à 8, la course étant simulée).
-Backend non démarré.
+chauffeur, suivi de la course jusqu'à sa fin, évaluation du chauffeur,
+historique des courses et sécurité du passager (R17 étapes 2 à 8 et 10, la
+course étant simulée). Backend non démarré.
 
 | Couche | Choix | Justification |
 |---|---|---|
@@ -41,8 +41,9 @@ frontend/              application mobile passager (Expo, initialisé)
       payment/         paiement (espèces + monnaie, portefeuille, MoMo) — FAIT, simulé
       ride/            course : chauffeur, suivi, évaluation — FAIT
       history/         historique des courses et de leurs reçus — FAIT
+      profile/         profil, paramètres, contacts d'urgence — FAIT
     services/          géocodage (MapTiler), routage (ORS), tarifs, paiement,
-                       évaluations et transactions (simulés)
+                       évaluations, transactions et sécurité (simulés)
     contexts/          (vide) Auth, Ride, Location
   architecture/        doc du frontend
 backend/               (non initialisé)
@@ -76,6 +77,7 @@ feature.
 | [`frontend/architecture/ride.md`](../frontend/architecture/ride.md) | Course : commande, chauffeur, suivi jusqu'à la fin |
 | [`frontend/architecture/payment.md`](../frontend/architecture/payment.md) | Paiement : espèces et monnaie annoncée, portefeuille, Mobile Money (simulé) |
 | [`frontend/architecture/history.md`](../frontend/architecture/history.md) | Historique des courses et de leurs reçus |
+| [`frontend/architecture/safety.md`](../frontend/architecture/safety.md) | Sécurité : SOS, partage, signalement, contacts d'urgence |
 
 ## 5. Flux principal (brief §13)
 

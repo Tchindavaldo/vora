@@ -19,6 +19,7 @@ import {
   typography,
 } from '../../../theme';
 import { formatXaf, TIER_LABELS } from '../../../services/pricing';
+import { METHOD_LABELS } from '../../../services/payment';
 import type { Driver, Ride } from '../../../services/rides';
 
 type Props = {
@@ -27,6 +28,8 @@ type Props = {
   onCancel: () => void;
   onSos: () => void;
   onShare: () => void;
+  /** Ouvre le signalement du chauffeur (R10). */
+  onReport: () => void;
   /** Ferme l'ecran de course terminee et revient a l'accueil. */
   onDone: () => void;
 };
@@ -47,6 +50,7 @@ export function RideTrackingSheet({
   onCancel,
   onSos,
   onShare,
+  onReport,
   onDone,
 }: Props) {
   const insets = useSafeAreaInsets();
@@ -75,6 +79,25 @@ export function RideTrackingSheet({
       >
         <View style={styles.header}>
           <Text style={styles.status}>{statusTitle(ride)}</Text>
+
+          {/*
+            Le signalement reste accessible APRES la descente : c'est souvent
+            une fois hors du vehicule que le passager ose signaler. En pastille
+            dans l'en-tete, a l'oppose du titre — presente sans peser, et jamais
+            confondue avec les actions du bas.
+          */}
+          {(showSafety || isFinished) && (
+            <Pressable
+              onPress={onReport}
+              style={styles.report}
+              hitSlop={6}
+              accessibilityRole="button"
+              accessibilityLabel="Signaler ce chauffeur"
+            >
+              <Ionicons name="flag-outline" size={12} color={colors.textMuted} />
+              <Text style={styles.reportLabel}>Signaler</Text>
+            </Pressable>
+          )}
         </View>
 
         <View style={styles.driver}>
@@ -120,6 +143,16 @@ export function RideTrackingSheet({
             {TIER_LABELS[ride.tier]} · {ride.destinationLabel}
           </Text>
           <Text style={styles.amount}>{formatXaf(ride.amountXaf)}</Text>
+        </View>
+
+        {/*
+          Comment le passager paie, sous le montant : la carte especes en
+          dessous detaille le billet, mais elle n'apparait qu'en especes. Cette
+          ligne-ci vaut pour les trois modes.
+        */}
+        <View style={styles.method}>
+          <Text style={styles.methodLabel}>Mode de paiement</Text>
+          <Text style={styles.methodValue}>{METHOD_LABELS[ride.method]}</Text>
         </View>
 
         {/*
@@ -309,6 +342,18 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   amount: typography.subtitle,
+  method: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+    marginTop: spacing.sm,
+  },
+  methodLabel: typography.caption,
+  methodValue: {
+    ...typography.label,
+    color: colors.text,
+  },
   cash: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -359,6 +404,19 @@ const styles = StyleSheet.create({
     ...typography.label,
     color: colors.surface,
   },
+  // Pastille discrete : bordure seule, pas de fond plein — elle ne doit pas
+  // concurrencer le titre qu'elle accompagne.
+  report: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
+  },
+  reportLabel: typography.caption,
   simulated: {
     ...typography.caption,
     marginTop: spacing.md,

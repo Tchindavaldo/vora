@@ -87,6 +87,7 @@ export function useRideOrder({ origin, booking, payment, ride }: Args) {
       // Le chauffeur voit la monnaie a prevoir sur la demande de course : s'il
       // ne peut pas rendre, il refuse et la course repart vers un autre.
       cash: payment.method === 'cash' ? cashOffer : null,
+      method: payment.method,
     });
   };
 

@@ -51,3 +51,6 @@ export const SHORTCUTS: Shortcut[] = [
 export const DEMO_AREA_LABEL = 'Bonapriso';
 
 export const DEMO_USER_INITIAL = 'M';
+
+/** Nom affiche dans le profil. Viendra du compte connecte (AuthContext). */
+export const DEMO_USER_NAME = 'Michelle Ngo';

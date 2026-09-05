@@ -13,7 +13,7 @@
  * chaque panneau porte la mention "simule".
  */
 
-import type { CashOffer } from './payment';
+import type { CashOffer, PaymentMethod } from './payment';
 import { formatXaf, type VehicleTier } from './pricing';
 import type { RoutePoint } from './routing';
 
@@ -79,6 +79,13 @@ export type Ride = {
    */
   cash: CashOffer | null;
   /**
+   * Mode de paiement retenu a la commande.
+   *
+   * Porte par la course : le passager doit pouvoir verifier comment il paie
+   * sans revenir a l'ecran de paiement, et le chauffeur voit le meme mode.
+   */
+  method: PaymentMethod;
+  /**
    * Pourquoi le dernier chauffeur contacte a refuse, `null` sinon. Affiche
    * pendant la recherche : le passager doit comprendre que l'attente se
    * prolonge parce qu'un chauffeur n'avait pas la monnaie (R8).
@@ -93,6 +100,7 @@ export type CreateRideInput = {
   tier: VehicleTier;
   amountXaf: number;
   cash: CashOffer | null;
+  method: PaymentMethod;
 };
 
 /** Chauffeurs de demonstration, un par categorie de vehicule. */
@@ -189,6 +197,7 @@ export async function createRide(input: CreateRideInput): Promise<Ride> {
     driverOrigin: driverStartPoint(input.origin, input.destination),
     pickup: input.origin,
     cash: input.cash,
+    method: input.method,
     declineReason: null,
   };
 }
