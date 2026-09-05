@@ -57,6 +57,14 @@ export const env = {
   mapStyleUrl: resolveMapStyleUrl(),
   apiUrl: raw.apiUrl ?? null,
 
+  /**
+   * Cle du geocodage (`services/geocoding.ts`). La meme que celle des tuiles :
+   * MapTiler couvre les deux usages, une seule variable a renseigner avant la
+   * demo. `null` quand elle manque -> l'ecran de recherche affiche son etat
+   * degrade au lieu d'appeler l'API pour rien (R8).
+   */
+  geocodingKey: raw.maptilerKey ?? null,
+
   /** true quand la carte est utilisable. Sert a afficher l'etat degrade. */
   get hasMapStyle(): boolean {
     return this.mapStyleUrl !== null;
@@ -75,4 +83,6 @@ export const DEFAULT_REGION = {
   // du style, aucun seuil de zoom n'est plus a respecter.
   zoom: 14.5,
   cityLabel: 'Douala',
+  /** Restreint le geocodage au Cameroun : ecarte les homonymes etrangers. */
+  countryCode: 'cm',
 } as const;

@@ -16,6 +16,10 @@ import { useUserLocation } from './useUserLocation';
 import { useVehicleMotion } from './useVehicleMotion';
 import { HomeHeader } from './components/HomeHeader';
 import { DestinationSheet, type Shortcut } from './components/DestinationSheet';
+import {
+  DestinationSearchScreen,
+  type DestinationChoice,
+} from '../search/DestinationSearchScreen';
 import { LocationNotice } from './components/LocationNotice';
 import { UserLocationDot } from './components/UserLocationDot';
 import { VehicleMarker } from './components/VehicleMarker';
@@ -134,13 +138,40 @@ export function HomeScreen() {
 
   const handleRecenter = () => setRecenterToken((token) => token + 1);
 
-  const handleSearchPress = () => {
-    // TODO: naviguer vers l'ecran de recherche de destination.
+  /**
+   * Ecran de recherche de destination.
+   *
+   * Pas de librairie de navigation pour l'instant (R18 : aucune dependance
+   * sans necessite) — l'app n'a que deux ecrans et la recherche se superpose a
+   * l'accueil. `null` = accueil seul ; une chaine = recherche ouverte, avec la
+   * saisie initiale venant eventuellement d'un raccourci.
+   */
+  const [searchQuery, setSearchQuery] = useState<string | null>(null);
+
+  const handleSearchPress = () => setSearchQuery('');
+
+  const handleShortcutPress = (shortcut: Shortcut) => {
+    // Le libelle du raccourci sert d'amorce de recherche. Quand le profil
+    // utilisateur existera, un raccourci portera son adresse enregistree et
+    // ouvrira directement l'estimation.
+    setSearchQuery(shortcut.label);
   };
 
-  const handleShortcutPress = (_shortcut: Shortcut) => {
-    // TODO: pre-remplir la destination puis ouvrir l'estimation.
+  const handleDestinationConfirm = (_choice: DestinationChoice) => {
+    // TODO (R17 etape 4) : calculer l'itineraire puis ouvrir l'estimation.
+    setSearchQuery(null);
   };
+
+  if (searchQuery !== null) {
+    return (
+      <DestinationSearchScreen
+        origin={location.coords}
+        initialQuery={searchQuery}
+        onClose={() => setSearchQuery(null)}
+        onConfirm={handleDestinationConfirm}
+      />
+    );
+  }
 
   return (
     <View style={styles.root}>
