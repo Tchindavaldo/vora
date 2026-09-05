@@ -112,6 +112,9 @@ type Props = {
  */
 export const DEFAULT_PITCH = 25;
 
+/** Duree du vol de recentrage, en millisecondes. */
+const RECENTER_DURATION_MS = 1500;
+
 export function MapCanvas({
   center,
   zoom,
@@ -136,12 +139,16 @@ export function MapCanvas({
     // On remet aussi le zoom d'ouverture : apres avoir explore la carte,
     // "recentrer" doit rendre exactement la vue du demarrage, pas la position
     // courante vue de trop pres ou de trop loin.
-    cameraRef.current?.setStop({
+    // `flyTo` et non `setStop` : il decrit une courbe de vol (leger recul puis
+    // approche) au lieu d'une translation lineaire, et une seconde et demie
+    // laisse l'oeil suivre le deplacement. Un saut de 600 ms se lit comme un
+    // teleportage.
+    cameraRef.current?.flyTo({
       center: [center.longitude, center.latitude],
       zoom,
       pitch,
       bearing: 0,
-      duration: 600,
+      duration: RECENTER_DURATION_MS,
     });
     // Volontairement sur le seul token : recentrer doit repondre a l'appui, pas
     // au moindre rafraichissement de la position GPS.
