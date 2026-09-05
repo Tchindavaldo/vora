@@ -2,13 +2,24 @@ import React from 'react';
 import { Image, StyleSheet, View } from 'react-native';
 import Svg, { Ellipse, G, Path, Rect } from 'react-native-svg';
 
-export type VehicleKind = 'moto' | 'car';
+/**
+ * Categories de vehicules, alignees sur les paliers de tarif proposes a
+ * l'estimation : moto-taxi, berline economique, berline confort.
+ */
+export type VehicleKind = 'moto' | 'eco' | 'comfort';
 
 /**
- * Illustration de la berline. Fournie en 1x/2x/3x : React Native choisit la
+ * Illustrations des berlines, fournies en 1x/2x/3x : React Native choisit la
  * densite selon l'ecran, l'image reste nette sans embarquer un fichier lourd.
+ *
+ * Eco et Confort partagent la meme silhouette et ne different que par la
+ * teinte. A 38 px, une difference de carrosserie (berline contre SUV) serait
+ * invisible ; un contraste clair/sombre se lit immediatement.
  */
-const CAR_IMAGE = require('../../../../assets/vehicles/car.png');
+const CAR_IMAGES: Record<'eco' | 'comfort', number> = {
+  eco: require('../../../../assets/vehicles/car-eco.png'),
+  comfort: require('../../../../assets/vehicles/car-comfort.png'),
+};
 
 type Props = {
   kind: VehicleKind;
@@ -31,12 +42,16 @@ type Props = {
  * centre, ce qui suppose un vehicule centre dans son cadre.
  */
 export function VehicleMarker({ kind, bearing = 0 }: Props) {
-  // La voiture est une illustration fournie ; la moto reste dessinee en SVG
-  // tant qu'aucun asset equivalent n'existe.
-  if (kind === 'car') {
+  // Les voitures sont des illustrations fournies ; la moto reste dessinee en
+  // SVG tant qu'aucun asset equivalent n'existe.
+  if (kind !== 'moto') {
     return (
       <View style={[styles.marker, { transform: [{ rotate: `${bearing}deg` }] }]}>
-        <Image source={CAR_IMAGE} style={styles.image} resizeMode="contain" />
+        <Image
+          source={CAR_IMAGES[kind]}
+          style={styles.image}
+          resizeMode="contain"
+        />
       </View>
     );
   }

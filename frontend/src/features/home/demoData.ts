@@ -30,10 +30,10 @@ export type NearbyVehicle = {
  */
 export const NEARBY_VEHICLES: NearbyVehicle[] = [
   { id: 'v1', kind: 'moto', offsetLng: -0.0042, offsetLat: 0.0031, bearing: 118 },
-  { id: 'v2', kind: 'car', offsetLng: 0.0035, offsetLat: 0.0022, bearing: 205 },
+  { id: 'v2', kind: 'eco', offsetLng: 0.0035, offsetLat: 0.0022, bearing: 205 },
   { id: 'v3', kind: 'moto', offsetLng: 0.0028, offsetLat: -0.0034, bearing: 42 },
-  { id: 'v4', kind: 'car', offsetLng: -0.0051, offsetLat: -0.0019, bearing: 330 },
-  { id: 'v5', kind: 'moto', offsetLng: 0.0012, offsetLat: 0.0047, bearing: 165 },
+  { id: 'v4', kind: 'comfort', offsetLng: -0.0051, offsetLat: -0.0019, bearing: 330 },
+  { id: 'v5', kind: 'eco', offsetLng: 0.0012, offsetLat: 0.0047, bearing: 165 },
 ];
 
 export const SHORTCUTS: Shortcut[] = [
