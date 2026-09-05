@@ -1,9 +1,10 @@
-import React from 'react';
-import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import React from "react";
+import { Linking, Pressable, StyleSheet, Text, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { colors, radius, shadows, spacing, typography } from '../../../theme';
-import type { LocationStatus } from '../useUserLocation';
+import { colors, radius, shadows, spacing, typography } from "../../../theme";
+import type { LocationStatus } from "../useUserLocation";
 
 type Props = {
   status: LocationStatus;
@@ -18,22 +19,30 @@ type Props = {
  * l'app reste utilisable sans geolocalisation.
  */
 export function LocationNotice({ status, cityLabel }: Props) {
-  if (status === 'loading' || status === 'granted') return null;
+  const insets = useSafeAreaInsets();
+
+  if (status === "loading" || status === "granted") return null;
 
   const message =
-    status === 'denied'
+    status === "denied"
       ? `Localisation désactivée · carte centrée sur ${cityLabel}`
       : `Position introuvable · carte centrée sur ${cityLabel}`;
 
   return (
-    <View style={styles.container}>
-      <Ionicons name="location-outline" size={16} color={colors.text} />
+    // Quand la geoloc est coupee, ce bandeau est le dernier element de l'ecran :
+    // c'est donc lui qui doit degager la zone systeme du bas, sinon il colle au
+    // bord et passe sous la barre de navigation.
+    <View
+      style={[styles.container, { marginBottom: insets.bottom + spacing.md }]}
+    >
+      <Ionicons name="location-outline" size={16} color={colors.surface} />
       <Text style={styles.message} numberOfLines={2}>
         {message}
       </Text>
-      {status === 'denied' && (
+      {status === "denied" && (
         <Pressable
           onPress={() => Linking.openSettings()}
+          style={styles.actionButton}
           accessibilityRole="button"
           accessibilityLabel="Ouvrir les réglages de localisation"
         >
@@ -46,25 +55,36 @@ export function LocationNotice({ status, cityLabel }: Props) {
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: spacing.sm,
-    backgroundColor: colors.surface,
+    // Fond sombre : ce bandeau doit se detacher franchement de la carte claire,
+    // la ou une surface blanche s'y fondait.
+    backgroundColor: colors.text,
     borderRadius: radius.md,
     paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
+    paddingLeft: spacing.lg,
+    paddingRight: spacing.sm,
     marginHorizontal: spacing.lg,
     ...shadows.floating,
   },
   message: {
     ...typography.caption,
-    color: colors.text,
+    color: colors.surface,
     flex: 1,
     lineHeight: 16,
   },
+  // Pilule blanche sur fond noir : l'action doit se lire comme un bouton, pas
+  // comme un mot du message.
+  actionButton: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.pill,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.md,
+  },
   action: {
     ...typography.label,
-    color: colors.primary,
-    fontWeight: '600',
+    color: colors.text,
+    fontWeight: "600",
   },
 });
