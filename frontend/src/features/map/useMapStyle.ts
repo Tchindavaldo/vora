@@ -56,17 +56,45 @@ const BACKGROUND_COLORS: Record<string, string> = {
 };
 
 /**
+ * Couche des noms de rues.
+ *
+ * Son filtre d'origine ecarte les classes `residential` et `living_street`,
+ * qui forment l'essentiel du tissu urbain camerounais : peu de rues portaient
+ * donc un nom a l'ecran. On elargit le filtre a ces classes.
+ *
+ * Une rue sans `name` dans OpenStreetMap restera muette quoi qu'on fasse —
+ * c'est une limite des donnees, pas du style.
+ */
+const ROAD_LABEL_LAYER_ID = 'Road labels';
+
+const ROAD_LABEL_CLASSES = [
+  'minor',
+  'motorway',
+  'primary',
+  'raceway',
+  'secondary',
+  'service',
+  'tertiary',
+  'trunk',
+  // Ajouts : le tissu residentiel, majoritaire en ville.
+  'residential',
+  'living_street',
+  'unclassified',
+  'road',
+];
+
+/**
  * Facteur applique a la taille des textes.
  *
  * Le style est calibre pour une carte plein ecran que l'on consulte ; ici elle
  * sert de fond a des marqueurs. Des noms de rues plus discrets laissent les
  * vehicules au premier plan sans cesser d'etre lisibles.
  *
- * 0.9 et non moins : MapLibre ecarte les labels trop petits pour rester
+ * 0.85 et pas moins : MapLibre ecarte les labels trop petits pour rester
  * lisibles, si bien qu'une reduction trop forte les fait disparaitre au lieu
- * de les reduire.
+ * de les reduire. A ce facteur, un nom de rue fait environ 11 px au zoom 14.5.
  */
-const TEXT_SCALE = 0.9;
+const TEXT_SCALE = 0.85;
 
 /**
  * Multiplie une valeur de taille MapLibre, qu'elle soit un nombre, une
@@ -179,13 +207,28 @@ export function useMapStyle(): State {
             if (layer.type !== 'symbol' || !layer.layout) return layer;
 
             const layout = layer.layout as Record<string, unknown>;
-            return {
+            const scaled = {
               ...layer,
               layout: {
                 ...layout,
                 'text-size': scaleSize(layout['text-size'], TEXT_SCALE),
               },
             };
+
+            // Noms de rues : le filtre d'origine ecarte les voies
+            // residentielles, majoritaires en ville. On l'elargit.
+            if (layer.id === ROAD_LABEL_LAYER_ID) {
+              return {
+                ...scaled,
+                filter: [
+                  'all',
+                  ['==', ['geometry-type'], 'LineString'],
+                  ['match', ['get', 'class'], ROAD_LABEL_CLASSES, true, false],
+                ],
+              };
+            }
+
+            return scaled;
           });
 
         setState({
