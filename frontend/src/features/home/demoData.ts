@@ -15,6 +15,12 @@ export type NearbyVehicle = {
   /** Decalage en degres par rapport a la position de l'utilisateur. */
   offsetLng: number;
   offsetLat: number;
+  /**
+   * Cap en degres (0 = nord, 90 = est). Aligne le vehicule sur l'axe de sa
+   * rue. En production, viendra du GPS du chauffeur ; ici, des valeurs
+   * variees pour que la carte ne montre pas cinq vehicules paralleles.
+   */
+  bearing: number;
 };
 
 /**
@@ -23,11 +29,11 @@ export type NearbyVehicle = {
  * refleter des l'accueil.
  */
 export const NEARBY_VEHICLES: NearbyVehicle[] = [
-  { id: 'v1', kind: 'moto', offsetLng: -0.0042, offsetLat: 0.0031 },
-  { id: 'v2', kind: 'car', offsetLng: 0.0035, offsetLat: 0.0022 },
-  { id: 'v3', kind: 'moto', offsetLng: 0.0028, offsetLat: -0.0034 },
-  { id: 'v4', kind: 'car', offsetLng: -0.0051, offsetLat: -0.0019 },
-  { id: 'v5', kind: 'moto', offsetLng: 0.0012, offsetLat: 0.0047 },
+  { id: 'v1', kind: 'moto', offsetLng: -0.0042, offsetLat: 0.0031, bearing: 118 },
+  { id: 'v2', kind: 'car', offsetLng: 0.0035, offsetLat: 0.0022, bearing: 205 },
+  { id: 'v3', kind: 'moto', offsetLng: 0.0028, offsetLat: -0.0034, bearing: 42 },
+  { id: 'v4', kind: 'car', offsetLng: -0.0051, offsetLat: -0.0019, bearing: 330 },
+  { id: 'v5', kind: 'moto', offsetLng: 0.0012, offsetLat: 0.0047, bearing: 165 },
 ];
 
 export const SHORTCUTS: Shortcut[] = [

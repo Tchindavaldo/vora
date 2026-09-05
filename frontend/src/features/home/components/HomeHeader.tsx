@@ -8,11 +8,6 @@ import { colors, radius, shadows, spacing, typography } from '../../../theme';
 type Props = {
   /** Nombre de vehicules disponibles autour de l'utilisateur. */
   nearbyCount: number;
-  /**
-   * Repere local (quartier), pas une adresse GPS. Choix produit : a Douala,
-   * "Bonapriso" parle a tout le monde, "4.05, 9.70" a personne.
-   */
-  areaLabel: string;
   /** Initiale affichee dans le bouton profil. */
   userInitial: string;
   onMenuPress: () => void;
@@ -26,7 +21,6 @@ type Props = {
  */
 export function HomeHeader({
   nearbyCount,
-  areaLabel,
   userInitial,
   onMenuPress,
   onProfilePress,
@@ -47,11 +41,16 @@ export function HomeHeader({
         <Ionicons name="menu" size={22} color={colors.text} />
       </Pressable>
 
-      <View style={styles.badge}>
-        <View style={styles.onlineDot} />
-        <Text style={styles.badgeText} numberOfLines={2}>
-          {nearbyCount} chauffeurs à proximité · {areaLabel}
-        </Text>
+      {/* Le badge ne s'etire pas : il se dimensionne sur son texte et reste
+          centre entre les deux boutons. Un badge en flex:1 passait sur deux
+          lignes et faisait grandir toute la barre. */}
+      <View style={styles.badgeSlot} pointerEvents="box-none">
+        <View style={styles.badge}>
+          <View style={styles.onlineDot} />
+          <Text style={styles.badgeText} numberOfLines={1}>
+            {nearbyCount} chauffeurs à proximité
+          </Text>
+        </View>
       </View>
 
       <Pressable
@@ -75,7 +74,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     paddingHorizontal: spacing.lg,
     gap: spacing.md,
   },
@@ -96,14 +95,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  badge: {
+  // Occupe l'espace entre les deux boutons et y centre le badge, sans lui
+  // imposer cette largeur.
+  badgeSlot: {
     flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: CIRCLE,
+  },
+  badge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
     backgroundColor: colors.surface,
-    borderRadius: radius.xl,
-    paddingVertical: spacing.md,
+    borderRadius: radius.pill,
+    paddingVertical: spacing.sm,
     paddingHorizontal: spacing.lg,
     ...shadows.floating,
   },
@@ -116,7 +122,5 @@ const styles = StyleSheet.create({
   badgeText: {
     ...typography.label,
     color: colors.text,
-    flex: 1,
-    lineHeight: 18,
   },
 });

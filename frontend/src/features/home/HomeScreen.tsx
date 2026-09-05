@@ -37,7 +37,9 @@ export function HomeScreen() {
       id: vehicle.id,
       longitude: location.coords.longitude + vehicle.offsetLng,
       latitude: location.coords.latitude + vehicle.offsetLat,
-      render: () => <VehicleMarker kind={vehicle.kind} />,
+      render: () => (
+        <VehicleMarker kind={vehicle.kind} bearing={vehicle.bearing} />
+      ),
     }));
 
     // La position utilisateur n'est affichee que si elle est reelle : montrer
@@ -74,7 +76,6 @@ export function HomeScreen() {
 
       <HomeHeader
         nearbyCount={NEARBY_VEHICLES.length}
-        areaLabel={location.isFallback ? DEFAULT_REGION.cityLabel : DEMO_AREA_LABEL}
         userInitial={DEMO_USER_INITIAL}
         onMenuPress={() => {}}
         onProfilePress={() => {}}

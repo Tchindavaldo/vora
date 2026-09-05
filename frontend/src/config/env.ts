@@ -30,10 +30,24 @@ const raw = {
 function resolveMapStyleUrl(): string | null {
   if (raw.mapStyleUrl) return raw.mapStyleUrl;
   if (raw.maptilerKey) {
-    return `https://api.maptiler.com/maps/streets-v2/style.json?key=${raw.maptilerKey}`;
+    return `https://api.maptiler.com/maps/${DEFAULT_MAP_STYLE}/style.json?key=${raw.maptilerKey}`;
   }
   return null;
 }
+
+/**
+ * Style de carte par defaut.
+ *
+ * `dataviz-light` : fond gris tres clair (97 %) et seulement 2 couches de
+ * vegetation. `basic-v2` et `streets-v2` posent un fond beige plus 3 couches
+ * vertes, ce qui donne a la ville un aspect de foret et fait disparaitre les
+ * marqueurs dans le decor.
+ *
+ * Autres valeurs testees et disponibles : `backdrop` (fond blanc pur, encore
+ * plus sobre), `basic-v2` (beige), `streets-v2` et `bright-v2` (charges en
+ * labels), `toner-v2` (noir et blanc contraste).
+ */
+const DEFAULT_MAP_STYLE = 'dataviz-light';
 
 export const env = {
   mapStyleUrl: resolveMapStyleUrl(),
@@ -52,6 +66,9 @@ export const env = {
 export const DEFAULT_REGION = {
   longitude: 9.7085,
   latitude: 4.0483,
-  zoom: 13,
+  // 13 cadrait trop large : les chauffeurs paraissaient loin de l'utilisateur.
+  // 14.5 rapproche la camera — les vehicules restent lisibles et donnent
+  // l'impression d'un service disponible tout de suite, a quelques rues.
+  zoom: 14.5,
   cityLabel: 'Douala',
 } as const;
