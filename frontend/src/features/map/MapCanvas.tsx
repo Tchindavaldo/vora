@@ -133,8 +133,14 @@ export function MapCanvas({
    */
   useEffect(() => {
     if (recenterToken === 0) return;
-    cameraRef.current?.flyTo({
+    // On remet aussi le zoom d'ouverture : apres avoir explore la carte,
+    // "recentrer" doit rendre exactement la vue du demarrage, pas la position
+    // courante vue de trop pres ou de trop loin.
+    cameraRef.current?.setStop({
       center: [center.longitude, center.latitude],
+      zoom,
+      pitch,
+      bearing: 0,
       duration: 600,
     });
     // Volontairement sur le seul token : recentrer doit repondre a l'appui, pas
