@@ -60,6 +60,14 @@ export type Ride = {
    * rafraichie par socket.
    */
   driverOrigin: RoutePoint | null;
+  /**
+   * Point de prise en charge, FIGE a la commande.
+   *
+   * Le GPS du passager bouge de quelques metres en permanence : recalculer
+   * l'approche a chaque rafraichissement viderait le quota de routage et ferait
+   * clignoter le trace.
+   */
+  pickup: RoutePoint;
 };
 
 export type CreateRideInput = {
@@ -151,6 +159,7 @@ export async function createRide(input: CreateRideInput): Promise<Ride> {
     driver: null,
     etaMinutes: null,
     driverOrigin: null,
+    pickup: input.origin,
   };
 }
 

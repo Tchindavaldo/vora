@@ -1,4 +1,10 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { Alert, Pressable, Share, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
@@ -28,6 +34,7 @@ import { useRideRequest } from '../ride/useRideRequest';
 import { SearchingDriverSheet } from '../ride/components/SearchingDriverSheet';
 import { RideTrackingSheet } from '../ride/components/RideTrackingSheet';
 import { useDriverApproach } from '../ride/useDriverApproach';
+import { useApproachRoute } from '../ride/useApproachRoute';
 import { LocationNotice } from './components/LocationNotice';
 import { UserLocationDot } from './components/UserLocationDot';
 import { VehicleMarker } from './components/VehicleMarker';
@@ -106,10 +113,15 @@ export function HomeScreen() {
   // Course commandee : creation, chauffeur, suivi (R17 etapes 6-8).
   const ride = useRideRequest();
 
-  // Position animee du chauffeur pendant l'approche puis pendant la course.
+  // Vrai itineraire du chauffeur vers le passager : le vehicule doit rouler sur
+  // la chaussee, pas couper a vol d'oiseau.
+  const approach = useApproachRoute(ride.ride);
+
+  // Position animee du chauffeur, sur le trace d'approche puis sur celui de la
+  // course.
   const driverPosition = useDriverApproach(
     ride.ride,
-    location.coords,
+    approach.points,
     booking.routePoints,
   );
 
@@ -193,6 +205,43 @@ export function HomeScreen() {
     driverPosition,
     ride.ride?.tier,
   ]);
+
+  /**
+   * Recadrages de la carte pendant le suivi de course.
+   *
+   * Deux moments seulement, sur CHANGEMENT DE STATUT et non a chaque position
+   * du vehicule : recadrer en continu empecherait l'utilisateur de deplacer la
+   * carte, la camera lui reprenant la main a chaque image.
+   *
+   * - a l'acceptation : le chauffeur qui arrive ET la position du passager,
+   *   pour voir l'approche se faire ;
+   * - au demarrage : le vehicule ET la destination, vue globale du trajet.
+   */
+  const [fitPoints, setFitPoints] = useState<{ longitude: number; latitude: number }[]>(
+    [],
+  );
+  const [fitPointsToken, setFitPointsToken] = useState(0);
+
+  const rideStatus = ride.ride?.status ?? null;
+  const approachReady = approach.points.length >= 2;
+
+  useEffect(() => {
+    if (rideStatus === 'accepted' && approachReady) {
+      // Tout le trajet d'approche : ses extremites sont le chauffeur et le
+      // passager, les points intermediaires evitent que la route sorte du
+      // cadre dans un contournement.
+      setFitPoints(approach.points);
+      setFitPointsToken((token) => token + 1);
+      return;
+    }
+
+    if (rideStatus === 'in_progress') {
+      setFitPoints(booking.routePoints);
+      setFitPointsToken((token) => token + 1);
+    }
+    // Sur le seul statut : voir le commentaire ci-dessus.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rideStatus, approachReady]);
 
   // Incremente a chaque appui sur "recentrer" : voir `recenterToken` dans
   // MapCanvas.
@@ -322,6 +371,11 @@ export function HomeScreen() {
         bottomPadding={SHEET_HEIGHT + insets.bottom}
         route={booking.routePoints}
         fitRouteToken={booking.fitRouteToken}
+        // Le trajet d'approche n'est trace que pendant qu'il sert : une fois le
+        // passager a bord, il n'a plus rien a dire et encombrerait la carte.
+        approach={rideStatus === 'accepted' ? approach.points : undefined}
+        fitPoints={fitPoints}
+        fitPointsToken={fitPointsToken}
       />
 
       <HomeHeader

@@ -6,8 +6,8 @@ import { RIDE_TIMINGS, type Ride } from '../../services/rides';
 /**
  * Position affichee du chauffeur pendant l'approche puis pendant la course.
  *
- * ⚠️ SIMULE, comme `services/rides.ts` : le marqueur est interpole entre deux
- * points a cadence fixe. En production ce hook disparait — les positions
+ * ⚠️ SIMULE, comme `services/rides.ts` : le marqueur avance a cadence fixe le
+ * long d'un trace deja calcule. En production ce hook disparait — les positions
  * arriveront par socket depuis le GPS du chauffeur, et le composant se
  * contentera de les afficher.
  */
@@ -30,35 +30,30 @@ function bearingBetween(from: RoutePoint, to: RoutePoint): number {
   return (Math.atan2(dLng, dLat) / toRad + 360) % 360;
 }
 
-/** Point a `ratio` (0 a 1) entre deux positions. */
-function interpolate(from: RoutePoint, to: RoutePoint, ratio: number): RoutePoint {
-  return {
-    longitude: from.longitude + (to.longitude - from.longitude) * ratio,
-    latitude: from.latitude + (to.latitude - from.latitude) * ratio,
-  };
+/** Longueur approximative d'un segment, en degres corriges de la latitude. */
+function segmentLength(from: RoutePoint, to: RoutePoint): number {
+  const dLng =
+    (to.longitude - from.longitude) * Math.cos((from.latitude * Math.PI) / 180);
+  return Math.hypot(dLng, to.latitude - from.latitude);
 }
 
 /**
- * Point situe a `ratio` du parcours le long d'une polyligne.
+ * Point situe a `ratio` (0 a 1) du parcours le long d'une polyligne, avec le
+ * cap du segment courant.
  *
- * Utilise pendant la course : le vehicule doit rester SUR le trace affiche,
- * pas couper a vol d'oiseau entre le depart et la destination.
+ * C'est ce qui garde le vehicule SUR la chaussee et PARALLELE a elle : couper a
+ * vol d'oiseau le ferait traverser les batiments, et un cap calcule entre le
+ * depart et l'arrivee le laisserait de travers dans chaque virage.
  */
 function alongPath(path: RoutePoint[], ratio: number): DriverPosition | null {
-  if (path.length < 2) return null;
+  if (path.length === 0) return null;
+  if (path.length === 1) return { ...path[0], bearing: 0 };
 
-  // Longueur cumulee : calculee a chaque appel plutot que memorisee, car un
-  // itineraire ne fait que quelques centaines de points et le calcul est
-  // negligeable devant le rendu de la carte.
   const lengths: number[] = [];
   let total = 0;
 
   for (let i = 0; i < path.length - 1; i += 1) {
-    const dLng =
-      (path[i + 1].longitude - path[i].longitude) *
-      Math.cos((path[i].latitude * Math.PI) / 180);
-    const dLat = path[i + 1].latitude - path[i].latitude;
-    const length = Math.hypot(dLng, dLat);
+    const length = segmentLength(path[i], path[i + 1]);
     lengths.push(length);
     total += length;
   }
@@ -69,10 +64,15 @@ function alongPath(path: RoutePoint[], ratio: number): DriverPosition | null {
 
   for (let i = 0; i < lengths.length; i += 1) {
     if (travelled <= lengths[i] || i === lengths.length - 1) {
-      const segmentRatio = lengths[i] === 0 ? 0 : travelled / lengths[i];
+      const segmentRatio =
+        lengths[i] === 0 ? 0 : Math.min(travelled / lengths[i], 1);
+      const from = path[i];
+      const to = path[i + 1];
+
       return {
-        ...interpolate(path[i], path[i + 1], Math.min(segmentRatio, 1)),
-        bearing: bearingBetween(path[i], path[i + 1]),
+        longitude: from.longitude + (to.longitude - from.longitude) * segmentRatio,
+        latitude: from.latitude + (to.latitude - from.latitude) * segmentRatio,
+        bearing: bearingBetween(from, to),
       };
     }
     travelled -= lengths[i];
@@ -84,45 +84,51 @@ function alongPath(path: RoutePoint[], ratio: number): DriverPosition | null {
 /**
  * Fait avancer le marqueur du chauffeur selon le statut de la course.
  *
- * - `accepted` : du point de depart du chauffeur vers le passager, en ligne
- *   directe. L'approche est courte et ne justifie pas un second appel au
- *   service de routage — le quota est limite a 2 000 requetes/jour (R12).
- * - `in_progress` : le long de l'itineraire deja calcule, vers la destination.
- * - autres statuts : le chauffeur est immobile la ou il se trouve.
+ * - `accepted` : le long de l'itineraire d'approche calcule par ORS.
+ * - `arrived` : immobile au point de prise en charge, tourne vers la
+ *   destination.
+ * - `in_progress` : le long de l'itineraire de la course.
+ * - `completed` : a destination.
  *
  * @param ride course en cours, `null` si aucune
- * @param passenger point de prise en charge
+ * @param approachPoints itineraire du chauffeur vers le passager
  * @param routePoints itineraire de la course, deja trace sur la carte
  */
 export function useDriverApproach(
   ride: Ride | null,
-  passenger: RoutePoint,
+  approachPoints: RoutePoint[],
   routePoints: RoutePoint[],
 ): DriverPosition | null {
   const [position, setPosition] = useState<DriverPosition | null>(null);
 
-  // Lus dans l'intervalle sans le relancer : la position GPS du passager change
-  // en permanence, et redemarrer l'animation a chaque rafraichissement ferait
-  // repartir le vehicule de son point de depart.
-  const passengerRef = useRef(passenger);
-  passengerRef.current = passenger;
-
+  // Lu dans l'intervalle sans le relancer : sinon l'animation repartirait de
+  // zero au moindre nouveau rendu.
   const routeRef = useRef(routePoints);
   routeRef.current = routePoints;
 
   const status = ride?.status ?? null;
-  const originLng = ride?.driverOrigin?.longitude ?? null;
-  const originLat = ride?.driverOrigin?.latitude ?? null;
+
+  // Le trace d'approche est fige une fois calcule : sa longueur suffit a savoir
+  // s'il est disponible, et evite de dependre du tableau lui-meme (recree a
+  // chaque rendu).
+  const approachRef = useRef(approachPoints);
+  approachRef.current = approachPoints;
+  const approachLength = approachPoints.length;
 
   useEffect(() => {
-    if (status === null || originLng === null || originLat === null) {
+    if (status === null) {
       setPosition(null);
       return;
     }
 
-    const origin = { longitude: originLng, latitude: originLat };
-
     if (status === 'accepted') {
+      // Pas encore de trace : aucun vehicule affiche plutot qu'un vehicule pose
+      // hors de la chaussee, qui sauterait sur la route des son arrivee.
+      if (approachLength < 2) {
+        setPosition(null);
+        return;
+      }
+
       const startedAt = Date.now();
 
       const tick = () => {
@@ -130,11 +136,8 @@ export function useDriverApproach(
           (Date.now() - startedAt) / RIDE_TIMINGS.approach,
           1,
         );
-        const target = passengerRef.current;
-        setPosition({
-          ...interpolate(origin, target, ratio),
-          bearing: bearingBetween(origin, target),
-        });
+        const next = alongPath(approachRef.current, ratio);
+        if (next !== null) setPosition(next);
       };
 
       tick();
@@ -143,12 +146,14 @@ export function useDriverApproach(
     }
 
     if (status === 'arrived') {
-      // Immobile au point de prise en charge, tourne vers la destination.
-      const target = routeRef.current[1] ?? passengerRef.current;
-      setPosition({
-        ...passengerRef.current,
-        bearing: bearingBetween(passengerRef.current, target),
-      });
+      const pickup =
+        approachRef.current[approachRef.current.length - 1] ?? ride?.pickup;
+      if (!pickup) return;
+
+      // Deja tourne vers la suite du trajet : le vehicule attend dans le bon
+      // sens, comme un vrai chauffeur range le long du trottoir.
+      const target = routeRef.current[1] ?? routeRef.current[0] ?? pickup;
+      setPosition({ ...pickup, bearing: bearingBetween(pickup, target) });
       return;
     }
 
@@ -173,7 +178,10 @@ export function useDriverApproach(
     }
 
     setPosition(null);
-  }, [status, originLng, originLat]);
+    // `ride.pickup` est fige a la commande : le lire dans l'effet ne justifie
+    // pas de le relancer.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status, approachLength]);
 
   return position;
 }

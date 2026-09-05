@@ -62,7 +62,9 @@ src/
   theme/index.ts           design system : couleurs, espacements, ombres,
                            SHEET_HEIGHT (hauteur commune des bottom sheets)
   features/
-    map/MapCanvas.tsx      encapsulation MapLibre (R11) — seul fichier qui l'importe
+    map/                   encapsulation MapLibre (R11) — seuls fichiers qui l'importent
+      MapCanvas.tsx        carte, caméra, marqueurs, cadrages
+      RouteLayers.tsx      tracés : course (plein) et approche (pointillés)
     home/                  écran d'accueil passager
       HomeScreen.tsx       assemblage carte + header + sheet
       useUserLocation.ts   position utilisateur avec repli (R8)
@@ -80,6 +82,7 @@ src/
       components/          FareSheet, DestinationPin
     ride/                  course : commande, chauffeur, suivi (R17 étapes 6-8)
       useRideRequest.ts    création, statuts, annulation (R8)
+      useApproachRoute.ts  itinéraire du chauffeur vers le passager
       useDriverApproach.ts position animée du chauffeur sur la carte
       components/          SearchingDriverSheet, RideTrackingSheet
   services/

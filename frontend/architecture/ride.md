@@ -18,6 +18,7 @@ HomeScreen (course commandée)
 | Fichier | Rôle |
 |---|---|
 | `useRideRequest.ts` | Création, abonnement au statut, annulation, erreurs (R8) |
+| `useApproachRoute.ts` | Itinéraire ORS du chauffeur vers le passager |
 | `useDriverApproach.ts` | Position animée du chauffeur (approche puis trajet) |
 | `components/SearchingDriverSheet.tsx` | État d'attente |
 | `components/RideTrackingSheet.tsx` | Suivi : les quatre statuts, SOS, partage |
@@ -42,9 +43,12 @@ HomeScreen (course commandée)
 3. `subscribeToRideStatus` programme toute la suite : acceptation à **3,5 s**,
    arrivée au départ après **20 s** d'approche, démarrage après **6 s**
    d'attente, fin après **25 s** de trajet.
-4. `useDriverApproach` anime le marqueur à 120 ms : ligne directe pendant
-   l'approche, **le long de l'itinéraire déjà calculé** pendant la course.
-5. « Annuler » (possible jusqu'à la montée à bord) coupe tous les timers et
+4. `useApproachRoute` calcule **un vrai itinéraire** (ORS) entre le chauffeur et
+   le point de prise en charge, tracé en pointillés sur la carte.
+5. `useDriverApproach` anime le marqueur à 120 ms le long de ce tracé, puis le
+   long de l'itinéraire de la course. Le cap vient du **segment courant** : le
+   véhicule reste parallèle à la chaussée dans chaque virage.
+6. « Annuler » (possible jusqu'à la montée à bord) coupe tous les timers et
    revient à l'estimation, **itinéraire conservé** : le calcul de route n'est
    pas refait.
 
@@ -52,9 +56,31 @@ Une fois le chauffeur assigné, **les véhicules disponibles alentour
 disparaissent** de la carte : ils n'ont plus rien à dire, et les laisser
 rendrait impossible de suivre celui qui vient vous chercher.
 
-L'approche est tracée en ligne directe, sans second appel à
-OpenRouteService : le quota est de 2 000 requêtes/jour (R12) et le trajet
-d'approche est court.
+## Cadrages de la caméra
+
+Trois recadrages, chacun sur un **changement d'état** et jamais en continu :
+recadrer à chaque position du véhicule reprendrait la main à l'utilisateur à
+chaque image.
+
+| Moment | Ce qui doit tenir dans la vue |
+|---|---|
+| Itinéraire calculé | départ et destination (`fitRouteToken`, déjà en place) |
+| Chauffeur accepté | tout le trajet d'approche — le véhicule et vous |
+| Course démarrée | l'itinéraire complet — le véhicule et la destination |
+
+Les deux derniers passent par `fitPoints` / `fitPointsToken` de `MapCanvas` :
+une liste de points quelconque, pour que l'écran demande un cadrage sans
+manipuler MapLibre (R11).
+
+## Coût du routage (R12)
+
+Une seule requête d'approche par course, déclenchée à l'acceptation : le point
+de prise en charge est **figé** dans `ride.pickup` à la commande. Le GPS bouge de
+quelques mètres en permanence — recalculer à chaque rafraîchissement viderait le
+quota (2 000 requêtes/jour) et ferait clignoter le tracé.
+
+Si ce calcul échoue, on retombe sur la ligne directe : le suivi reste
+compréhensible, seul le réalisme du tracé est perdu (R8).
 
 ## Simulation assumée (R13, brief §23)
 
