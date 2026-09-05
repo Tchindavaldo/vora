@@ -24,6 +24,9 @@ import {
 import { useBookingFlow } from '../booking/useBookingFlow';
 import { FareSheet } from '../booking/components/FareSheet';
 import { DestinationPin } from '../booking/components/DestinationPin';
+import { useRideRequest } from '../ride/useRideRequest';
+import { SearchingDriverSheet } from '../ride/components/SearchingDriverSheet';
+import { DriverFoundSheet } from '../ride/components/DriverFoundSheet';
 import { LocationNotice } from './components/LocationNotice';
 import { UserLocationDot } from './components/UserLocationDot';
 import { VehicleMarker } from './components/VehicleMarker';
@@ -98,6 +101,9 @@ export function HomeScreen() {
 
   // Course en preparation : destination, itineraire et tarifs (R17 etapes 4-5).
   const booking = useBookingFlow(location.coords);
+
+  // Course commandee : creation, attente d'un chauffeur (R17 etapes 6-7).
+  const ride = useRideRequest();
 
   const markers = useMemo<MapMarker[]>(() => {
     // Tant que les positions ne sont pas arretees, aucun vehicule : voir le
@@ -186,9 +192,32 @@ export function HomeScreen() {
     booking.start(choice);
   };
 
+  /**
+   * "Commander" : cree la course et lance la recherche d'un chauffeur.
+   *
+   * Le montant envoye est celui du palier retenu. Il sera recalcule par le
+   * backend a l'arrivee de l'API : un prix venu du telephone ne fait pas foi
+   * (R13).
+   */
   const handleOrder = () => {
-    // TODO (R17 etapes 6-7) : creer la course puis chercher un chauffeur.
+    const choice = booking.choice;
+    const fare = booking.fares.find((item) => item.tier === booking.selectedTier);
+    if (choice === null || fare === undefined) return;
+
+    ride.request({
+      origin: location.coords,
+      destination: {
+        longitude: choice.place.longitude,
+        latitude: choice.place.latitude,
+      },
+      destinationLabel: choice.place.label,
+      tier: fare.tier,
+      amountXaf: fare.amountXaf,
+    });
   };
+
+  /** Annule la course et revient a l'estimation, itineraire conserve. */
+  const handleCancelRide = () => ride.cancel();
 
   if (searchQuery !== null) {
     return (
@@ -249,7 +278,31 @@ export function HomeScreen() {
           et les empiler laisserait un champ de recherche sous un trajet deja
           choisi.
         */}
-        {booking.choice === null ? (
+        {/*
+          Une fois la course commandee, le panneau d'estimation cede la place a
+          la recherche de chauffeur puis a sa fiche : trois etats successifs
+          d'une meme question, jamais empiles.
+        */}
+        {ride.isCreating || ride.error !== null ||
+        (ride.ride !== null && ride.ride.status === 'searching') ? (
+          <SearchingDriverSheet
+            destinationLabel={booking.choice?.place.label ?? ''}
+            tier={booking.selectedTier}
+            amountXaf={
+              booking.fares.find((item) => item.tier === booking.selectedTier)
+                ?.amountXaf ?? 0
+            }
+            error={ride.error}
+            onRetry={handleOrder}
+            onCancel={handleCancelRide}
+          />
+        ) : ride.ride !== null && ride.ride.driver !== null ? (
+          <DriverFoundSheet
+            ride={ride.ride}
+            driver={ride.ride.driver}
+            onCancel={handleCancelRide}
+          />
+        ) : booking.choice === null ? (
           <DestinationSheet
             shortcuts={SHORTCUTS}
             onSearchPress={handleSearchPress}
