@@ -78,9 +78,10 @@ src/
       useBookingFlow.ts    destination, itinéraire, tarifs, palier retenu
       useRoute.ts          appel du routage, annulation, retry (R8)
       components/          FareSheet, DestinationPin
-    ride/                  commande et recherche de chauffeur (R17 étapes 6-7)
-      useRideRequest.ts    création, attente, annulation (R8)
-      components/          SearchingDriverSheet, DriverFoundSheet
+    ride/                  course : commande, chauffeur, suivi (R17 étapes 6-8)
+      useRideRequest.ts    création, statuts, annulation (R8)
+      useDriverApproach.ts position animée du chauffeur sur la carte
+      components/          SearchingDriverSheet, RideTrackingSheet
   services/
     geocoding.ts           MapTiler Geocoding — seul fichier qui le connaît
     routing.ts             OpenRouteService — idem pour l'itinéraire
@@ -99,7 +100,7 @@ src/
 | `home.md` | `src/features/home/` — écran d'accueil |
 | `search.md` | `src/features/search/` — recherche de destination |
 | `booking.md` | `src/features/booking/` — itinéraire et estimation |
-| `ride.md` | `src/features/ride/` — commande et recherche de chauffeur |
+| `ride.md` | `src/features/ride/` — course : commande, chauffeur, suivi |
 
 ## Décisions de design notables
 

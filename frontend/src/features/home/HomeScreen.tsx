@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Alert, Pressable, Share, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -26,7 +26,8 @@ import { FareSheet } from '../booking/components/FareSheet';
 import { DestinationPin } from '../booking/components/DestinationPin';
 import { useRideRequest } from '../ride/useRideRequest';
 import { SearchingDriverSheet } from '../ride/components/SearchingDriverSheet';
-import { DriverFoundSheet } from '../ride/components/DriverFoundSheet';
+import { RideTrackingSheet } from '../ride/components/RideTrackingSheet';
+import { useDriverApproach } from '../ride/useDriverApproach';
 import { LocationNotice } from './components/LocationNotice';
 import { UserLocationDot } from './components/UserLocationDot';
 import { VehicleMarker } from './components/VehicleMarker';
@@ -102,14 +103,26 @@ export function HomeScreen() {
   // Course en preparation : destination, itineraire et tarifs (R17 etapes 4-5).
   const booking = useBookingFlow(location.coords);
 
-  // Course commandee : creation, attente d'un chauffeur (R17 etapes 6-7).
+  // Course commandee : creation, chauffeur, suivi (R17 etapes 6-8).
   const ride = useRideRequest();
+
+  // Position animee du chauffeur pendant l'approche puis pendant la course.
+  const driverPosition = useDriverApproach(
+    ride.ride,
+    location.coords,
+    booking.routePoints,
+  );
+
+  // Une fois un chauffeur assigne, la carte ne montre plus QUE le sien : les
+  // vehicules disponibles alentour n'ont plus rien a dire, et les laisser
+  // rendrait impossible de suivre celui qui vient vous chercher.
+  const hasAssignedDriver = driverPosition !== null;
 
   const markers = useMemo<MapMarker[]>(() => {
     // Tant que les positions ne sont pas arretees, aucun vehicule : voir le
     // commentaire sur `roadPoints`.
     const vehicles: MapMarker[] =
-      roadPoints === null
+      roadPoints === null || hasAssignedDriver
         ? []
         : NEARBY_VEHICLES.map((vehicle, index) => {
             // Position animee si elle existe, sinon la position posee sur la
@@ -153,6 +166,22 @@ export function HomeScreen() {
       });
     }
 
+    // Chauffeur de la course : seul vehicule affiche a partir de son
+    // affectation, oriente dans son sens de marche.
+    if (driverPosition !== null) {
+      vehicles.push({
+        id: 'driver',
+        longitude: driverPosition.longitude,
+        latitude: driverPosition.latitude,
+        render: () => (
+          <VehicleMarker
+            kind={ride.ride?.tier ?? 'eco'}
+            bearing={driverPosition.bearing}
+          />
+        ),
+      });
+    }
+
     return vehicles;
   }, [
     location.coords,
@@ -160,6 +189,9 @@ export function HomeScreen() {
     roadPoints,
     motions,
     booking.choice,
+    hasAssignedDriver,
+    driverPosition,
+    ride.ride?.tier,
   ]);
 
   // Incremente a chaque appui sur "recentrer" : voir `recenterToken` dans
@@ -218,6 +250,50 @@ export function HomeScreen() {
 
   /** Annule la course et revient a l'estimation, itineraire conserve. */
   const handleCancelRide = () => ride.cancel();
+
+  /** Course terminee : on efface tout et on revient a l'accueil. */
+  const handleRideDone = () => {
+    ride.cancel();
+    booking.cancel();
+  };
+
+  /**
+   * Partage de course (R10) : le passager envoie a un proche le chauffeur, sa
+   * plaque et sa destination. La feuille de partage du systeme est utilisee
+   * plutot qu'un service maison — elle atteint tous les canaux deja installes
+   * sur le telephone (WhatsApp en tete, a Douala).
+   */
+  const handleShareRide = () => {
+    const current = ride.ride;
+    if (current === null || current.driver === null) return;
+
+    const message =
+      `Je suis en course VORA vers ${current.destinationLabel}. ` +
+      `Chauffeur : ${current.driver.name}, ${current.driver.vehicleModel} ` +
+      `(${current.driver.plate}).`;
+
+    Share.share({ message }).catch(() => {
+      // Feuille de partage indisponible : on le dit plutot que d'echouer en
+      // silence (R8).
+      console.warn('[ride] partage de course indisponible');
+      Alert.alert('Partage indisponible', 'Impossible d’ouvrir le partage.');
+    });
+  };
+
+  /**
+   * SOS (R10). ⚠️ SIMULE : sans backend, aucune alerte n'est reellement
+   * transmise. On l'annonce a l'utilisateur au lieu de laisser croire qu'un
+   * secours a ete prevenu (brief §23).
+   */
+  const handleSos = () => {
+    Alert.alert(
+      'Alerte d’urgence',
+      'Démonstration : aucune alerte n’est réellement transmise. En production, ' +
+        'votre position et les informations du chauffeur seraient envoyées à ' +
+        'votre contact d’urgence et à l’assistance VORA.',
+      [{ text: 'Fermer' }],
+    );
+  };
 
   if (searchQuery !== null) {
     return (
@@ -297,10 +373,13 @@ export function HomeScreen() {
             onCancel={handleCancelRide}
           />
         ) : ride.ride !== null && ride.ride.driver !== null ? (
-          <DriverFoundSheet
+          <RideTrackingSheet
             ride={ride.ride}
             driver={ride.ride.driver}
             onCancel={handleCancelRide}
+            onSos={handleSos}
+            onShare={handleShareRide}
+            onDone={handleRideDone}
           />
         ) : booking.choice === null ? (
           <DestinationSheet

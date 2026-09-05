@@ -1,22 +1,35 @@
 /**
- * Creation d'une course et recherche d'un chauffeur (R17 etapes 6 et 7).
+ * Cycle de vie d'une course : creation, recherche de chauffeur, approche,
+ * trajet, fin (R17 etapes 6 a 8).
  *
  * ⚠️ SIMULE. Aucun backend n'existe encore : ce fichier imite le comportement
- * attendu du serveur (creation de la course, puis acceptation par un chauffeur
- * apres un delai) pour que le parcours passager soit jouable de bout en bout.
- * Il est le SEUL endroit a remplacer quand l'API arrivera : `createRide`
- * deviendra `POST /rides`, et `subscribeToRideStatus` un abonnement socket
- * (R6, SocketContext). L'UI n'a pas a changer.
+ * attendu du serveur — creation de la course, acceptation par un chauffeur,
+ * puis progression des statuts — pour que le parcours passager soit jouable de
+ * bout en bout. Il est le SEUL endroit a remplacer quand l'API arrivera :
+ * `createRide` deviendra `POST /rides`, et `subscribeToRideStatus` un
+ * abonnement socket (R6, SocketContext). L'UI n'a pas a changer.
  *
  * Ne jamais presenter ces chauffeurs comme reels au jury (brief §23, R13) :
- * l'ecran d'attente et la fiche chauffeur portent tous deux la mention
- * "simule".
+ * chaque panneau porte la mention "simule".
  */
 
 import type { VehicleTier } from './pricing';
 import type { RoutePoint } from './routing';
 
-export type RideStatus = 'searching' | 'accepted' | 'cancelled';
+/**
+ * Etats successifs d'une course.
+ *
+ * `searching` recherche d'un chauffeur · `accepted` il vient vers vous ·
+ * `arrived` il attend au point de depart · `in_progress` course en cours ·
+ * `completed` terminee · `cancelled` abandonnee.
+ */
+export type RideStatus =
+  | 'searching'
+  | 'accepted'
+  | 'arrived'
+  | 'in_progress'
+  | 'completed'
+  | 'cancelled';
 
 export type Driver = {
   id: string;
@@ -41,6 +54,12 @@ export type Ride = {
   driver: Driver | null;
   /** Minutes avant l'arrivee du chauffeur au point de depart. */
   etaMinutes: number | null;
+  /**
+   * Position d'ou le chauffeur demarre son approche. `null` tant qu'aucun
+   * chauffeur n'a accepte. En production, elle viendra du GPS du chauffeur,
+   * rafraichie par socket.
+   */
+  driverOrigin: RoutePoint | null;
 };
 
 export type CreateRideInput = {
@@ -86,23 +105,42 @@ const DEMO_DRIVERS: Record<VehicleTier, Driver> = {
 };
 
 /**
- * Delai simule avant qu'un chauffeur accepte.
+ * Rythme de la demonstration, en millisecondes.
  *
- * 3,5 s : assez long pour que l'etat d'attente se voie et se comprenne pendant
- * la demo, assez court pour ne pas laisser le jury devant un loader.
+ * Chaque palier est assez long pour se voir et se comprendre pendant la
+ * soutenance, assez court pour que le jury voie la course entiere sans
+ * attendre. En production ces transitions viennent du chauffeur.
  */
-const ACCEPT_DELAY_MS = 3500;
+const TIMINGS = {
+  /** Latence de creation, pour que l'etat d'attente ne clignote pas. */
+  create: 500,
+  /** Delai avant qu'un chauffeur accepte. */
+  accept: 3500,
+  /** Duree de l'approche : le marqueur avance vers le passager. */
+  approach: 20000,
+  /** Attente au point de depart avant que la course demarre. */
+  boarding: 6000,
+  /** Duree du trajet lui-meme. */
+  trip: 25000,
+} as const;
 
-/** Latence reseau simulee de la creation, pour que l'attente ne clignote pas. */
-const CREATE_DELAY_MS = 500;
+export const RIDE_TIMINGS = TIMINGS;
+
+/**
+ * Distance a laquelle le chauffeur demarre son approche, en degres.
+ *
+ * ~600 m : la distance d'un chauffeur du meme quartier, et une longueur ou le
+ * deplacement du marqueur reste visible a l'echelle affichee.
+ */
+const APPROACH_DISTANCE = 0.0055;
 
 /**
  * Cree la course cote serveur. Renvoie immediatement l'objet en recherche :
- * l'acceptation arrive ensuite par `subscribeToRideStatus`, comme le fera le
- * socket.
+ * les changements de statut arrivent ensuite par `subscribeToRideStatus`, comme
+ * le fera le socket.
  */
 export async function createRide(input: CreateRideInput): Promise<Ride> {
-  await new Promise((resolve) => setTimeout(resolve, CREATE_DELAY_MS));
+  await new Promise((resolve) => setTimeout(resolve, TIMINGS.create));
 
   return {
     id: `r-${Date.now()}`,
@@ -112,34 +150,94 @@ export async function createRide(input: CreateRideInput): Promise<Ride> {
     amountXaf: input.amountXaf,
     driver: null,
     etaMinutes: null,
+    driverOrigin: null,
+  };
+}
+
+/**
+ * Position de depart du chauffeur : a `APPROACH_DISTANCE` du passager, dans une
+ * direction opposee a la destination pour que l'approche ne se confonde pas
+ * visuellement avec le trace de la course.
+ */
+function driverStartPoint(passenger: RoutePoint, destination: RoutePoint): RoutePoint {
+  const dLng = destination.longitude - passenger.longitude;
+  const dLat = destination.latitude - passenger.latitude;
+  const length = Math.hypot(dLng, dLat);
+
+  // Destination confondue avec le depart : direction arbitraire plutot qu'une
+  // division par zero.
+  if (length === 0) {
+    return {
+      longitude: passenger.longitude + APPROACH_DISTANCE,
+      latitude: passenger.latitude,
+    };
+  }
+
+  return {
+    longitude: passenger.longitude - (dLng / length) * APPROACH_DISTANCE,
+    latitude: passenger.latitude - (dLat / length) * APPROACH_DISTANCE,
   };
 }
 
 /**
  * Ecoute les changements de statut d'une course.
  *
- * Renvoie la fonction de desabonnement : l'appeler quand le passager annule ou
- * quitte l'ecran, sinon le callback se declencherait sur un composant demonte.
+ * Enchaine les etapes simulees : acceptation, arrivee au point de depart,
+ * demarrage, fin. Renvoie la fonction de desabonnement : l'appeler quand le
+ * passager annule ou quitte l'ecran, sinon le callback se declencherait sur un
+ * composant demonte.
  */
 export function subscribeToRideStatus(
   ride: Ride,
+  passenger: RoutePoint,
+  destination: RoutePoint,
   onChange: (ride: Ride) => void,
 ): () => void {
-  const timer = setTimeout(() => {
-    onChange({
-      ...ride,
-      status: 'accepted',
-      driver: DEMO_DRIVERS[ride.tier],
-      // 2 a 6 minutes : l'ordre de grandeur d'un chauffeur deja dans le
-      // quartier, comme ceux affiches sur la carte d'accueil.
-      etaMinutes: 2 + Math.floor(Math.random() * 5),
-    });
-  }, ACCEPT_DELAY_MS);
+  const timers: ReturnType<typeof setTimeout>[] = [];
+  const at = (delay: number, run: () => void) => {
+    timers.push(setTimeout(run, delay));
+  };
 
-  return () => clearTimeout(timer);
+  // 2 a 6 minutes : l'ordre de grandeur d'un chauffeur deja dans le quartier,
+  // comme ceux affiches sur la carte d'accueil.
+  const etaMinutes = 2 + Math.floor(Math.random() * 5);
+
+  const accepted: Ride = {
+    ...ride,
+    status: 'accepted',
+    driver: DEMO_DRIVERS[ride.tier],
+    etaMinutes,
+    driverOrigin: driverStartPoint(passenger, destination),
+  };
+
+  at(TIMINGS.accept, () => onChange(accepted));
+
+  at(TIMINGS.accept + TIMINGS.approach, () =>
+    onChange({ ...accepted, status: 'arrived', etaMinutes: 0 }),
+  );
+
+  at(TIMINGS.accept + TIMINGS.approach + TIMINGS.boarding, () =>
+    onChange({ ...accepted, status: 'in_progress', etaMinutes: null }),
+  );
+
+  at(
+    TIMINGS.accept + TIMINGS.approach + TIMINGS.boarding + TIMINGS.trip,
+    () => onChange({ ...accepted, status: 'completed', etaMinutes: null }),
+  );
+
+  return () => timers.forEach(clearTimeout);
 }
 
 /** Annule la course. Cote backend : `POST /rides/:id/cancel`. */
 export async function cancelRide(_ride: Ride): Promise<void> {
   await new Promise((resolve) => setTimeout(resolve, 200));
+}
+
+/** Vrai tant que la course occupe l'ecran (empeche le retour a l'accueil). */
+export function isRideActive(ride: Ride | null): boolean {
+  return (
+    ride !== null &&
+    ride.status !== 'completed' &&
+    ride.status !== 'cancelled'
+  );
 }

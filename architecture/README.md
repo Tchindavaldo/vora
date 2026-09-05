@@ -7,8 +7,9 @@
 ## 1. État du projet
 
 **Phase actuelle** : frontend initialisé — accueil, recherche de destination,
-itinéraire, estimation de prix et commande avec recherche de chauffeur
-(R17 étapes 2 à 7, la création de course étant simulée). Backend non démarré.
+itinéraire, estimation de prix, commande, recherche de chauffeur et suivi de la
+course jusqu'à sa fin (R17 étapes 2 à 8, la course étant simulée). Backend non
+démarré.
 
 | Couche | Choix | Justification |
 |---|---|---|
@@ -67,7 +68,7 @@ feature.
 | [`frontend/architecture/home.md`](../frontend/architecture/home.md) | Écran d'accueil passager |
 | [`frontend/architecture/search.md`](../frontend/architecture/search.md) | Recherche de destination |
 | [`frontend/architecture/booking.md`](../frontend/architecture/booking.md) | Itinéraire et estimation de prix |
-| [`frontend/architecture/ride.md`](../frontend/architecture/ride.md) | Commande et recherche de chauffeur |
+| [`frontend/architecture/ride.md`](../frontend/architecture/ride.md) | Course : commande, chauffeur, suivi jusqu'à la fin |
 
 ## 5. Flux principal (brief §13)
 
