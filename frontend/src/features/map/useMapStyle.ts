@@ -67,6 +67,16 @@ const BACKGROUND_COLORS: Record<string, string> = {
  */
 const ROAD_LABEL_LAYER_ID = 'Road labels';
 
+/**
+ * Zoom a partir duquel les POI apparaissent.
+ *
+ * Le style les affiche des le zoom 12-14 selon la categorie. A Yaounde, la
+ * densite d'ecoles et d'hotels y est telle qu'ils saturaient la carte et
+ * evinçaient noms de rues et quartiers. Repousses a 15, ils n'apparaissent
+ * qu'une fois la carte suffisamment zoomee pour les accueillir.
+ */
+const POI_MIN_ZOOM = 15;
+
 const ROAD_LABEL_CLASSES = [
   'minor',
   'motorway',
@@ -215,8 +225,15 @@ export function useMapStyle(): State {
               },
             };
 
-            // Noms de rues : le filtre d'origine ecarte les voies
-            // residentielles, majoritaires en ville. On l'elargit.
+            // Noms de rues. Deux corrections au style d'origine :
+            //
+            // 1. son filtre ecarte les voies residentielles, majoritaires en
+            //    ville — on l'elargit ;
+            // 2. `text-allow-overlap: false` supprime un nom de rue des qu'il
+            //    croise un autre label. Les POI, plus denses, gagnaient
+            //    systematiquement et aucune rue ne s'affichait. On autorise le
+            //    chevauchement et on rapproche les repetitions le long du
+            //    trace.
             if (layer.id === ROAD_LABEL_LAYER_ID) {
               return {
                 ...scaled,
@@ -225,6 +242,27 @@ export function useMapStyle(): State {
                   ['==', ['geometry-type'], 'LineString'],
                   ['match', ['get', 'class'], ROAD_LABEL_CLASSES, true, false],
                 ],
+                layout: {
+                  ...scaled.layout,
+                  'text-allow-overlap': true,
+                  'text-ignore-placement': true,
+                  'symbol-spacing': 200,
+                },
+              };
+            }
+
+            // POI : ils restent affiches, mais deviennent facultatifs — un POI
+            // cede desormais la place a un nom de rue plutot que l'inverse. On
+            // repousse aussi leur apparition au zoom 15 : plus tot, leur
+            // densite saturait la carte et evincait rues et quartiers.
+            const source = (layer as { 'source-layer'?: string })[
+              'source-layer'
+            ];
+            if (source?.startsWith('poi_')) {
+              return {
+                ...scaled,
+                minzoom: Math.max(layer.minzoom ?? 0, POI_MIN_ZOOM),
+                layout: { ...scaled.layout, 'text-optional': true },
               };
             }
 
