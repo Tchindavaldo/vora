@@ -118,6 +118,38 @@ function pathsOf(features: GeoJSON.Feature[]): Coordinates[][] {
 }
 
 /**
+ * Coupe un trace en portions qui restent a distance du centre.
+ *
+ * Un vehicule parcourt tout le trace qu'on lui donne. Si celui-ci frole la
+ * position de l'utilisateur, le vehicule finira par la recouvrir — meme s'il
+ * demarrait loin. On retire donc les noeuds trop proches et on rend les
+ * morceaux restants.
+ *
+ * Une portion d'un seul point est ecartee : il n'y a pas d'axe a suivre.
+ */
+function splitAwayFrom(
+  path: Coordinates[],
+  center: Coordinates,
+): Coordinates[][] {
+  const parts: Coordinates[][] = [];
+  let current: Coordinates[] = [];
+
+  for (const node of path) {
+    if (distanceBetween(center, node) >= MIN_DISTANCE) {
+      current.push(node);
+      continue;
+    }
+
+    if (current.length >= 2) parts.push(current);
+    current = [];
+  }
+
+  if (current.length >= 2) parts.push(current);
+
+  return parts;
+}
+
+/**
  * Positions de vehicules posees sur les routes visibles a l'ecran.
  *
  * @param map     la carte a interroger
@@ -141,12 +173,25 @@ export async function fetchRoadPointsFromMap(
     return [];
   }
 
-  const paths = pathsOf(features);
+  const all = pathsOf(features);
 
-  if (paths.length === 0) {
+  if (all.length === 0) {
     // Normal tant que les tuiles ne sont pas dessinees ; anormal ensuite.
     return [];
   }
+
+  // On ecarte les PORTIONS de rue qui passent pres de l'utilisateur, et pas
+  // seulement les traces dont le point de depart en est proche : les vehicules
+  // roulent le long de leur trace, et une rue qui passe sous la position finit
+  // par y amener son vehicule, qui recouvre alors le point bleu.
+  //
+  // On coupe plutot que de rejeter la rue entiere : une longue avenue qui
+  // frole l'utilisateur reste utilisable sur tout le reste de sa longueur.
+  const clear = all.flatMap((path) => splitAwayFrom(path, center));
+
+  // Aucune portion ne reste (utilisateur au milieu d'un reseau dense) : on
+  // garde les traces d'origine plutot que de n'afficher aucun vehicule (R8).
+  const paths = clear.length > 0 ? clear : all;
 
   // Chaque trace donne un point candidat, avec sa direction vue du centre.
   // C'est cette direction qui repartit les vehicules tout autour de
