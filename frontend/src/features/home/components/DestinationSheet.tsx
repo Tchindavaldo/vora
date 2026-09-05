@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
   },
   shortcut: {
     // Trois par ligne : une base sous le tiers de la largeur force le retour a
-    // la ligne au quatrieme, `flexGrow` rattrape ensuite l'espace restant.
+    // la ligne au quatrieme, `flexGrow` rattrape l'espace restant.
     flexBasis: '30%',
     flexGrow: 1,
     alignItems: 'center',
