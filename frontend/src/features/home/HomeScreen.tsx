@@ -128,6 +128,12 @@ export function HomeScreen() {
     return vehicles;
   }, [location.coords, location.isFallback, roadPoints, motions]);
 
+  // Incremente a chaque appui sur "recentrer" : voir `recenterToken` dans
+  // MapCanvas.
+  const [recenterToken, setRecenterToken] = useState(0);
+
+  const handleRecenter = () => setRecenterToken((token) => token + 1);
+
   const handleSearchPress = () => {
     // TODO: naviguer vers l'ecran de recherche de destination.
   };
@@ -145,6 +151,7 @@ export function HomeScreen() {
         zoom={DEFAULT_REGION.zoom}
         markers={markers}
         onRoadsAvailable={handleRoadsAvailable}
+        recenterToken={recenterToken}
       />
 
       <HomeHeader
@@ -163,6 +170,7 @@ export function HomeScreen() {
         <View style={styles.recenterRow} pointerEvents="box-none">
           <Pressable
             style={styles.recenterButton}
+            onPress={handleRecenter}
             accessibilityRole="button"
             accessibilityLabel="Recentrer sur ma position"
           >

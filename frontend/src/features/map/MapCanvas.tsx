@@ -82,6 +82,16 @@ type Props = {
    * manipulent jamais l'API MapLibre elle-meme (R11).
    */
   onRoadsAvailable?: (map: RoadQueryTarget) => void;
+  /**
+   * Compteur de recentrage : chaque increment ramene la camera sur `center`.
+   *
+   * La `Camera` MapLibre est declarative — elle ne bouge que si une de ses
+   * props change. Apres un deplacement au doigt, le centre demande est
+   * inchange : repasser la meme valeur ne provoquerait rien. On fait donc
+   * varier une prop dont c'est le seul role, plutot que d'exposer aux ecrans
+   * une ref imperative sur la camera (R11).
+   */
+  recenterToken?: number;
 };
 
 /**
@@ -102,6 +112,7 @@ export function MapCanvas({
   markers,
   pitch = DEFAULT_PITCH,
   onRoadsAvailable,
+  recenterToken = 0,
 }: Props) {
   const mapStyle = useMapStyle();
   const mapRef = useRef<MapRef>(null);
@@ -164,6 +175,9 @@ export function MapCanvas({
       }}
     >
       <Camera
+        // Remonter la camera est ce qui la fait reappliquer son centre : c'est
+        // le seul levier declaratif disponible quand seule la vue a bouge.
+        key={recenterToken}
         center={[center.longitude, center.latitude]}
         zoom={zoom}
         pitch={pitch}
