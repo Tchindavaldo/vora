@@ -4,24 +4,17 @@ import type { StyleSpecification } from '@maplibre/maplibre-react-native';
 import { env } from '../../config/env';
 
 /**
- * Sources masquees : TOUS les POI.
+ * Sources masquees.
  *
- * Parti pris de l'ecran d'accueil : la carte est un decor, pas un contenu a
- * explorer. Seuls les vehicules et la position de l'utilisateur portent de
- * l'information ; commerces, restaurants et equipements leur feraient
- * concurrence. Les noms de rues restent, eux, indispensables pour se situer.
+ * Les POI sont conserves : bars, restaurants, stations et equipements servent
+ * de points de repere pour situer une destination — c'est le coeur du metier
+ * dans une ville ou l'adressage formel est incomplet.
  *
- * Le filtrage porte sur le prefixe du `source-layer` et non sur le nom de la
- * couche : `streets-v4` range chaque famille de POI dans sa propre source
- * (`poi_food`, `poi_healthcare`...), ce qui rend la regle stable si MapTiler
- * en ajoute ou en renomme.
+ * Ne partent que les elements qui n'aident jamais a s'orienter a l'echelle
+ * d'une course.
  */
-const HIDDEN_SOURCE_PREFIXES = ['poi_'];
-
-/** Sources masquees en entier, hors POI. */
 const HIDDEN_SOURCE_LAYERS = [
-  // Les numeros de rue saturent la carte a fort zoom sans jamais servir de
-  // point de repere a l'echelle d'une course.
+  // Numeros de rue : saturent la carte a fort zoom sans servir de repere.
   'building_number',
   'tree',
   'street_furniture',
@@ -48,13 +41,32 @@ const HIDDEN_LAYER_IDS = [
 const EXTRUSION_LAYER_ID = 'Building 3D';
 
 /**
+ * Teintes de fond substituees a celles du style.
+ *
+ * `streets-v4` pose un fond creme (`hsl(54, 100%, 97%)`) et des zones bâties
+ * beiges, qui donnent a la carte une dominante chaude. On la neutralise en
+ * gris tres clair : les vehicules et le trace des rues ressortent mieux sur un
+ * fond froid, et l'ensemble s'accorde au bottom sheet blanc.
+ *
+ * Cle = identifiant de la couche, valeur = couleur de remplacement.
+ */
+const BACKGROUND_COLORS: Record<string, string> = {
+  Background: '#F5F5F3',
+  Residential: '#ECECE8',
+};
+
+/**
  * Facteur applique a la taille des textes.
  *
  * Le style est calibre pour une carte plein ecran que l'on consulte ; ici elle
  * sert de fond a des marqueurs. Des noms de rues plus discrets laissent les
  * vehicules au premier plan sans cesser d'etre lisibles.
+ *
+ * 0.9 et non moins : MapLibre ecarte les labels trop petits pour rester
+ * lisibles, si bien qu'une reduction trop forte les fait disparaitre au lieu
+ * de les reduire.
  */
-const TEXT_SCALE = 0.78;
+const TEXT_SCALE = 0.9;
 
 /**
  * Multiplie une valeur de taille MapLibre, qu'elle soit un nombre, une
@@ -128,15 +140,27 @@ export function useMapStyle(): State {
             const source = (layer as { 'source-layer'?: string })[
               'source-layer'
             ];
-            if (source) {
-              if (HIDDEN_SOURCE_LAYERS.includes(source)) return false;
-              if (HIDDEN_SOURCE_PREFIXES.some((p) => source.startsWith(p))) {
-                return false;
-              }
-            }
+            if (source && HIDDEN_SOURCE_LAYERS.includes(source)) return false;
             return !HIDDEN_LAYER_IDS.includes(layer.id);
           })
           .map((layer) => {
+            // Fond de carte : on substitue la teinte sans toucher au reste du
+            // paint (opacite, transitions de zoom).
+            const background = BACKGROUND_COLORS[layer.id];
+            if (background) {
+              const key =
+                layer.type === 'background'
+                  ? 'background-color'
+                  : 'fill-color';
+              return {
+                ...layer,
+                paint: {
+                  ...(layer as { paint?: Record<string, unknown> }).paint,
+                  [key]: background,
+                },
+              };
+            }
+
             // Batiments : on aplatit l'extrusion au lieu de retirer la couche.
             if (layer.id === EXTRUSION_LAYER_ID) {
               return {
