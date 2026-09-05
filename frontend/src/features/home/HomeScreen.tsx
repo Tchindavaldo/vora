@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
@@ -7,7 +7,9 @@ import { MapCanvas, type MapMarker } from '../map/MapCanvas';
 import { colors, radius, shadows, spacing } from '../../theme';
 import { DEFAULT_REGION } from '../../config/env';
 
+import { fetchRoadPoints, type RoadPoint } from '../../services/roads';
 import { useUserLocation } from './useUserLocation';
+import { useVehicleMotion } from './useVehicleMotion';
 import { HomeHeader } from './components/HomeHeader';
 import { DestinationSheet, type Shortcut } from './components/DestinationSheet';
 import { LocationNotice } from './components/LocationNotice';
@@ -30,17 +32,59 @@ import {
 export function HomeScreen() {
   const location = useUserLocation();
 
-  // Les vehicules de demo sont positionnes RELATIVEMENT a l'utilisateur, pour
-  // rester visibles quelle que soit la ville affichee.
+  // Positions posees sur de vraies rues, recuperees une fois la geolocalisation
+  // resolue.
+  //
+  // `null` = on ne sait pas encore. On n'affiche AUCUN vehicule dans cet etat :
+  // montrer les offsets de demonstration puis les deplacer quand Overpass
+  // repond produirait un saut visible a l'ecran. Une fois la reponse connue —
+  // vraies rues, ou tableau vide en cas d'echec (R8) — les vehicules
+  // apparaissent a leur place definitive et n'en bougent plus.
+  const [roadPoints, setRoadPoints] = useState<RoadPoint[] | null>(null);
+
+  useEffect(() => {
+    if (location.status === 'loading') return;
+
+    let cancelled = false;
+    fetchRoadPoints(location.coords, NEARBY_VEHICLES.length).then((points) => {
+      if (!cancelled) setRoadPoints(points);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [location.status, location.coords]);
+
+  // Les vehicules roulent le long de leur rue. Tant que les positions ne sont
+  // pas connues, le hook ne renvoie rien et la carte reste sans vehicule.
+  const motions = useVehicleMotion(roadPoints);
+
   const markers = useMemo<MapMarker[]>(() => {
-    const vehicles: MapMarker[] = NEARBY_VEHICLES.map((vehicle) => ({
-      id: vehicle.id,
-      longitude: location.coords.longitude + vehicle.offsetLng,
-      latitude: location.coords.latitude + vehicle.offsetLat,
-      render: () => (
-        <VehicleMarker kind={vehicle.kind} bearing={vehicle.bearing} />
-      ),
-    }));
+    // Tant que les positions ne sont pas arretees, aucun vehicule : voir le
+    // commentaire sur `roadPoints`.
+    const vehicles: MapMarker[] =
+      roadPoints === null
+        ? []
+        : NEARBY_VEHICLES.map((vehicle, index) => {
+            // Position animee si elle existe, sinon la position posee sur la
+            // route, sinon l'offset de demonstration (Overpass en echec, R8).
+            const onRoad = motions[index] ?? roadPoints[index];
+
+            return {
+              id: vehicle.id,
+              longitude:
+                onRoad?.longitude ??
+                location.coords.longitude + vehicle.offsetLng,
+              latitude:
+                onRoad?.latitude ?? location.coords.latitude + vehicle.offsetLat,
+              render: () => (
+                <VehicleMarker
+                  kind={vehicle.kind}
+                  bearing={onRoad?.bearing ?? vehicle.bearing}
+                />
+              ),
+            };
+          });
 
     // La position utilisateur n'est affichee que si elle est reelle : montrer
     // un point "vous etes ici" sur une ville par defaut serait un mensonge.
@@ -54,7 +98,7 @@ export function HomeScreen() {
     }
 
     return vehicles;
-  }, [location.coords, location.isFallback]);
+  }, [location.coords, location.isFallback, roadPoints, motions]);
 
   const handleSearchPress = () => {
     // TODO: naviguer vers l'ecran de recherche de destination.
