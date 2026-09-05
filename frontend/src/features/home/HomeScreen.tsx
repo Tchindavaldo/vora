@@ -1,50 +1,50 @@
-import React, { useCallback, useRef, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { StatusBar } from 'expo-status-bar';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { Pressable, StyleSheet, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { StatusBar } from "expo-status-bar";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { MapCanvas } from '../map/MapCanvas';
-import { colors, shadows, SHEET_HEIGHT, spacing } from '../../theme';
-import { DEFAULT_REGION } from '../../config/env';
+import { MapCanvas } from "../map/MapCanvas";
+import { colors, shadows, SHEET_HEIGHT, spacing } from "../../theme";
+import { DEFAULT_REGION } from "../../config/env";
 
-import type { RoadPoint } from '../../services/roads';
+import type { RoadPoint } from "../../services/roads";
 import {
   fetchRoadPointsFromMap,
   type RoadQueryTarget,
-} from '../../services/roadsFromMap';
-import { useUserLocation } from './useUserLocation';
-import { useVehicleMotion } from './useVehicleMotion';
-import { HomeHeader } from './components/HomeHeader';
-import { HomeSheets } from './components/HomeSheets';
-import type { Shortcut } from './components/DestinationSheet';
+} from "../../services/roadsFromMap";
+import { useUserLocation } from "./useUserLocation";
+import { useVehicleMotion } from "./useVehicleMotion";
+import { HomeHeader } from "./components/HomeHeader";
+import { HomeSheets } from "./components/HomeSheets";
+import type { Shortcut } from "./components/DestinationSheet";
 import {
   DestinationSearchScreen,
   type DestinationChoice,
-} from '../search/DestinationSearchScreen';
-import { useBookingFlow } from '../booking/useBookingFlow';
-import { usePayment } from '../payment/usePayment';
-import { useRideRequest } from '../ride/useRideRequest';
-import { useRideOrder } from './useRideOrder';
-import { useHomeNavigation } from './useHomeNavigation';
-import { useRideRating } from '../ride/useRideRating';
-import { RatingCommentScreen } from '../ride/components/RatingCommentScreen';
-import { useDriverApproach } from '../ride/useDriverApproach';
-import { useApproachRoute } from '../ride/useApproachRoute';
-import { useRideCamera } from '../ride/useRideCamera';
-import { useRideSafety } from '../ride/useRideSafety';
-import { TransactionHistoryScreen } from '../history/TransactionHistoryScreen';
-import { ProfileScreen } from '../profile/ProfileScreen';
-import { EmergencyContactsScreen } from '../profile/EmergencyContactsScreen';
-import { useEmergencyContacts } from '../profile/useEmergencyContacts';
-import { LocationNotice } from './components/LocationNotice';
-import { useHomeMarkers } from './useHomeMarkers';
+} from "../search/DestinationSearchScreen";
+import { useBookingFlow } from "../booking/useBookingFlow";
+import { usePayment } from "../payment/usePayment";
+import { useRideRequest } from "../ride/useRideRequest";
+import { useRideOrder } from "./useRideOrder";
+import { useHomeNavigation } from "./useHomeNavigation";
+import { useRideRating } from "../ride/useRideRating";
+import { RatingCommentScreen } from "../ride/components/RatingCommentScreen";
+import { useDriverApproach } from "../ride/useDriverApproach";
+import { useApproachRoute } from "../ride/useApproachRoute";
+import { useRideCamera } from "../ride/useRideCamera";
+import { useRideSafety } from "../ride/useRideSafety";
+import { TransactionHistoryScreen } from "../history/TransactionHistoryScreen";
+import { ProfileScreen } from "../profile/ProfileScreen";
+import { EmergencyContactsScreen } from "../profile/EmergencyContactsScreen";
+import { useEmergencyContacts } from "../profile/useEmergencyContacts";
+import { LocationNotice } from "./components/LocationNotice";
+import { useHomeMarkers } from "./useHomeMarkers";
 import {
   DEMO_USER_INITIAL,
   DEMO_USER_NAME,
   NEARBY_VEHICLES,
   SHORTCUTS,
-} from './demoData';
+} from "./demoData";
 
 /**
  * Ecran d'accueil passager.
@@ -56,6 +56,10 @@ import {
 export function HomeScreen() {
   const location = useUserLocation();
   const insets = useSafeAreaInsets();
+
+  // Seule une position reelle autorise les commandes de course : ailleurs,
+  // `coords` est le repli sur la ville par defaut.
+  const hasPosition = location.status === "granted";
 
   // Positions posees sur de vraies rues, recuperees une fois la geolocalisation
   // resolue.
@@ -94,19 +98,28 @@ export function HomeScreen() {
       // l'autre sous les yeux de l'utilisateur.
       if (roadPointsRef.current) return;
 
-      fetchRoadPointsFromMap(map, { longitude, latitude }, NEARBY_VEHICLES.length)
-        .then((points) => {
-          if (points.length === 0) return;
-          roadPointsRef.current = points;
-          setRoadPoints(points);
-        });
+      // Sans position reelle, la carte montre la ville par defaut : y faire
+      // circuler des vehicules laisserait croire a des chauffeurs autour de
+      // l'utilisateur, alors qu'on ignore ou il est (R13).
+      if (!hasPosition) return;
+
+      fetchRoadPointsFromMap(
+        map,
+        { longitude, latitude },
+        NEARBY_VEHICLES.length,
+      ).then((points) => {
+        if (points.length === 0) return;
+        roadPointsRef.current = points;
+        setRoadPoints(points);
+      });
     },
-    [longitude, latitude],
+    [longitude, latitude, hasPosition],
   );
 
   // Les vehicules roulent le long de leur rue. Tant que les positions ne sont
   // pas connues, le hook ne renvoie rien et la carte reste sans vehicule.
-  const motions = useVehicleMotion(roadPoints);
+  // Sans geoloc, on ne lui passe rien : l'animation s'arrete.
+  const motions = useVehicleMotion(hasPosition ? roadPoints : null);
 
   // Course en preparation : destination, itineraire et tarifs (R17 etapes 4-5).
   const booking = useBookingFlow(location.coords);
@@ -153,7 +166,7 @@ export function HomeScreen() {
   const markers = useHomeMarkers({
     coords: location.coords,
     isFallbackLocation: location.isFallback,
-    roadPoints,
+    roadPoints: hasPosition ? roadPoints : null,
     motions,
     destination:
       booking.choice === null
@@ -163,20 +176,41 @@ export function HomeScreen() {
             latitude: booking.choice.place.latitude,
           },
     driverPosition,
-    driverKind: ride.ride?.tier ?? 'eco',
+    driverKind: ride.ride?.tier ?? "eco",
   });
 
   const rideStatus = ride.ride?.status ?? null;
 
   // Cadrages de la carte pendant le suivi : recadrages automatiques aux
   // changements de statut, et retour a la vue d'ensemble a la demande.
-  const camera = useRideCamera(rideStatus, approach.points, booking.routePoints);
+  const camera = useRideCamera(
+    rideStatus,
+    approach.points,
+    booking.routePoints,
+  );
 
   // Incremente a chaque appui sur "recentrer" : voir `recenterToken` dans
   // MapCanvas.
   const [recenterToken, setRecenterToken] = useState(0);
 
   const handleRecenter = () => setRecenterToken((token) => token + 1);
+
+  /**
+   * Reprise apres une geoloc reactivee depuis les Reglages.
+   *
+   * La camera n'est posee qu'a l'initialisation et sur `recenterToken` : sans
+   * ce coup de pouce, elle resterait sur la ville par defaut alors que la vraie
+   * position est connue. On oublie aussi le placement des vehicules, calcule
+   * autour du mauvais centre — le vol de camera declenche un nouveau rendu
+   * complet, qui rappelle `handleRoadsAvailable` et les repose au bon endroit.
+   */
+  useEffect(() => {
+    if (!hasPosition) return;
+
+    roadPointsRef.current = null;
+    setRoadPoints(null);
+    setRecenterToken((token) => token + 1);
+  }, [hasPosition]);
 
   /**
    * Ecrans pleins superposes a l'accueil : recherche, historique, profil,
@@ -249,11 +283,11 @@ export function HomeScreen() {
     );
   }
 
-  if (nav.route?.name === 'contacts') {
+  if (nav.route?.name === "contacts") {
     return <EmergencyContactsScreen onClose={nav.openProfile} />;
   }
 
-  if (nav.route?.name === 'profile') {
+  if (nav.route?.name === "profile") {
     return (
       <ProfileScreen
         userName={DEMO_USER_NAME}
@@ -265,11 +299,11 @@ export function HomeScreen() {
     );
   }
 
-  if (nav.route?.name === 'history') {
+  if (nav.route?.name === "history") {
     return <TransactionHistoryScreen onClose={nav.close} />;
   }
 
-  if (nav.route?.name === 'search') {
+  if (nav.route?.name === "search") {
     return (
       <DestinationSearchScreen
         origin={location.coords}
@@ -298,7 +332,7 @@ export function HomeScreen() {
         fitRouteToken={booking.fitRouteToken}
         // Le trajet d'approche n'est trace que pendant qu'il sert : une fois le
         // passager a bord, il n'a plus rien a dire et encombrerait la carte.
-        approach={rideStatus === 'accepted' ? approach.points : undefined}
+        approach={rideStatus === "accepted" ? approach.points : undefined}
         fitPoints={camera.fitPoints}
         fitPointsToken={camera.fitPointsToken}
         fitPointsPadding={camera.fitPointsPadding}
@@ -306,6 +340,7 @@ export function HomeScreen() {
 
       <HomeHeader
         nearbyCount={NEARBY_VEHICLES.length}
+        locationStatus={location.status}
         userInitial={DEMO_USER_INITIAL}
         onMenuPress={nav.openHistory}
         onProfilePress={nav.openProfile}
@@ -317,52 +352,62 @@ export function HomeScreen() {
           cityLabel={DEFAULT_REGION.cityLabel}
         />
 
-        <View style={styles.recenterRow} pointerEvents="box-none">
-          {/*
+        {/*
+          Sans position, recentrer et commander n'ont plus de sens : le
+          recentrage viserait la ville par defaut et une commande partirait
+          d'un depart faux. On ne laisse que le bandeau qui explique quoi
+          faire, plutot que des commandes qui echoueraient (R8).
+        */}
+        {hasPosition && (
+          <>
+            <View style={styles.recenterRow} pointerEvents="box-none">
+              {/*
             Cadrage sur l'itineraire en cours, a cote du recentrage : les deux
             repondent a la meme envie — "remets la carte comme il faut" — l'un
             sur soi, l'autre sur le trajet. Il n'apparait que s'il y a un trajet
             a cadrer.
           */}
-          {camera.activeRoutePoints.length >= 2 && (
-            <Pressable
-              style={styles.recenterButton}
-              onPress={camera.fitActiveRoute}
-              accessibilityRole="button"
-              accessibilityLabel="Afficher tout l’itinéraire"
-            >
-              <Ionicons name="git-branch" size={20} color={colors.text} />
-            </Pressable>
-          )}
+              {camera.activeRoutePoints.length >= 2 && (
+                <Pressable
+                  style={styles.recenterButton}
+                  onPress={camera.fitActiveRoute}
+                  accessibilityRole="button"
+                  accessibilityLabel="Afficher tout l’itinéraire"
+                >
+                  <Ionicons name="git-branch" size={20} color={colors.text} />
+                </Pressable>
+              )}
 
-          <Pressable
-            style={styles.recenterButton}
-            onPress={handleRecenter}
-            accessibilityRole="button"
-            accessibilityLabel="Recentrer sur ma position"
-          >
-            <Ionicons name="locate" size={20} color={colors.text} />
-          </Pressable>
-        </View>
+              <Pressable
+                style={styles.recenterButton}
+                onPress={handleRecenter}
+                accessibilityRole="button"
+                accessibilityLabel="Recentrer sur ma position"
+              >
+                <Ionicons name="locate" size={20} color={colors.text} />
+              </Pressable>
+            </View>
 
-        {/* Quel panneau s'affiche selon l'avancement : voir `HomeSheets`. */}
-        <HomeSheets
-          booking={booking}
-          payment={payment}
-          ride={ride}
-          order={order}
-          rating={rating}
-          safety={safety}
-          emergencyContacts={emergencyContacts.items}
-          shortcuts={SHORTCUTS}
-          isRating={isRating}
-          onSearchPress={() => nav.openSearch()}
-          onShortcutPress={handleShortcutPress}
-          onCancelRide={handleCancelRide}
-          onRideDone={handleRideDone}
-          onOpenComment={() => setIsCommenting(true)}
-          onRatingClose={handleRatingClose}
-        />
+            {/* Quel panneau s'affiche selon l'avancement : voir `HomeSheets`. */}
+            <HomeSheets
+              booking={booking}
+              payment={payment}
+              ride={ride}
+              order={order}
+              rating={rating}
+              safety={safety}
+              emergencyContacts={emergencyContacts.items}
+              shortcuts={SHORTCUTS}
+              isRating={isRating}
+              onSearchPress={() => nav.openSearch()}
+              onShortcutPress={handleShortcutPress}
+              onCancelRide={handleCancelRide}
+              onRideDone={handleRideDone}
+              onOpenComment={() => setIsCommenting(true)}
+              onRatingClose={handleRatingClose}
+            />
+          </>
+        )}
       </View>
     </View>
   );
@@ -377,7 +422,7 @@ const styles = StyleSheet.create({
   },
   // Empile bandeau + bouton recentrer + sheet, ancres en bas de l'ecran.
   bottomStack: {
-    position: 'absolute',
+    position: "absolute",
     left: 0,
     right: 0,
     bottom: 0,
@@ -385,9 +430,9 @@ const styles = StyleSheet.create({
   },
   // Les boutons de cadrage, alignes a droite : itineraire puis position.
   recenterRow: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    alignItems: "center",
     gap: spacing.sm,
     paddingHorizontal: spacing.lg,
   },
@@ -396,8 +441,8 @@ const styles = StyleSheet.create({
     height: RECENTER,
     borderRadius: RECENTER / 2,
     backgroundColor: colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     ...shadows.floating,
   },
 });
