@@ -40,58 +40,48 @@ export function VehicleMarker({ kind, bearing = 0 }: Props) {
 function CarShape() {
   return (
     <G>
-      {/* Ombre portee, legerement decalee vers le bas. */}
-      <Rect
-        x={11.4}
-        y={7.4}
-        width={17.2}
-        height={26}
-        rx={6}
-        fill="rgba(16, 24, 40, 0.22)"
-      />
+      {/* Ombre portee. */}
+      <Path d={CAR_BODY} fill="rgba(16, 24, 40, 0.24)" translateY={1.1} />
 
-      {/* Carrosserie. */}
-      <Rect x={11} y={6} width={18} height={26} rx={6} fill="#F7F8F9" />
-      <Rect
-        x={11}
-        y={6}
-        width={18}
-        height={26}
-        rx={6}
-        fill="none"
-        stroke="#C9CDD3"
-        strokeWidth={0.9}
-      />
+      {/* Carrosserie : capot effile a l'avant, arriere plus carre. Un simple
+          rectangle arrondi donnait une gelule, pas une berline. */}
+      <Path d={CAR_BODY} fill="#FAFBFC" stroke="#B9BFC7" strokeWidth={0.8} />
 
-      {/* Pare-brise avant, plus large que la lunette arriere. */}
-      <Path
-        d="M13.6 13.4 C15.4 11.9, 24.6 11.9, 26.4 13.4 L25.4 17.2 L14.6 17.2 Z"
-        fill="#1F2733"
-      />
+      {/* Retroviseurs, au niveau du montant avant. */}
+      <Path d="M10.5 17.4 L12.2 17 L12.2 19.4 L10.5 19.2 Z" fill="#D6DAE0" />
+      <Path d="M29.5 17.4 L27.8 17 L27.8 19.4 L29.5 19.2 Z" fill="#D6DAE0" />
 
-      {/* Pavillon. */}
-      <Rect x={13.4} y={17.6} width={13.2} height={6.4} rx={1.6} fill="#2B3442" />
+      {/* Pare-brise : trapeze inverse, plus etroit en haut. */}
+      <Path d="M14.9 15.1 L25.1 15.1 L24 18.7 L16 18.7 Z" fill="#25303D" />
 
-      {/* Lunette arriere. */}
-      <Path
-        d="M14.6 24.6 L25.4 24.6 L26.2 28 C24.4 29.3, 15.6 29.3, 13.8 28 Z"
-        fill="#1F2733"
-      />
+      {/* Pavillon, entre les deux vitrages. */}
+      <Path d="M15.5 19.3 L24.5 19.3 L24.5 23.6 L15.5 23.6 Z" fill="#39434F" />
 
-      {/* Retroviseurs. */}
-      <Rect x={9.6} y={16.4} width={2.2} height={3} rx={1} fill="#D8DBE0" />
-      <Rect x={28.2} y={16.4} width={2.2} height={3} rx={1} fill="#D8DBE0" />
+      {/* Lunette arriere, plus courte que le pare-brise. */}
+      <Path d="M16.1 24.2 L23.9 24.2 L24.8 27.3 L15.2 27.3 Z" fill="#25303D" />
 
       {/* Feux avant. */}
-      <Rect x={13.2} y={6.6} width={4} height={1.7} rx={0.85} fill="#FFF4D6" />
-      <Rect x={22.8} y={6.6} width={4} height={1.7} rx={0.85} fill="#FFF4D6" />
+      <Path d="M14.6 7.6 L17.6 7.1 L17.6 8.9 L14.7 9.2 Z" fill="#FFF6DC" />
+      <Path d="M25.4 7.6 L22.4 7.1 L22.4 8.9 L25.3 9.2 Z" fill="#FFF6DC" />
 
-      {/* Feux arriere : le repere de direction. */}
-      <Rect x={12.8} y={29.9} width={4.6} height={1.9} rx={0.95} fill="#E5484D" />
-      <Rect x={22.6} y={29.9} width={4.6} height={1.9} rx={0.95} fill="#E5484D" />
+      {/* Feux arriere : le repere de sens de marche. */}
+      <Path d="M13.6 30.4 L17.4 30.4 L17.4 32.2 L13.9 32 Z" fill="#E5484D" />
+      <Path d="M26.4 30.4 L22.6 30.4 L22.6 32.2 L26.1 32 Z" fill="#E5484D" />
     </G>
   );
 }
+
+/**
+ * Contour de la carrosserie, capot vers le haut.
+ * L'avant se retrecit (calandre etroite), les flancs se galbent au niveau de
+ * l'habitacle, l'arriere reste large et presque droit.
+ */
+const CAR_BODY =
+  'M20 5.6 C17.4 5.6, 15 6.4, 14 7.6 C12.8 9.2, 12.2 12, 12.1 15.4 ' +
+  'C12 19.4, 12 24.6, 12.3 28.4 C12.5 30.8, 13 32.6, 14.2 33.4 ' +
+  'C15.6 34.3, 24.4 34.3, 25.8 33.4 C27 32.6, 27.5 30.8, 27.7 28.4 ' +
+  'C28 24.6, 28 19.4, 27.9 15.4 C27.8 12, 27.2 9.2, 26 7.6 ' +
+  'C25 6.4, 22.6 5.6, 20 5.6 Z';
 
 /**
  * Moto vue de dessus — la categorie la plus utilisee au Cameroun.

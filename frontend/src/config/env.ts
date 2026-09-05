@@ -38,17 +38,16 @@ function resolveMapStyleUrl(): string | null {
 /**
  * Style de carte par defaut.
  *
- * `bright-v2` : le meilleur equilibre pour une app de mobilite. Il porte 12
- * categories de POI (sante, transport, station-service, commerces, education)
- * — indispensables comme points de repere pour choisir une destination — mais
- * seulement 4 couches de noms de rues, contre 8 pour `streets-v2` qui saturait
- * la carte.
+ * `streets-v2` sert de base, puis `useMapStyle` en retire les couches inutiles
+ * au VTC (commerces, restauration, culture, tourisme, sport, numeros de rue).
+ * On garde ainsi ses reperes utiles — sante, transports, station-service,
+ * education, lieux-dits — sans la saturation d'origine.
  *
  * Ecartes apres mesure : `dataviz-light` et `backdrop` (0 POI, carte vide,
  * concus pour de la data-visualisation), `basic-v2` (1 POI, fond beige),
- * `streets-v2` (bon en POI mais 8 couches de noms de rues).
+ * `bright-v2` (12 categories de POI, encore trop charge).
  */
-const DEFAULT_MAP_STYLE = 'bright-v2';
+const DEFAULT_MAP_STYLE = 'streets-v2';
 
 export const env = {
   mapStyleUrl: resolveMapStyleUrl(),

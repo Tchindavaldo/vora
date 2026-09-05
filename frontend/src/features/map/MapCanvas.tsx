@@ -4,6 +4,7 @@ import { Camera, Map, Marker } from '@maplibre/maplibre-react-native';
 
 import { colors, spacing, typography } from '../../theme';
 import { env, DEFAULT_REGION } from '../../config/env';
+import { useMapStyle } from './useMapStyle';
 
 /**
  * Encapsulation du fournisseur de carte (R11).
@@ -24,6 +25,7 @@ export type MapMarker = {
   render: () => React.ReactElement;
 };
 
+
 type Props = {
   center: { longitude: number; latitude: number };
   zoom: number;
@@ -31,16 +33,24 @@ type Props = {
 };
 
 export function MapCanvas({ center, zoom, markers }: Props) {
+  const mapStyle = useMapStyle();
+
   // Pas de style disponible (cle absente) : on affiche un fond neutre plutot
   // que de laisser MapLibre echouer sur une URL nulle (R8).
   if (!env.hasMapStyle) {
     return <MapUnavailable />;
   }
 
+  // Le style est en cours de telechargement : fond neutre, sans message. La
+  // carte apparait des qu'il est pret.
+  if (mapStyle.status === 'loading') {
+    return <View style={[StyleSheet.absoluteFill, styles.loading]} />;
+  }
+
   return (
     <Map
       style={StyleSheet.absoluteFill}
-      mapStyle={env.mapStyleUrl!}
+      mapStyle={mapStyle.style}
       logo={false}
       compass={false}
       attributionPosition={{ bottom: 8, left: 8 }}
@@ -83,6 +93,9 @@ function MapUnavailable() {
 export { DEFAULT_REGION };
 
 const styles = StyleSheet.create({
+  loading: {
+    backgroundColor: colors.mapFallback,
+  },
   fallback: {
     backgroundColor: colors.mapFallback,
     alignItems: 'center',
