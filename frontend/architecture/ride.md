@@ -200,8 +200,7 @@ d'authentification une fois le backend branché — R9).
 
 ## Reste à faire
 
-- Évaluation en fin de course (le paiement est en amont de la course, voir
-  `payment.md`)
+- Envoi réel de l'évaluation (`services/ratings.ts` est simulé)
 - Appel / message au chauffeur depuis la fiche
 - Cas « aucun chauffeur disponible » après expiration du délai
 - Contact d'urgence réel derrière le SOS
