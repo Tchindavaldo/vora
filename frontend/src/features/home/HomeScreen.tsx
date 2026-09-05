@@ -20,6 +20,9 @@ import {
   DestinationSearchScreen,
   type DestinationChoice,
 } from '../search/DestinationSearchScreen';
+import { useBookingFlow } from '../booking/useBookingFlow';
+import { FareSheet } from '../booking/components/FareSheet';
+import { DestinationPin } from '../booking/components/DestinationPin';
 import { LocationNotice } from './components/LocationNotice';
 import { UserLocationDot } from './components/UserLocationDot';
 import { VehicleMarker } from './components/VehicleMarker';
@@ -91,6 +94,9 @@ export function HomeScreen() {
   // pas connues, le hook ne renvoie rien et la carte reste sans vehicule.
   const motions = useVehicleMotion(roadPoints);
 
+  // Course en preparation : destination, itineraire et tarifs (R17 etapes 4-5).
+  const booking = useBookingFlow(location.coords);
+
   const markers = useMemo<MapMarker[]>(() => {
     // Tant que les positions ne sont pas arretees, aucun vehicule : voir le
     // commentaire sur `roadPoints`.
@@ -129,8 +135,24 @@ export function HomeScreen() {
       });
     }
 
+    // Destination de la course en preparation, a l'autre bout du trace.
+    if (booking.choice !== null) {
+      vehicles.push({
+        id: 'destination',
+        longitude: booking.choice.place.longitude,
+        latitude: booking.choice.place.latitude,
+        render: () => <DestinationPin />,
+      });
+    }
+
     return vehicles;
-  }, [location.coords, location.isFallback, roadPoints, motions]);
+  }, [
+    location.coords,
+    location.isFallback,
+    roadPoints,
+    motions,
+    booking.choice,
+  ]);
 
   // Incremente a chaque appui sur "recentrer" : voir `recenterToken` dans
   // MapCanvas.
@@ -157,9 +179,13 @@ export function HomeScreen() {
     setSearchQuery(shortcut.label);
   };
 
-  const handleDestinationConfirm = (_choice: DestinationChoice) => {
-    // TODO (R17 etape 4) : calculer l'itineraire puis ouvrir l'estimation.
+  const handleDestinationConfirm = (choice: DestinationChoice) => {
     setSearchQuery(null);
+    booking.start(choice);
+  };
+
+  const handleOrder = () => {
+    // TODO (R17 etapes 6-7) : creer la course puis chercher un chauffeur.
   };
 
   if (searchQuery !== null) {
@@ -183,6 +209,8 @@ export function HomeScreen() {
         markers={markers}
         onRoadsAvailable={handleRoadsAvailable}
         recenterToken={recenterToken}
+        route={booking.routePoints}
+        fitRouteToken={booking.fitRouteToken}
       />
 
       <HomeHeader
@@ -209,11 +237,32 @@ export function HomeScreen() {
           </Pressable>
         </View>
 
-        <DestinationSheet
-          shortcuts={SHORTCUTS}
-          onSearchPress={handleSearchPress}
-          onShortcutPress={handleShortcutPress}
-        />
+        {/*
+          Une course en preparation remplace le sheet de saisie par
+          l'estimation : les deux repondent a la meme question, "ou va-t-on",
+          et les empiler laisserait un champ de recherche sous un trajet deja
+          choisi.
+        */}
+        {booking.choice === null ? (
+          <DestinationSheet
+            shortcuts={SHORTCUTS}
+            onSearchPress={handleSearchPress}
+            onShortcutPress={handleShortcutPress}
+          />
+        ) : (
+          <FareSheet
+            destinationLabel={booking.choice.place.label}
+            fares={booking.fares}
+            selectedTier={booking.selectedTier}
+            onSelectTier={booking.selectTier}
+            distanceMeters={booking.distanceMeters}
+            isLoading={booking.isLoading}
+            error={booking.error}
+            onRetry={booking.retry}
+            onConfirm={handleOrder}
+            onCancel={booking.cancel}
+          />
+        )}
       </View>
     </View>
   );
