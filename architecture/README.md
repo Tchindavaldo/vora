@@ -8,8 +8,9 @@
 
 **Phase actuelle** : frontend initialisé — accueil, recherche de destination,
 itinéraire, estimation de prix, paiement simulé, commande, recherche de
-chauffeur et suivi de la course jusqu'à sa fin (R17 étapes 2 à 8, la course
-étant simulée). Backend non démarré.
+chauffeur, suivi de la course jusqu'à sa fin, évaluation du chauffeur et
+historique des courses (R17 étapes 2 à 8, la course étant simulée).
+Backend non démarré.
 
 | Couche | Choix | Justification |
 |---|---|---|
@@ -38,8 +39,10 @@ frontend/              application mobile passager (Expo, initialisé)
       search/          recherche de destination — FAIT
       booking/         estimation, confirmation — FAIT
       payment/         paiement (espèces + monnaie, portefeuille, MoMo) — FAIT, simulé
-      ride/            course : chauffeur, suivi jusqu'à la fin — FAIT
-    services/          géocodage (MapTiler), routage (ORS), tarifs, paiement simulé
+      ride/            course : chauffeur, suivi, évaluation — FAIT
+      history/         historique des courses et de leurs reçus — FAIT
+    services/          géocodage (MapTiler), routage (ORS), tarifs, paiement,
+                       évaluations et transactions (simulés)
     contexts/          (vide) Auth, Ride, Location
   architecture/        doc du frontend
 backend/               (non initialisé)
@@ -72,6 +75,7 @@ feature.
 | [`frontend/architecture/booking.md`](../frontend/architecture/booking.md) | Itinéraire et estimation de prix |
 | [`frontend/architecture/ride.md`](../frontend/architecture/ride.md) | Course : commande, chauffeur, suivi jusqu'à la fin |
 | [`frontend/architecture/payment.md`](../frontend/architecture/payment.md) | Paiement : espèces et monnaie annoncée, portefeuille, Mobile Money (simulé) |
+| [`frontend/architecture/history.md`](../frontend/architecture/history.md) | Historique des courses et de leurs reçus |
 
 ## 5. Flux principal (brief §13)
 

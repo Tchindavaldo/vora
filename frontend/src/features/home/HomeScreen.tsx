@@ -37,6 +37,7 @@ import { useDriverApproach } from '../ride/useDriverApproach';
 import { useApproachRoute } from '../ride/useApproachRoute';
 import { useRideCamera } from '../ride/useRideCamera';
 import { useRideSafety } from '../ride/useRideSafety';
+import { TransactionHistoryScreen } from '../history/TransactionHistoryScreen';
 import { LocationNotice } from './components/LocationNotice';
 import { useHomeMarkers } from './useHomeMarkers';
 import { DEMO_USER_INITIAL, NEARBY_VEHICLES, SHORTCUTS } from './demoData';
@@ -213,13 +214,23 @@ export function HomeScreen() {
 
   const handleRideDone = () => setIsRating(true);
 
-  /** Evaluation envoyee ou passee : on efface tout et on revient a l'accueil. */
+  /**
+   * Evaluation envoyee ou passee : la course rejoint l'historique avec la note
+   * eventuelle, puis on efface tout et on revient a l'accueil.
+   */
   const handleRatingClose = () => {
     setIsRating(false);
     setIsCommenting(false);
+    order.reset(rating.stars);
     rating.reset();
-    order.reset();
   };
+
+  /**
+   * Historique des courses, ouvert depuis le bouton menu. Comme la recherche,
+   * il se superpose a l'accueil : l'app n'a toujours pas de librairie de
+   * navigation (R18).
+   */
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
   // Commentaire : plein ecran pour que le clavier ne recouvre pas la saisie.
   const rated = ride.ride;
@@ -240,6 +251,10 @@ export function HomeScreen() {
         onBack={() => setIsCommenting(false)}
       />
     );
+  }
+
+  if (isHistoryOpen) {
+    return <TransactionHistoryScreen onClose={() => setIsHistoryOpen(false)} />;
   }
 
   if (searchQuery !== null) {
@@ -280,7 +295,7 @@ export function HomeScreen() {
       <HomeHeader
         nearbyCount={NEARBY_VEHICLES.length}
         userInitial={DEMO_USER_INITIAL}
-        onMenuPress={() => {}}
+        onMenuPress={() => setIsHistoryOpen(true)}
         onProfilePress={() => {}}
       />
 

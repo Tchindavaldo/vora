@@ -10,6 +10,7 @@ type Props = {
   nearbyCount: number;
   /** Initiale affichee dans le bouton profil. */
   userInitial: string;
+  /** Ouvre l'historique des courses et de leurs paiements. */
   onMenuPress: () => void;
   onProfilePress: () => void;
 };
@@ -36,9 +37,9 @@ export function HomeHeader({
         onPress={onMenuPress}
         style={styles.circleButton}
         accessibilityRole="button"
-        accessibilityLabel="Ouvrir le menu"
+        accessibilityLabel="Voir mes courses"
       >
-        <Ionicons name="menu" size={22} color={colors.text} />
+        <Ionicons name="receipt-outline" size={22} color={colors.text} />
       </Pressable>
 
       {/* Le badge ne s'etire pas : il se dimensionne sur son texte et reste
