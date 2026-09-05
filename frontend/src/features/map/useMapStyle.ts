@@ -70,12 +70,11 @@ const ROAD_LABEL_LAYER_ID = 'Road labels';
 /**
  * Zoom a partir duquel les POI apparaissent.
  *
- * Le style les affiche des le zoom 12-14 selon la categorie. A Yaounde, la
- * densite d'ecoles et d'hotels y est telle qu'ils saturaient la carte et
- * evinçaient noms de rues et quartiers. Repousses a 15, ils n'apparaissent
- * qu'une fois la carte suffisamment zoomee pour les accueillir.
+ * Le style les affiche des le zoom 12-14 selon la categorie. A Yaounde, leur
+ * densite sature la carte a faible zoom : on les repousse a 14 pour laisser
+ * quartiers et axes principaux lisibles quand on prend du recul.
  */
-const POI_MIN_ZOOM = 15;
+const POI_MIN_ZOOM = 14;
 
 const ROAD_LABEL_CLASSES = [
   'minor',
@@ -107,20 +106,22 @@ const ROAD_LABEL_CLASSES = [
 const TEXT_SCALE = 0.85;
 
 /**
- * Multiplie une valeur de taille MapLibre, qu'elle soit un nombre, une
- * expression `interpolate` / `case` / `match`, ou un objet `stops`.
+ * Multiplie une valeur de taille MapLibre.
  *
- * On n'essaie pas d'interpreter l'expression : `["*", facteur, expression]` est
- * une expression valide qui delegue le calcul au moteur. C'est la seule facon
- * robuste de mettre a l'echelle des expressions dont on ne connait pas la
- * forme a l'avance.
+ * ⚠️ On ne renvoie JAMAIS `["*", facteur, expression]`. C'est valide sur
+ * MapLibre GL JS, mais MapLibre Native rejette l'expression et ignore alors la
+ * couche entiere — les labels disparaissent au lieu de retrecir.
+ *
+ * On met donc a l'echelle les valeurs numeriques a l'interieur de la forme
+ * existante : les paires zoom/taille d'un `interpolate`, celles d'un `stops`,
+ * ou un nombre simple. Une expression d'une autre forme est laissee intacte
+ * plutot que d'etre transformee en quelque chose que le moteur refusera.
  */
 function scaleSize(value: unknown, factor: number): unknown {
   if (value === undefined || value === null) return value;
   if (typeof value === 'number') return value * factor;
 
-  // Forme historique `{ stops: [[zoom, taille], ...] }` : non composable avec
-  // l'operateur `*`, on met les valeurs a l'echelle une par une.
+  // Forme historique `{ stops: [[zoom, taille], ...] }`.
   if (
     typeof value === 'object' &&
     !Array.isArray(value) &&
@@ -133,7 +134,16 @@ function scaleSize(value: unknown, factor: number): unknown {
     };
   }
 
-  if (Array.isArray(value)) return ['*', factor, value];
+  // `["interpolate", interpolation, ["zoom"], z1, taille1, z2, taille2, ...]`
+  // Les paires commencent a l'index 3 : les zooms tombent sur les indices
+  // impairs, les tailles sur les pairs a partir de 4.
+  if (Array.isArray(value) && value[0] === 'interpolate') {
+    return value.map((item, index) =>
+      index >= 4 && index % 2 === 0 && typeof item === 'number'
+        ? item * factor
+        : item,
+    );
+  }
 
   return value;
 }
