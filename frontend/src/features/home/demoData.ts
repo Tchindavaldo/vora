@@ -40,6 +40,9 @@ export const SHORTCUTS: Shortcut[] = [
   { id: 'home', label: 'Maison', icon: 'home' },
   { id: 'work', label: 'Travail', icon: 'briefcase' },
   { id: 'airport', label: 'Aéroport', icon: 'airplane' },
+  // Le marche est une destination quotidienne a Douala, au meme titre que le
+  // domicile ou le travail.
+  { id: 'market', label: 'Marché', icon: 'cart' },
 ];
 
 /** Quartier affiche dans le badge. Viendra du reverse-geocoding. */
