@@ -30,9 +30,28 @@ type Props = {
   center: { longitude: number; latitude: number };
   zoom: number;
   markers: MapMarker[];
+  /**
+   * Inclinaison de la camera en degres. 0 = vue verticale, 50-60 = vue
+   * perspective. Voir DEFAULT_PITCH.
+   */
+  pitch?: number;
 };
 
-export function MapCanvas({ center, zoom, markers }: Props) {
+/**
+ * Inclinaison par defaut de la camera.
+ *
+ * Une carte inclinee donne de la profondeur et rapproche l'app des references
+ * du secteur. On reste a 50 : au-dela, l'horizon entre dans le cadre et les
+ * marqueurs lointains deviennent minuscules.
+ */
+export const DEFAULT_PITCH = 50;
+
+export function MapCanvas({
+  center,
+  zoom,
+  markers,
+  pitch = DEFAULT_PITCH,
+}: Props) {
   const mapStyle = useMapStyle();
 
   // Pas de style disponible (cle absente) : on affiche un fond neutre plutot
@@ -58,6 +77,7 @@ export function MapCanvas({ center, zoom, markers }: Props) {
       <Camera
         center={[center.longitude, center.latitude]}
         zoom={zoom}
+        pitch={pitch}
         duration={600}
       />
 
