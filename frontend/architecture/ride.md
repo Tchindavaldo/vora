@@ -11,6 +11,7 @@ HomeScreen (course commandée)
 ├── MapCanvas             itinéraire déjà tracé + marqueur du chauffeur
 └── SearchingDriverSheet  « Recherche d'un chauffeur… » · Annuler
     puis RideTrackingSheet  statut · chauffeur · plaque · SOS · partage
+    puis RatingSheet        étoiles · commentaire · envoi
 ```
 
 ## Fichiers
@@ -22,9 +23,12 @@ HomeScreen (course commandée)
 | `useApproachRoute.ts` | Itinéraire ORS du chauffeur vers le passager |
 | `useDriverApproach.ts` | Position animée du chauffeur (approche puis trajet) |
 | `useRideCamera.ts` | Cadrages de la carte pendant le suivi |
+| `useRideRating.ts` | Note, commentaire et envoi de l'évaluation (R8, R12) |
 | `components/SearchingDriverSheet.tsx` | État d'attente |
 | `components/RideTrackingSheet.tsx` | Suivi : les quatre statuts, monnaie en espèces, SOS, partage |
+| `components/RatingSheet.tsx` | Évaluation du chauffeur (copie dédiée, R16) |
 | `../../services/rides.ts` | Backend **simulé** — seul fichier à remplacer par l'API |
+| `../../services/ratings.ts` | Envoi de la note, **simulé** — futur `POST /rides/:id/rating` |
 
 ## Machine à états
 
@@ -35,6 +39,10 @@ HomeScreen (course commandée)
 | `arrived` | « Votre chauffeur est arrivé » | chauffeur immobile au départ |
 | `in_progress` | « Course en cours » | le chauffeur suit le tracé |
 | `completed` | « Course terminée » + bouton Terminer | chauffeur à destination |
+
+« Terminer » n'efface pas la course : il ouvre le `RatingSheet`, qui a besoin du
+chauffeur et du montant. Le nettoyage (`useRideOrder.reset`) n'a lieu qu'une fois
+l'évaluation envoyée ou passée.
 
 ## Flux
 
@@ -55,7 +63,11 @@ HomeScreen (course commandée)
 6. `useDriverApproach` anime le marqueur à 120 ms le long de ce tracé, puis le
    long de l'itinéraire de la course. Le cap vient du **segment courant** : le
    véhicule reste parallèle à la chaussée dans chaque virage.
-7. « Annuler la course », bouton pleine largeur en bas du panneau de suivi
+7. Statut `completed` → « Terminer » ouvre l'**évaluation** : étoiles
+   obligatoires, commentaire facultatif (280 car. max). « Plus tard » ferme sans
+   noter — une évaluation forcée ne produit que des 5 étoiles donnés pour sortir.
+   L'envoi échoué reste en `idle` avec un message et la note conservée (R8).
+8. « Annuler la course », bouton pleine largeur en bas du panneau de suivi
    (possible jusqu'à la montée à bord) coupe tous les timers et
    revient à l'estimation, **itinéraire conservé** : le calcul de route n'est
    pas refait.

@@ -1,10 +1,4 @@
-import React, {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
@@ -32,8 +26,10 @@ import { FareSheet } from '../booking/components/FareSheet';
 import { usePayment } from '../payment/usePayment';
 import { PaymentSheet } from '../payment/components/PaymentSheet';
 import { CashChangeSheet } from '../payment/components/CashChangeSheet';
-import { computeCashOffer } from '../../services/payment';
 import { useRideRequest } from '../ride/useRideRequest';
+import { useRideOrder } from './useRideOrder';
+import { useRideRating } from '../ride/useRideRating';
+import { RatingSheet } from '../ride/components/RatingSheet';
 import { SearchingDriverSheet } from '../ride/components/SearchingDriverSheet';
 import { RideTrackingSheet } from '../ride/components/RideTrackingSheet';
 import { useDriverApproach } from '../ride/useDriverApproach';
@@ -118,12 +114,17 @@ export function HomeScreen() {
   // Partage de course et SOS (R10).
   const safety = useRideSafety(ride.ride);
 
-  /**
-   * Etape de paiement ouverte : le tarif est retenu, la course n'est pas encore
-   * demandee. Un booleen d'ecran plutot qu'un etat dans `useBookingFlow` : la
-   * reservation s'arrete au choix du tarif (voir architecture/ride.md).
-   */
-  const [isPaying, setIsPaying] = useState(false);
+  // Estimation -> paiement -> commande. Sorti de l'ecran pour le garder
+  // lisible (R4) : voir `useRideOrder`.
+  const order = useRideOrder({
+    origin: location.coords,
+    booking,
+    payment,
+    ride,
+  });
+
+  // Note et commentaire laisses au chauffeur, derniere etape du parcours.
+  const rating = useRideRating();
 
   // Vrai itineraire du chauffeur vers le passager : le vehicule doit rouler sur
   // la chaussee, pas couper a vol d'oiseau.
@@ -191,98 +192,23 @@ export function HomeScreen() {
     booking.start(choice);
   };
 
-  /**
-   * "Commander" : cree la course et lance la recherche d'un chauffeur.
-   *
-   * Le montant envoye est celui du palier retenu. Il sera recalcule par le
-   * backend a l'arrivee de l'API : un prix venu du telephone ne fait pas foi
-   * (R13).
-   */
-  const selectedFare = booking.fares.find(
-    (item) => item.tier === booking.selectedTier,
-  );
-
-  /** "Commander" (estimation) : passe au choix du mode de paiement. */
-  const handleGoToPayment = () => {
-    payment.reset();
-    setIsPaying(true);
-  };
-
-  /** Ferme le paiement et revient a l'estimation, itineraire conserve. */
-  const handleCancelPayment = () => {
-    payment.reset();
-    setIsPaying(false);
-  };
-
-  /**
-   * Monnaie en especes, recalculee a chaque frappe : le passager voit ce que le
-   * chauffeur devra lui rendre avant meme de commander. `null` tant qu'aucune
-   * somme n'est saisie.
-   */
-  const cashOffer = useMemo(() => {
-    const bill = Number.parseInt(payment.billInput, 10);
-    if (!Number.isFinite(bill) || bill <= 0 || selectedFare === undefined) {
-      return null;
-    }
-    return computeCashOffer(selectedFare.amountXaf, bill);
-  }, [payment.billInput, selectedFare]);
-
-  /**
-   * "Suivant" : les especes ouvrent la saisie de la monnaie, les autres modes
-   * declenchent directement le debit — eux n'ont rien a annoncer au chauffeur.
-   */
-  const handleNextFromPayment = () => {
-    if (selectedFare === undefined) return;
-
-    if (payment.method === 'cash') {
-      payment.openCash();
-      return;
-    }
-
-    payment.confirm(selectedFare.amountXaf);
-  };
-
-  /**
-   * Especes : la somme annoncee validee, on commande sans etape de paiement.
-   * Le verdict `due` est enregistre au passage — c'est lui qui porte la monnaie
-   * dans l'historique du paiement.
-   */
-  const handleOrderWithCash = () => {
-    if (selectedFare === undefined) return;
-    payment.confirm(selectedFare.amountXaf, cashOffer);
-    handleOrder();
-  };
-
-  const handleOrder = () => {
-    const choice = booking.choice;
-    const fare = selectedFare;
-    if (choice === null || fare === undefined) return;
-
-    setIsPaying(false);
-
-    ride.request({
-      origin: location.coords,
-      destination: {
-        longitude: choice.place.longitude,
-        latitude: choice.place.latitude,
-      },
-      destinationLabel: choice.place.label,
-      tier: fare.tier,
-      amountXaf: fare.amountXaf,
-      // Le chauffeur voit la monnaie a prevoir sur la demande de course : s'il
-      // ne peut pas rendre, il refuse et la course repart vers un autre.
-      cash: payment.method === 'cash' ? cashOffer : null,
-    });
-  };
-
   /** Annule la course et revient a l'estimation, itineraire conserve. */
   const handleCancelRide = () => ride.cancel();
 
-  /** Course terminee : on efface tout et on revient a l'accueil. */
-  const handleRideDone = () => {
-    ride.cancel();
-    booking.cancel();
-    payment.reset();
+  /**
+   * "Terminer" sur le suivi : on ouvre l'evaluation du chauffeur plutot que de
+   * revenir a l'accueil. La course reste en memoire tant que le passager note —
+   * le panneau a besoin du chauffeur et du montant.
+   */
+  const [isRating, setIsRating] = useState(false);
+
+  const handleRideDone = () => setIsRating(true);
+
+  /** Evaluation envoyee ou passee : on efface tout et on revient a l'accueil. */
+  const handleRatingClose = () => {
+    setIsRating(false);
+    rating.reset();
+    order.reset();
   };
 
   if (searchQuery !== null) {
@@ -372,7 +298,23 @@ export function HomeScreen() {
           la course commandee, a la recherche de chauffeur et a sa fiche :
           quatre etats successifs d'une meme question, jamais empiles.
         */}
-        {ride.isCreating || ride.error !== null ||
+        {isRating && ride.ride !== null && ride.ride.driver !== null ? (
+          <RatingSheet
+            ride={ride.ride}
+            driver={ride.ride.driver}
+            stars={rating.stars}
+            onSelectStars={rating.setStars}
+            comment={rating.comment}
+            onChangeComment={rating.setComment}
+            isSending={rating.isSending}
+            isSent={rating.isSent}
+            error={rating.error}
+            onSubmit={() => {
+              if (ride.ride !== null) rating.submit(ride.ride);
+            }}
+            onClose={handleRatingClose}
+          />
+        ) : ride.isCreating || ride.error !== null ||
         (ride.ride !== null && ride.ride.status === 'searching') ? (
           <SearchingDriverSheet
             destinationLabel={booking.choice?.place.label ?? ''}
@@ -383,7 +325,7 @@ export function HomeScreen() {
             }
             error={ride.error}
             notice={ride.ride?.declineReason ?? null}
-            onRetry={handleOrder}
+            onRetry={order.order}
             onCancel={handleCancelRide}
           />
         ) : ride.ride !== null && ride.ride.driver !== null ? (
@@ -395,32 +337,32 @@ export function HomeScreen() {
             onShare={safety.share}
             onDone={handleRideDone}
           />
-        ) : isPaying && payment.step === 'cash' && booking.choice !== null ? (
+        ) : order.isPaying &&payment.step === 'cash' && booking.choice !== null ? (
           <CashChangeSheet
             destinationLabel={booking.choice.place.label}
             distanceMeters={booking.distanceMeters}
             tier={booking.selectedTier}
-            amountXaf={selectedFare?.amountXaf ?? 0}
+            amountXaf={order.selectedFare?.amountXaf ?? 0}
             billInput={payment.billInput}
             onChangeBill={payment.setBillInput}
-            offer={cashOffer}
-            onOrder={handleOrderWithCash}
+            offer={order.cashOffer}
+            onOrder={order.orderWithCash}
             onBack={payment.back}
           />
-        ) : isPaying && booking.choice !== null ? (
+        ) : order.isPaying &&booking.choice !== null ? (
           <PaymentSheet
             destinationLabel={booking.choice.place.label}
             distanceMeters={booking.distanceMeters}
             tier={booking.selectedTier}
-            amountXaf={selectedFare?.amountXaf ?? 0}
+            amountXaf={order.selectedFare?.amountXaf ?? 0}
             selectedMethod={payment.method}
             onSelectMethod={payment.selectMethod}
             payment={payment.payment}
             isProcessing={payment.isProcessing}
             isSettled={payment.isSettled}
-            onNext={handleNextFromPayment}
-            onContinue={handleOrder}
-            onBack={handleCancelPayment}
+            onNext={order.nextFromPayment}
+            onContinue={order.order}
+            onBack={order.cancelPayment}
           />
         ) : booking.choice === null ? (
           <DestinationSheet
@@ -438,7 +380,7 @@ export function HomeScreen() {
             isLoading={booking.isLoading}
             error={booking.error}
             onRetry={booking.retry}
-            onConfirm={handleGoToPayment}
+            onConfirm={order.goToPayment}
             onCancel={booking.cancel}
           />
         )}
