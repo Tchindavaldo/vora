@@ -9,13 +9,13 @@
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.vora.app",
+      "bundleIdentifier": "com.rauval.krwego",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "VORA utilise votre position pour afficher les chauffeurs à proximité et calculer votre itinéraire."
       }
     },
     "android": {
-      "package": "com.vora.app",
+      "package": "com.rauval.krwego",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
