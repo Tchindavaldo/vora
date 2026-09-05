@@ -80,6 +80,9 @@ src/
       useBookingFlow.ts    destination, itinéraire, tarifs, palier retenu
       useRoute.ts          appel du routage, annulation, retry (R8)
       components/          FareSheet, DestinationPin
+    payment/               choix du mode de paiement (brief §8, simulé)
+      usePayment.ts        mode retenu, verdict, annulation des timers (R8)
+      components/          PaymentSheet
     ride/                  course : commande, chauffeur, suivi (R17 étapes 6-8)
       useRideRequest.ts    création, statuts, annulation (R8)
       useApproachRoute.ts  itinéraire du chauffeur vers le passager
@@ -91,6 +94,7 @@ src/
     routing.ts             OpenRouteService — idem pour l'itinéraire
     rides.ts               courses — backend SIMULÉ, à remplacer par l'API
     pricing.ts             grille tarifaire, service pur (R16)
+    payment.ts             verdicts de paiement SIMULÉS, à remplacer par l'API
     roadsFromMap.ts        routes lues dans les tuiles déjà affichées — utilisé
     roads.ts               mêmes types + variante Overpass — non utilisée
   contexts/                (vide) AuthContext, RideContext, LocationContext
@@ -105,6 +109,7 @@ src/
 | `search.md` | `src/features/search/` — recherche de destination |
 | `booking.md` | `src/features/booking/` — itinéraire et estimation |
 | `ride.md` | `src/features/ride/` — course : commande, chauffeur, suivi |
+| `payment.md` | `src/features/payment/` — choix du mode de paiement |
 
 ## Décisions de design notables
 
@@ -169,6 +174,7 @@ Ensuite, les lancements suivants se font avec `npx expo start --dev-client`.
 
 ## À faire ensuite
 
-1. Service de routage (`src/services/routing.ts`) et tracé de l'itinéraire
-2. Écran d'estimation (paliers Moto / Eco / Confort, distance, mode de paiement)
-3. Remplacer `demoData.ts` par `GET /drivers/nearby`
+1. Remplacer `demoData.ts` par `GET /drivers/nearby`
+2. Recharge du portefeuille et intégration MTN MoMo / Orange Money réelle
+   derrière `services/payment.ts`
+3. Rendu de monnaie sur le mode espèces

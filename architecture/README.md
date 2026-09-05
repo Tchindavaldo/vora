@@ -7,9 +7,9 @@
 ## 1. État du projet
 
 **Phase actuelle** : frontend initialisé — accueil, recherche de destination,
-itinéraire, estimation de prix, commande, recherche de chauffeur et suivi de la
-course jusqu'à sa fin (R17 étapes 2 à 8, la course étant simulée). Backend non
-démarré.
+itinéraire, estimation de prix, paiement simulé, commande, recherche de
+chauffeur et suivi de la course jusqu'à sa fin (R17 étapes 2 à 8, la course
+étant simulée). Backend non démarré.
 
 | Couche | Choix | Justification |
 |---|---|---|
@@ -36,8 +36,10 @@ frontend/              application mobile passager (Expo, initialisé)
       map/             encapsulation MapLibre (R11)
       home/            écran d'accueil — FAIT
       search/          recherche de destination — FAIT
-      booking/         (vide) estimation, confirmation
-    services/          géocodage (MapTiler) ; routage et API à venir
+      booking/         estimation, confirmation — FAIT
+      payment/         mode de paiement (espèces, portefeuille, MoMo) — FAIT, simulé
+      ride/            course : chauffeur, suivi jusqu'à la fin — FAIT
+    services/          géocodage (MapTiler), routage (ORS), tarifs, paiement simulé
     contexts/          (vide) Auth, Ride, Location
   architecture/        doc du frontend
 backend/               (non initialisé)
@@ -69,6 +71,7 @@ feature.
 | [`frontend/architecture/search.md`](../frontend/architecture/search.md) | Recherche de destination |
 | [`frontend/architecture/booking.md`](../frontend/architecture/booking.md) | Itinéraire et estimation de prix |
 | [`frontend/architecture/ride.md`](../frontend/architecture/ride.md) | Course : commande, chauffeur, suivi jusqu'à la fin |
+| [`frontend/architecture/payment.md`](../frontend/architecture/payment.md) | Paiement : espèces, portefeuille, Mobile Money (simulé) |
 
 ## 5. Flux principal (brief §13)
 

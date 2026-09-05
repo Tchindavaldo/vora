@@ -37,8 +37,9 @@ HomeScreen (course commandée)
 
 ## Flux
 
-1. « Commander » (`FareSheet`) → `ride.request()` avec origine, destination,
-   palier et montant du tarif retenu.
+1. « Commander » (`FareSheet`) → panneau de paiement (`features/payment`, voir
+   `payment.md`). Le « Commander » du paiement appelle `ride.request()` avec
+   origine, destination, palier et montant du tarif retenu.
 2. `createRide` répond après 500 ms avec une course au statut `searching` —
    l'état d'attente s'affiche.
 3. `subscribeToRideStatus` programme toute la suite : acceptation à **3,5 s**,
@@ -173,7 +174,8 @@ d'authentification une fois le backend branché — R9).
 
 ## Reste à faire
 
-- Paiement et évaluation en fin de course (étapes suivantes)
+- Évaluation en fin de course (le paiement est en amont de la course, voir
+  `payment.md`)
 - Appel / message au chauffeur depuis la fiche
 - Cas « aucun chauffeur disponible » après expiration du délai
 - Contact d'urgence réel derrière le SOS

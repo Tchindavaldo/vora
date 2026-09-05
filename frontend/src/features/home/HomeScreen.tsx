@@ -30,6 +30,8 @@ import {
 import { useBookingFlow } from '../booking/useBookingFlow';
 import { FareSheet } from '../booking/components/FareSheet';
 import { DestinationPin } from '../booking/components/DestinationPin';
+import { usePayment } from '../payment/usePayment';
+import { PaymentSheet } from '../payment/components/PaymentSheet';
 import { useRideRequest } from '../ride/useRideRequest';
 import { SearchingDriverSheet } from '../ride/components/SearchingDriverSheet';
 import { RideTrackingSheet } from '../ride/components/RideTrackingSheet';
@@ -113,6 +115,16 @@ export function HomeScreen() {
 
   // Course commandee : creation, chauffeur, suivi (R17 etapes 6-8).
   const ride = useRideRequest();
+
+  // Mode de paiement, choisi entre l'estimation et la recherche de chauffeur.
+  const payment = usePayment();
+
+  /**
+   * Etape de paiement ouverte : le tarif est retenu, la course n'est pas encore
+   * demandee. Un booleen d'ecran plutot qu'un etat dans `useBookingFlow` : la
+   * reservation s'arrete au choix du tarif (voir architecture/ride.md).
+   */
+  const [isPaying, setIsPaying] = useState(false);
 
   // Vrai itineraire du chauffeur vers le passager : le vehicule doit rouler sur
   // la chaussee, pas couper a vol d'oiseau.
@@ -250,10 +262,33 @@ export function HomeScreen() {
    * backend a l'arrivee de l'API : un prix venu du telephone ne fait pas foi
    * (R13).
    */
+  const selectedFare = booking.fares.find(
+    (item) => item.tier === booking.selectedTier,
+  );
+
+  /** "Commander" (estimation) : passe au choix du mode de paiement. */
+  const handleGoToPayment = () => {
+    payment.reset();
+    setIsPaying(true);
+  };
+
+  /** Ferme le paiement et revient a l'estimation, itineraire conserve. */
+  const handleCancelPayment = () => {
+    payment.reset();
+    setIsPaying(false);
+  };
+
+  const handleConfirmPayment = () => {
+    if (selectedFare === undefined) return;
+    payment.confirm(selectedFare.amountXaf);
+  };
+
   const handleOrder = () => {
     const choice = booking.choice;
-    const fare = booking.fares.find((item) => item.tier === booking.selectedTier);
+    const fare = selectedFare;
     if (choice === null || fare === undefined) return;
+
+    setIsPaying(false);
 
     ride.request({
       origin: location.coords,
@@ -274,6 +309,7 @@ export function HomeScreen() {
   const handleRideDone = () => {
     ride.cancel();
     booking.cancel();
+    payment.reset();
   };
 
   /**
@@ -397,9 +433,9 @@ export function HomeScreen() {
           choisi.
         */}
         {/*
-          Une fois la course commandee, le panneau d'estimation cede la place a
-          la recherche de chauffeur puis a sa fiche : trois etats successifs
-          d'une meme question, jamais empiles.
+          Une fois le tarif retenu, l'estimation cede la place au paiement puis,
+          la course commandee, a la recherche de chauffeur et a sa fiche :
+          quatre etats successifs d'une meme question, jamais empiles.
         */}
         {ride.isCreating || ride.error !== null ||
         (ride.ride !== null && ride.ride.status === 'searching') ? (
@@ -423,6 +459,21 @@ export function HomeScreen() {
             onShare={handleShareRide}
             onDone={handleRideDone}
           />
+        ) : isPaying && booking.choice !== null ? (
+          <PaymentSheet
+            destinationLabel={booking.choice.place.label}
+            distanceMeters={booking.distanceMeters}
+            tier={booking.selectedTier}
+            amountXaf={selectedFare?.amountXaf ?? 0}
+            selectedMethod={payment.method}
+            onSelectMethod={payment.selectMethod}
+            payment={payment.payment}
+            isProcessing={payment.isProcessing}
+            isSettled={payment.isSettled}
+            onConfirm={handleConfirmPayment}
+            onContinue={handleOrder}
+            onCancel={handleCancelPayment}
+          />
         ) : booking.choice === null ? (
           <DestinationSheet
             shortcuts={SHORTCUTS}
@@ -439,7 +490,7 @@ export function HomeScreen() {
             isLoading={booking.isLoading}
             error={booking.error}
             onRetry={booking.retry}
-            onConfirm={handleOrder}
+            onConfirm={handleGoToPayment}
             onCancel={booking.cancel}
           />
         )}

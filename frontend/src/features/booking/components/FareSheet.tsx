@@ -45,9 +45,9 @@ type Props = {
  * Panneau d'estimation, pose sur la carte sous le trace de l'itineraire.
  *
  * NOTE : copie dediee, et non une variante du `DestinationSheet` de l'accueil
- * (R16). Les deux se ressemblent aujourd'hui — meme coin arrondi, meme ombre —
- * mais leur contenu n'a rien de commun et divergera : celui-ci portera bientot
- * le mode de paiement et le bouton de commande.
+ * (R16). Les deux se ressemblent — meme coin arrondi, meme ombre — mais leur
+ * contenu n'a rien de commun : ici les paliers se comparent, et « Commander »
+ * ouvre le panneau de paiement (`features/payment`), copie dediee a son tour.
  */
 const ICONS: Record<VehicleTier, keyof typeof Ionicons.glyphMap> = {
   moto: 'bicycle',
