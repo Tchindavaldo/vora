@@ -242,9 +242,15 @@ export function HomeScreen() {
     payment.confirm(selectedFare.amountXaf);
   };
 
-  const handleConfirmCash = () => {
+  /**
+   * Especes : la somme annoncee validee, on commande sans etape de paiement.
+   * Le verdict `due` est enregistre au passage — c'est lui qui porte la monnaie
+   * dans l'historique du paiement.
+   */
+  const handleOrderWithCash = () => {
     if (selectedFare === undefined) return;
     payment.confirm(selectedFare.amountXaf, cashOffer);
+    handleOrder();
   };
 
   const handleOrder = () => {
@@ -398,9 +404,7 @@ export function HomeScreen() {
             billInput={payment.billInput}
             onChangeBill={payment.setBillInput}
             offer={cashOffer}
-            isSettled={payment.isSettled}
-            onConfirm={handleConfirmCash}
-            onContinue={handleOrder}
+            onOrder={handleOrderWithCash}
             onBack={payment.back}
           />
         ) : isPaying && booking.choice !== null ? (

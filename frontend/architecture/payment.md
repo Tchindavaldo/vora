@@ -8,7 +8,7 @@ MTN MoMo ou Orange Money (R13, brief §23).
 
 ```text
 FareSheet « Commander » → PaymentSheet → « Suivant »
-  ├─ espèces        → CashChangeSheet (monnaie) → « Payer » → « Commander »
+  ├─ espèces        → CashChangeSheet (monnaie) → « Commander »
   └─ autres modes   → débit simulé              → « Commander »
 → SearchingDriverSheet
 ```
@@ -24,7 +24,7 @@ HomeScreen (tarif retenu)
 ├── PaymentSheet     en-tête 1 ligne (destination + distance/montant)
 │                    3 modes · montant · état · [Retour] [Suivant]
 └── CashChangeSheet  saisie de la somme · billets 1000/2000/5000/10000
-                     « Le chauffeur devra vous rendre X F » · [Retour] [Payer]
+                     « Le chauffeur devra vous rendre X F » · [Retour] [Commander]
 ```
 
 ## Fichiers
@@ -68,7 +68,8 @@ annoncée **avant** la course.
 
 1. Le passager choisit « Espèces », saisit la somme qu'il a en main (raccourcis
    1 000 / 2 000 / 5 000 / 10 000). L'app affiche « Le chauffeur devra vous
-   rendre 700 F ». Une somme inférieure au prix bloque la commande.
+   rendre 700 F ». Une somme inférieure au prix bloque la commande. Pas d'étape
+   « Payer » : rien n'est débité dans l'app, le bouton commande directement.
 2. Le chauffeur voit le montant, la somme annoncée et la monnaie à prévoir sur
    la demande de course. S'il ne peut pas rendre, il refuse : la course repart
    vers un autre chauffeur, et le passager lit pourquoi l'attente se prolonge.

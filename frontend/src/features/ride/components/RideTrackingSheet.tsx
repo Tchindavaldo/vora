@@ -75,17 +75,6 @@ export function RideTrackingSheet({
       >
         <View style={styles.header}>
           <Text style={styles.status}>{statusTitle(ride)}</Text>
-
-          {canCancel && (
-            <Pressable
-              onPress={onCancel}
-              hitSlop={10}
-              accessibilityRole="button"
-              accessibilityLabel="Annuler la course"
-            >
-              <Ionicons name="close" size={22} color={colors.textMuted} />
-            </Pressable>
-          )}
         </View>
 
         <View style={styles.driver}>
@@ -184,6 +173,23 @@ export function RideTrackingSheet({
         <Text style={styles.simulated}>
           Course simulée — chauffeur et progression de démonstration.
         </Text>
+
+        {/*
+          Annulation en bas du panneau, pleine largeur : tant que le chauffeur
+          n'est pas la, c'est l'action que le passager cherche — une croix de
+          22 px en haut du sheet se rate au pouce, et se confond avec un simple
+          "fermer".
+        */}
+        {canCancel && (
+          <Pressable
+            onPress={onCancel}
+            style={styles.cancel}
+            accessibilityRole="button"
+            accessibilityLabel="Annuler la course"
+          >
+            <Text style={styles.cancelLabel}>Annuler la course</Text>
+          </Pressable>
+        )}
 
         {isFinished && (
           <Pressable
@@ -356,6 +362,18 @@ const styles = StyleSheet.create({
   simulated: {
     ...typography.caption,
     marginTop: spacing.md,
+  },
+  cancel: {
+    marginTop: spacing.md,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingVertical: spacing.lg,
+    alignItems: 'center',
+  },
+  cancelLabel: {
+    ...typography.subtitle,
+    color: colors.text,
   },
   done: {
     marginTop: spacing.md,

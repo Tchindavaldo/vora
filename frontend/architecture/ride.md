@@ -55,7 +55,8 @@ HomeScreen (course commandée)
 6. `useDriverApproach` anime le marqueur à 120 ms le long de ce tracé, puis le
    long de l'itinéraire de la course. Le cap vient du **segment courant** : le
    véhicule reste parallèle à la chaussée dans chaque virage.
-7. « Annuler » (possible jusqu'à la montée à bord) coupe tous les timers et
+7. « Annuler la course », bouton pleine largeur en bas du panneau de suivi
+   (possible jusqu'à la montée à bord) coupe tous les timers et
    revient à l'estimation, **itinéraire conservé** : le calcul de route n'est
    pas refait.
 

@@ -40,10 +40,11 @@ type Props = {
   onChangeBill: (value: string) => void;
   /** Monnaie calculee, `null` tant que rien n'est saisi. */
   offer: CashOffer | null;
-  /** Vrai une fois la course reglee : le bouton devient "Commander". */
-  isSettled: boolean;
-  onConfirm: () => void;
-  onContinue: () => void;
+  /**
+   * Commande la course. En especes il n'y a rien a debiter : la somme annoncee
+   * suffit, on ne fait pas confirmer un paiement qui n'a pas lieu dans l'app.
+   */
+  onOrder: () => void;
   /** Retour au choix du mode de paiement. */
   onBack: () => void;
 };
@@ -70,15 +71,13 @@ export function CashChangeSheet({
   billInput,
   onChangeBill,
   offer,
-  isSettled,
-  onConfirm,
-  onContinue,
+  onOrder,
   onBack,
 }: Props) {
   const insets = useSafeAreaInsets();
 
   // Rien de saisi, ou somme insuffisante : il n'y a pas de course a commander.
-  const canConfirm = offer !== null && offer.isEnough;
+  const canOrder = offer !== null && offer.isEnough;
 
   return (
     <View
@@ -121,7 +120,6 @@ export function CashChangeSheet({
           keyboardType="number-pad"
           placeholder="Montant en main (F CFA)"
           placeholderTextColor={colors.textFaint}
-          editable={!isSettled}
           accessibilityLabel="Somme dont vous disposez, en francs CFA"
         />
 
@@ -131,11 +129,9 @@ export function CashChangeSheet({
             <Pressable
               key={bill}
               onPress={() => onChangeBill(String(bill))}
-              disabled={isSettled}
               style={[
                 styles.bill,
                 offer?.billXaf === bill && styles.billSelected,
-                isSettled && styles.billDisabled,
               ]}
               accessibilityRole="button"
               accessibilityLabel={`Billet de ${bill} francs`}
@@ -180,18 +176,19 @@ export function CashChangeSheet({
             <Text style={styles.backLabel}>Retour</Text>
           </Pressable>
 
+          {/*
+            Pas d'etape "Payer" en especes : rien n'est debite dans
+            l'application, le chauffeur encaisse a la descente. La somme
+            annoncee validee, on commande directement.
+          */}
           <Pressable
-            style={[styles.confirm, !canConfirm && styles.confirmDisabled]}
-            disabled={!canConfirm}
-            onPress={isSettled ? onContinue : onConfirm}
+            style={[styles.confirm, !canOrder && styles.confirmDisabled]}
+            disabled={!canOrder}
+            onPress={onOrder}
             accessibilityRole="button"
-            accessibilityLabel={
-              isSettled ? 'Commander la course' : 'Valider la monnaie'
-            }
+            accessibilityLabel="Commander la course"
           >
-            <Text style={styles.confirmLabel}>
-              {isSettled ? 'Commander' : `Payer ${formatXaf(amountXaf)}`}
-            </Text>
+            <Text style={styles.confirmLabel}>Commander</Text>
           </Pressable>
         </View>
       </ScrollView>
@@ -257,9 +254,6 @@ const styles = StyleSheet.create({
   billSelected: {
     borderColor: colors.primary,
     backgroundColor: colors.primarySoft,
-  },
-  billDisabled: {
-    opacity: 0.5,
   },
   billLabel: {
     ...typography.label,
