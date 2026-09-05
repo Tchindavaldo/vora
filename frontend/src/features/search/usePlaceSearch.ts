@@ -78,7 +78,13 @@ export function usePlaceSearch(
               ? geocodingMessage(error.reason)
               : 'La recherche a échoué. Réessayez.';
           // Log exploitable en plus du retour utilisateur (R8).
-          console.warn('[geocoding] echec de la recherche', error);
+          //
+          // On ne journalise QUE la cause, jamais l'objet d'erreur : un echec
+          // de `fetch` porte l'URL appelee, qui contient la cle de geocodage
+          // (R9 — aucun secret dans les logs).
+          const cause =
+            error instanceof GeocodingError ? error.reason : 'unknown';
+          console.warn(`[geocoding] echec de la recherche (${cause})`);
           setState({ results: [], isLoading: false, error: message, isEmpty: false });
         });
     }, DEBOUNCE_MS);
