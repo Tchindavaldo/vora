@@ -94,6 +94,10 @@ src/
       useRideRating.ts     note, commentaire, envoi de l'évaluation (R8)
       components/          SearchingDriverSheet, RideTrackingSheet,
                            RatingSheet, RatingCommentScreen
+    history/               historique des courses et de leurs reçus (brief §8)
+      TransactionHistoryScreen.tsx  écran plein : total, liste, états dégradés
+      useTransactions.ts   lecture : chargement, succès, erreur (R8, R12)
+      components/          TransactionRow
   services/
     geocoding.ts           MapTiler Geocoding — seul fichier qui le connaît
     routing.ts             OpenRouteService — idem pour l'itinéraire
@@ -101,6 +105,7 @@ src/
     pricing.ts             grille tarifaire, service pur (R16)
     payment.ts             verdicts de paiement SIMULÉS, à remplacer par l'API
     ratings.ts             envoi de l'évaluation SIMULÉ, à remplacer par l'API
+    transactions.ts        historique SIMULÉ en mémoire, à remplacer par l'API
     roadsFromMap.ts        routes lues dans les tuiles déjà affichées — utilisé
     roads.ts               mêmes types + variante Overpass — non utilisée
   contexts/                (vide) AuthContext, RideContext, LocationContext
@@ -116,6 +121,7 @@ src/
 | `booking.md` | `src/features/booking/` — itinéraire et estimation |
 | `ride.md` | `src/features/ride/` — course : commande, chauffeur, suivi |
 | `payment.md` | `src/features/payment/` — mode de paiement et monnaie en espèces |
+| `history.md` | `src/features/history/` — historique des courses et de leurs reçus |
 
 ## Décisions de design notables
 

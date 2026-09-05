@@ -12,6 +12,7 @@
 import { useMemo, useState } from 'react';
 
 import { computeCashOffer } from '../../services/payment';
+import { recordTransaction } from '../../services/transactions';
 import type { RoutePoint } from '../../services/routing';
 import type { useBookingFlow } from '../booking/useBookingFlow';
 import type { usePayment } from '../payment/usePayment';
@@ -115,8 +116,31 @@ export function useRideOrder({ origin, booking, payment, ride }: Args) {
     order();
   };
 
-  /** Course terminee et evaluee : on efface tout et on revient a l'accueil. */
-  const reset = () => {
+  /**
+   * Course terminee et evaluee : on archive le recu, puis on efface tout et on
+   * revient a l'accueil.
+   *
+   * L'archivage a lieu ICI et pas a la fin du suivi : c'est le dernier moment ou
+   * la course, le paiement et la note sont connus ensemble. `recordTransaction`
+   * ignore les courses non terminees et les doublons — un abandon en cours de
+   * route ne laisse donc aucune trace dans l'historique.
+   */
+  const reset = (stars: number | null = null) => {
+    const settled = payment.payment;
+    if (
+      ride.ride !== null &&
+      settled !== null &&
+      (settled.status === 'succeeded' || settled.status === 'due')
+    ) {
+      recordTransaction({
+        ride: ride.ride,
+        method: settled.method,
+        status: settled.status,
+        cash: settled.cash,
+        stars,
+      });
+    }
+
     ride.cancel();
     booking.cancel();
     payment.reset();
