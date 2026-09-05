@@ -71,10 +71,11 @@ const ROAD_LABEL_LAYER_ID = 'Road labels';
  * Zoom a partir duquel les POI apparaissent.
  *
  * Le style les affiche des le zoom 12-14 selon la categorie. A Yaounde, leur
- * densite sature la carte a faible zoom : on les repousse a 14 pour laisser
- * quartiers et axes principaux lisibles quand on prend du recul.
+ * densite sature la carte a faible zoom : on les repousse a 15.5, franchement
+ * au-dessus du zoom d'accueil (14.5), pour qu'ils n'apparaissent qu'apres un
+ * geste de zoom deliberé — et jamais quand on prend du recul.
  */
-const POI_MIN_ZOOM = 14;
+const POI_MIN_ZOOM = 15.5;
 
 const ROAD_LABEL_CLASSES = [
   'minor',
@@ -270,8 +271,12 @@ export function useMapStyle(): State {
 
             // POI : hierarchie inverse de celle des rues. En vue large ils
             // s'effacent devant les noms de rues, une fois zoome ils passent
-            // devant. `text-optional` leur permet de renoncer a leur texte en
-            // gardant leur pictogramme quand la place manque.
+            // devant.
+            //
+            // `text-optional` reste a false : autorise, un POI abandonne son
+            // texte mais garde son pictogramme, et la carte se couvre de
+            // symboles anonymes — des croix rouges sans nom n'apprennent rien.
+            // Un POI s'affiche entier ou pas du tout.
             const source = (layer as { 'source-layer'?: string })[
               'source-layer'
             ];
@@ -281,7 +286,8 @@ export function useMapStyle(): State {
                 minzoom: Math.max(layer.minzoom ?? 0, POI_MIN_ZOOM),
                 layout: {
                   ...scaled.layout,
-                  'text-optional': true,
+                  'text-optional': false,
+                  'icon-optional': false,
                   'symbol-sort-key': ['step', ['zoom'], 10, POI_MIN_ZOOM, 0],
                 },
               };
