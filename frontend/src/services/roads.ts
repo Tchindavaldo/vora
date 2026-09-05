@@ -41,6 +41,14 @@ type OverpassResponse = {
 const OVERPASS_URL = 'https://overpass-api.de/api/interpreter';
 
 /**
+ * Delai au-dela duquel on abandonne la requete.
+ *
+ * 20 s et non 5 : Overpass est lent par nature sur une zone dense, et couper
+ * trop tot priverait de vraies routes une connexion simplement mediocre.
+ */
+const REQUEST_TIMEOUT_MS = 20000;
+
+/**
  * Classes de voies retenues : celles qu'un vehicule emprunte reellement. On
  * ecarte chemins pietons, pistes et voies de service.
  */
@@ -81,12 +89,23 @@ export async function fetchRoadPoints(
 way(around:${radius},${center.latitude},${center.longitude})["highway"~"${HIGHWAY_FILTER}"];
 out geom ${count * 8};`;
 
+  // Sans borne cote client, une connexion tres degradee (cas courant du
+  // contexte visE) laisse la requete pendre sans jamais rendre la main : les
+  // vehicules resteraient absents de la carte indefiniment. Passe ce delai, on
+  // abandonne et l'appelant retombe sur ses positions de secours (R8).
+  const abort = new AbortController();
+  const timeout = setTimeout(() => abort.abort(), REQUEST_TIMEOUT_MS);
+
   try {
     const response = await fetch(OVERPASS_URL, {
       method: 'POST',
       body: query,
+      signal: abort.signal,
     });
-    if (!response.ok) return [];
+    if (!response.ok) {
+      console.warn(`[roads] Overpass a repondu ${response.status}`);
+      return [];
+    }
 
     const data = (await response.json()) as OverpassResponse;
     const ways = (data.elements ?? []).filter(
@@ -94,7 +113,10 @@ out geom ${count * 8};`;
         Array.isArray(way.geometry) && way.geometry.length > 1,
     );
 
-    if (ways.length === 0) return [];
+    if (ways.length === 0) {
+      console.warn('[roads] aucune route exploitable autour de la position');
+      return [];
+    }
 
     // Tous les segments candidats, avec leur position vue depuis le centre.
     // Overpass renvoie les voies dans son propre ordre, sans rapport avec la
@@ -165,7 +187,18 @@ out geom ${count * 8};`;
     }
 
     return points;
-  } catch {
+  } catch (error) {
+    // Reseau coupe, DNS en echec, ou depassement du delai ci-dessus. On le dit
+    // dans les logs : sans cela, des vehicules sur des positions de secours
+    // ressemblent a s'y meprendre a des vehicules sur de vraies routes, et le
+    // probleme passe inapercu jusqu'a la demo.
+    const reason =
+      error instanceof Error && error.name === 'AbortError'
+        ? `pas de reponse en ${REQUEST_TIMEOUT_MS / 1000} s`
+        : String(error);
+    console.warn(`[roads] routes indisponibles (${reason}) — positions de secours`);
     return [];
+  } finally {
+    clearTimeout(timeout);
   }
 }

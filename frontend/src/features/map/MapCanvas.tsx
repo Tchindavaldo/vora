@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { createContext, useContext, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Camera, Map, Marker } from '@maplibre/maplibre-react-native';
 
@@ -24,6 +24,28 @@ export type MapMarker = {
   latitude: number;
   render: () => React.ReactElement;
 };
+
+/**
+ * Cap de la camera, en degres (0 = le nord est en haut de l'ecran).
+ *
+ * Le contenu d'un `Marker` est pose a plat sur l'ecran : il ne tourne PAS avec
+ * la carte. Un marqueur oriente selon un cap geographique (un vehicule aligne
+ * sur sa rue) se desaligne donc des que l'utilisateur fait pivoter la carte.
+ *
+ * On publie le cap courant pour que ces marqueurs puissent le compenser. Voir
+ * `useMapBearing`.
+ */
+const MapBearingContext = createContext(0);
+
+/**
+ * Cap courant de la camera.
+ *
+ * Un marqueur oriente geographiquement doit tourner de
+ * `capGeographique - capCamera` pour rester aligne sur le terrain.
+ */
+export function useMapBearing(): number {
+  return useContext(MapBearingContext);
+}
 
 
 type Props = {
@@ -57,6 +79,10 @@ export function MapCanvas({
 }: Props) {
   const mapStyle = useMapStyle();
 
+  // Cap courant de la camera, tenu a jour pendant que l'utilisateur fait
+  // pivoter la carte, pour que les marqueurs orientes restent alignes.
+  const [bearing, setBearing] = useState(0);
+
   // Pas de style disponible (cle absente) : on affiche un fond neutre plutot
   // que de laisser MapLibre echouer sur une URL nulle (R8).
   if (!env.hasMapStyle) {
@@ -80,6 +106,11 @@ export function MapCanvas({
       // on verrouille le geste a deux doigts qui la modifie. Deplacement, zoom
       // et rotation restent libres.
       touchPitch={false}
+      // Pendant le geste de rotation, et non seulement a la fin : sans mise a
+      // jour continue, les vehicules resteraient de travers tant que le doigt
+      // n'a pas quitte l'ecran.
+      onRegionIsChanging={(event) => setBearing(event.nativeEvent.bearing)}
+      onRegionDidChange={(event) => setBearing(event.nativeEvent.bearing)}
     >
       <Camera
         center={[center.longitude, center.latitude]}
@@ -88,15 +119,17 @@ export function MapCanvas({
         duration={600}
       />
 
-      {markers.map((marker) => (
-        <Marker
-          key={marker.id}
-          id={marker.id}
-          lngLat={[marker.longitude, marker.latitude]}
-        >
-          {marker.render()}
-        </Marker>
-      ))}
+      <MapBearingContext.Provider value={bearing}>
+        {markers.map((marker) => (
+          <Marker
+            key={marker.id}
+            id={marker.id}
+            lngLat={[marker.longitude, marker.latitude]}
+          >
+            {marker.render()}
+          </Marker>
+        ))}
+      </MapBearingContext.Provider>
     </Map>
   );
 }
