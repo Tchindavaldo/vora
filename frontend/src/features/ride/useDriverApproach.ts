@@ -38,27 +38,48 @@ function segmentLength(from: RoutePoint, to: RoutePoint): number {
 }
 
 /**
- * Point situe a `ratio` (0 a 1) du parcours le long d'une polyligne, avec le
+ * Trace pret a parcourir : ses segments et leur longueur, mesures une seule
+ * fois.
+ *
+ * IMPORTANT pour la fluidite : un itineraire de ville compte plusieurs centaines
+ * de points. Remesurer tous ses segments a chaque image — huit fois par seconde
+ * — sature le thread JS et fait demarrer le vehicule par a-coups. On le mesure
+ * a la reception du trace, puis chaque image ne fait plus qu'y chercher une
+ * position.
+ */
+type MeasuredPath = {
+  points: RoutePoint[];
+  /** Longueur de chaque segment, dans l'ordre. */
+  lengths: number[];
+  total: number;
+};
+
+function measurePath(points: RoutePoint[]): MeasuredPath {
+  const lengths: number[] = [];
+  let total = 0;
+
+  for (let i = 0; i < points.length - 1; i += 1) {
+    const length = segmentLength(points[i], points[i + 1]);
+    lengths.push(length);
+    total += length;
+  }
+
+  return { points, lengths, total };
+}
+
+/**
+ * Point situe a `ratio` (0 a 1) du parcours le long d'un trace mesure, avec le
  * cap du segment courant.
  *
  * C'est ce qui garde le vehicule SUR la chaussee et PARALLELE a elle : couper a
  * vol d'oiseau le ferait traverser les batiments, et un cap calcule entre le
  * depart et l'arrivee le laisserait de travers dans chaque virage.
  */
-function alongPath(path: RoutePoint[], ratio: number): DriverPosition | null {
-  if (path.length === 0) return null;
-  if (path.length === 1) return { ...path[0], bearing: 0 };
+function alongPath(path: MeasuredPath, ratio: number): DriverPosition | null {
+  const { points, lengths, total } = path;
 
-  const lengths: number[] = [];
-  let total = 0;
-
-  for (let i = 0; i < path.length - 1; i += 1) {
-    const length = segmentLength(path[i], path[i + 1]);
-    lengths.push(length);
-    total += length;
-  }
-
-  if (total === 0) return { ...path[0], bearing: 0 };
+  if (points.length === 0) return null;
+  if (points.length === 1 || total === 0) return { ...points[0], bearing: 0 };
 
   let travelled = total * Math.min(Math.max(ratio, 0), 1);
 
@@ -66,8 +87,8 @@ function alongPath(path: RoutePoint[], ratio: number): DriverPosition | null {
     if (travelled <= lengths[i] || i === lengths.length - 1) {
       const segmentRatio =
         lengths[i] === 0 ? 0 : Math.min(travelled / lengths[i], 1);
-      const from = path[i];
-      const to = path[i + 1];
+      const from = points[i];
+      const to = points[i + 1];
 
       return {
         longitude: from.longitude + (to.longitude - from.longitude) * segmentRatio,
@@ -78,7 +99,7 @@ function alongPath(path: RoutePoint[], ratio: number): DriverPosition | null {
     travelled -= lengths[i];
   }
 
-  return { ...path[path.length - 1], bearing: 0 };
+  return { ...points[points.length - 1], bearing: 0 };
 }
 
 /**
@@ -129,6 +150,8 @@ export function useDriverApproach(
         return;
       }
 
+      // Mesure une fois, a l'entree de la phase : voir `MeasuredPath`.
+      const path = measurePath(approachRef.current);
       const startedAt = Date.now();
 
       const tick = () => {
@@ -136,7 +159,7 @@ export function useDriverApproach(
           (Date.now() - startedAt) / RIDE_TIMINGS.approach,
           1,
         );
-        const next = alongPath(approachRef.current, ratio);
+        const next = alongPath(path, ratio);
         if (next !== null) setPosition(next);
       };
 
@@ -158,11 +181,15 @@ export function useDriverApproach(
     }
 
     if (status === 'in_progress') {
+      // Mesure une fois : un itineraire de course compte des centaines de
+      // points, et le remesurer a chaque image faisait demarrer le vehicule par
+      // a-coups.
+      const path = measurePath(routeRef.current);
       const startedAt = Date.now();
 
       const tick = () => {
         const ratio = Math.min((Date.now() - startedAt) / RIDE_TIMINGS.trip, 1);
-        const next = alongPath(routeRef.current, ratio);
+        const next = alongPath(path, ratio);
         if (next !== null) setPosition(next);
       };
 

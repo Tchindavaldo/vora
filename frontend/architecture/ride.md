@@ -42,8 +42,8 @@ HomeScreen (course commandée)
 2. `createRide` répond après 500 ms avec une course au statut `searching` —
    l'état d'attente s'affiche.
 3. `subscribeToRideStatus` programme toute la suite : acceptation à **3,5 s**,
-   arrivée au départ après **20 s** d'approche, démarrage après **6 s**
-   d'attente, fin après **25 s** de trajet.
+   arrivée au départ après **20 s** d'approche, démarrage après **2,5 s**
+   d'embarquement, fin après **25 s** de trajet.
 4. `useApproachRoute` calcule **un vrai itinéraire** (ORS) entre le chauffeur et
    le point de prise en charge, tracé en pointillés sur la carte.
 5. `useDriverApproach` anime le marqueur à 120 ms le long de ce tracé, puis le
@@ -94,7 +94,14 @@ l'écran affiche « Recherche d'un chauffeur… ». À l'acceptation il est prê
 le véhicule part sans latence. En production le backend réserve de la même façon
 le chauffeur le plus proche avant de confirmer.
 
-Le point de prise en charge est **figé** dans `ride.pickup` à la commande. Le GPS bouge de
+Le point de prise en charge est **figé** dans `ride.pickup` à la commande.
+
+## Fluidité de l'animation
+
+Un itinéraire de ville compte plusieurs centaines de points. Leurs longueurs de
+segment sont mesurées **une fois par phase** (`measurePath`), pas à chaque
+image : les remesurer huit fois par seconde saturait le thread JS et faisait
+démarrer le véhicule par à-coups. Le GPS bouge de
 quelques mètres en permanence — recalculer à chaque rafraîchissement viderait le
 quota (2 000 requêtes/jour) et ferait clignoter le tracé.
 

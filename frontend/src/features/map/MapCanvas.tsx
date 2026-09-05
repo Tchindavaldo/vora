@@ -42,6 +42,13 @@ import { ApproachLine, RouteLine } from './RouteLayers';
  * "source must have tiles" (sa source d'attribution ne porte pas de tuiles).
  * Ces avertissements viennent du style amont, pas de notre code, et ne
  * changent rien au rendu : ils ne font que noyer les logs utiles.
+ *
+ * NOTE : sur reseau lent, MapTiler peut aussi renvoyer un timeout sur ses
+ * SPRITES ("Failed to load sprite"). Ce sont les icones du style (POI,
+ * transports), pas les tuiles : la carte s'affiche normalement, seules ces
+ * icones manquent. On ne masque pas ces erreurs — une panne reseau reelle doit
+ * rester visible dans les logs (R8) — et il n'y a rien a corriger cote
+ * application : MapLibre les recharge au prochain chargement du style.
  */
 LogManager.setLogLevel('error');
 

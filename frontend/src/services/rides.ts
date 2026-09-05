@@ -126,8 +126,15 @@ const TIMINGS = {
   accept: 3500,
   /** Duree de l'approche : le marqueur avance vers le passager. */
   approach: 20000,
-  /** Attente au point de depart avant que la course demarre. */
-  boarding: 6000,
+  /**
+   * Attente au point de depart avant que la course demarre.
+   *
+   * Court : le trajet est deja calcule a cet instant, donc toute attente plus
+   * longue se lit comme une latence de l'application alors qu'elle ne
+   * represente que la montee a bord. 2,5 s suffisent a lire "Votre chauffeur
+   * est arrive".
+   */
+  boarding: 2500,
   /** Duree du trajet lui-meme. */
   trip: 25000,
 } as const;
