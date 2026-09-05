@@ -19,13 +19,15 @@ HomeScreen (course commandée)
 | Fichier | Rôle |
 |---|---|
 | `useRideRequest.ts` | Création, abonnement au statut, annulation, erreurs (R8) |
-| `useRideSafety.ts` | Partage de course et alerte d'urgence (R10) |
+| `useRideSafety.ts` | Partage, alerte, assistance, signalement — voir [`safety.md`](safety.md) (R10) |
 | `useApproachRoute.ts` | Itinéraire ORS du chauffeur vers le passager |
 | `useDriverApproach.ts` | Position animée du chauffeur (approche puis trajet) |
 | `useRideCamera.ts` | Cadrages de la carte pendant le suivi |
 | `useRideRating.ts` | Note, commentaire et envoi de l'évaluation (R8, R12) |
 | `components/SearchingDriverSheet.tsx` | État d'attente |
-| `components/RideTrackingSheet.tsx` | Suivi : les quatre statuts, monnaie en espèces, SOS, partage |
+| `components/RideTrackingSheet.tsx` | Suivi : les quatre statuts, monnaie en espèces, SOS, partage, signalement |
+| `components/EmergencySheet.tsx` | Panneau d'urgence (R10) — voir [`safety.md`](safety.md) |
+| `components/ReportSheet.tsx` | Signalement du chauffeur (R10) — voir [`safety.md`](safety.md) |
 | `components/RatingSheet.tsx` | Évaluation, temps 1 : étoiles + Suivant (copie dédiée, R16) |
 | `components/RatingCommentScreen.tsx` | Évaluation, temps 2 : commentaire **plein écran** |
 | `../../services/rides.ts` | Backend **simulé** — seul fichier à remplacer par l'API |

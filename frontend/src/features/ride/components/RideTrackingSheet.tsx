@@ -27,6 +27,8 @@ type Props = {
   onCancel: () => void;
   onSos: () => void;
   onShare: () => void;
+  /** Ouvre le signalement du chauffeur (R10). */
+  onReport: () => void;
   /** Ferme l'ecran de course terminee et revient a l'accueil. */
   onDone: () => void;
 };
@@ -47,6 +49,7 @@ export function RideTrackingSheet({
   onCancel,
   onSos,
   onShare,
+  onReport,
   onDone,
 }: Props) {
   const insets = useSafeAreaInsets();
@@ -167,6 +170,24 @@ export function RideTrackingSheet({
               <Text style={styles.sosLabel}>SOS</Text>
             </Pressable>
           </View>
+        )}
+
+        {/*
+          Le signalement reste accessible APRES la descente : c'est souvent une
+          fois hors du vehicule que le passager ose signaler. Discret, en lien
+          plutot qu'en bouton — l'action reste rare.
+        */}
+        {(showSafety || isFinished) && (
+          <Pressable
+            onPress={onReport}
+            style={styles.report}
+            hitSlop={6}
+            accessibilityRole="button"
+            accessibilityLabel="Signaler ce chauffeur"
+          >
+            <Ionicons name="flag-outline" size={14} color={colors.textMuted} />
+            <Text style={styles.reportLabel}>Signaler ce chauffeur</Text>
+          </Pressable>
         )}
 
         {/* Donnees de demonstration : jamais presentees comme reelles (R13). */}
@@ -359,6 +380,13 @@ const styles = StyleSheet.create({
     ...typography.label,
     color: colors.surface,
   },
+  report: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginTop: spacing.md,
+  },
+  reportLabel: typography.caption,
   simulated: {
     ...typography.caption,
     marginTop: spacing.md,
