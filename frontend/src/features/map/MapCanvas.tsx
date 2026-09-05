@@ -73,6 +73,10 @@ export function MapCanvas({
       logo={false}
       compass={false}
       attributionPosition={{ bottom: 8, left: 8 }}
+      // L'inclinaison est un parti pris de l'ecran, pas un reglage utilisateur :
+      // on verrouille le geste a deux doigts qui la modifie. Deplacement, zoom
+      // et rotation restent libres.
+      touchPitch={false}
     >
       <Camera
         center={[center.longitude, center.latitude]}
