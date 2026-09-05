@@ -20,6 +20,7 @@ HomeScreen (course commandée)
 | `useRideRequest.ts` | Création, abonnement au statut, annulation, erreurs (R8) |
 | `useApproachRoute.ts` | Itinéraire ORS du chauffeur vers le passager |
 | `useDriverApproach.ts` | Position animée du chauffeur (approche puis trajet) |
+| `useRideCamera.ts` | Cadrages de la carte pendant le suivi |
 | `components/SearchingDriverSheet.tsx` | État d'attente |
 | `components/RideTrackingSheet.tsx` | Suivi : les quatre statuts, SOS, partage |
 | `../../services/rides.ts` | Backend **simulé** — seul fichier à remplacer par l'API |
@@ -62,20 +63,38 @@ Trois recadrages, chacun sur un **changement d'état** et jamais en continu :
 recadrer à chaque position du véhicule reprendrait la main à l'utilisateur à
 chaque image.
 
-| Moment | Ce qui doit tenir dans la vue |
-|---|---|
-| Itinéraire calculé | départ et destination (`fitRouteToken`, déjà en place) |
-| Chauffeur accepté | tout le trajet d'approche — le véhicule et vous |
-| Course démarrée | l'itinéraire complet — le véhicule et la destination |
+| Moment | Ce qui doit tenir dans la vue | Marge |
+|---|---|---|
+| Itinéraire calculé | départ et destination (`fitRouteToken`) | standard |
+| Chauffeur accepté | tout le trajet d'approche — le véhicule et vous | **+90 px** |
+| Course démarrée | l'itinéraire complet — le véhicule et la destination | standard |
 
-Les deux derniers passent par `fitPoints` / `fitPointsToken` de `MapCanvas` :
-une liste de points quelconque, pour que l'écran demande un cadrage sans
-manipuler MapLibre (R11).
+Les deux derniers passent par `fitPoints` / `fitPointsToken` /
+`fitPointsPadding` de `MapCanvas` : une liste de points quelconque et une marge,
+pour que l'écran demande un cadrage sans manipuler MapLibre (R11). La marge
+supplémentaire fait reculer la caméra — le trajet d'approche fait quelques
+centaines de mètres, et un cadrage au plus juste collerait le véhicule et le
+passager aux bords de l'écran.
+
+**Bouton « itinéraire »**, à gauche du recentrage : recadre à la demande sur le
+trajet en cours — l'approche pendant qu'elle dure, la course ensuite. La caméra
+est libre pendant tout le suivi ; l'utilisateur doit pouvoir revenir à la vue
+d'ensemble sans attendre le prochain changement de statut. Il n'apparaît que
+s'il y a un trajet à cadrer.
+
+Toute cette logique vit dans `useRideCamera` : `HomeScreen` reste un assemblage
+de vues (R4).
 
 ## Coût du routage (R12)
 
-Une seule requête d'approche par course, déclenchée à l'acceptation : le point
-de prise en charge est **figé** dans `ride.pickup` à la commande. Le GPS bouge de
+Une seule requête d'approche par course, déclenchée **dès la création** et non à
+l'acceptation : le chauffeur qui sera affecté est déjà connu à ce moment
+(`driverOrigin` est posé par `createRide`), donc le tracé se calcule pendant que
+l'écran affiche « Recherche d'un chauffeur… ». À l'acceptation il est prêt, et
+le véhicule part sans latence. En production le backend réserve de la même façon
+le chauffeur le plus proche avant de confirmer.
+
+Le point de prise en charge est **figé** dans `ride.pickup` à la commande. Le GPS bouge de
 quelques mètres en permanence — recalculer à chaque rafraîchissement viderait le
 quota (2 000 requêtes/jour) et ferait clignoter le tracé.
 

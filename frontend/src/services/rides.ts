@@ -158,7 +158,11 @@ export async function createRide(input: CreateRideInput): Promise<Ride> {
     amountXaf: input.amountXaf,
     driver: null,
     etaMinutes: null,
-    driverOrigin: null,
+    // Connu DES la creation, et non a l'acceptation : c'est ce qui permet de
+    // calculer l'itineraire d'approche pendant la recherche, pour que le trace
+    // soit pret a l'instant ou le chauffeur accepte. En production, le backend
+    // reserve de la meme facon le chauffeur le plus proche avant de confirmer.
+    driverOrigin: driverStartPoint(input.origin, input.destination),
     pickup: input.origin,
   };
 }
@@ -198,8 +202,6 @@ function driverStartPoint(passenger: RoutePoint, destination: RoutePoint): Route
  */
 export function subscribeToRideStatus(
   ride: Ride,
-  passenger: RoutePoint,
-  destination: RoutePoint,
   onChange: (ride: Ride) => void,
 ): () => void {
   const timers: ReturnType<typeof setTimeout>[] = [];
@@ -216,7 +218,8 @@ export function subscribeToRideStatus(
     status: 'accepted',
     driver: DEMO_DRIVERS[ride.tier],
     etaMinutes,
-    driverOrigin: driverStartPoint(passenger, destination),
+    // `driverOrigin` vient de la creation : le trace d'approche a ete calcule
+    // dessus pendant la recherche, le changer ici le rendrait faux.
   };
 
   at(TIMINGS.accept, () => onChange(accepted));

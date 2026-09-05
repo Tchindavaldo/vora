@@ -137,6 +137,14 @@ type Props = {
    */
   fitPoints?: { longitude: number; latitude: number }[];
   fitPointsToken?: number;
+  /**
+   * Marge SUPPLEMENTAIRE autour de `fitPoints`, en pixels.
+   *
+   * Plus la marge est large, plus la camera recule : c'est ce qui permet a
+   * l'ecran de demander un cadrage un peu plus aere sans que MapCanvas ait a
+   * connaitre les etats de la course.
+   */
+  fitPointsPadding?: number;
 };
 
 /**
@@ -175,6 +183,7 @@ export function MapCanvas({
   fitRouteToken = 0,
   fitPoints,
   fitPointsToken = 0,
+  fitPointsPadding = 0,
 }: Props) {
   const mapStyle = useMapStyle();
 
@@ -236,11 +245,11 @@ export function MapCanvas({
    * camera de la couvrir : l'utilisateur doit voir d'un coup d'oeil son depart
    * et sa destination, pas un bout de ligne qui sort de l'ecran.
    */
-  const fitTo = useRef<(points: { longitude: number; latitude: number }[]) => void>(
-    () => {},
-  );
+  const fitTo = useRef<
+    (points: { longitude: number; latitude: number }[], extra?: number) => void
+  >(() => {});
 
-  fitTo.current = (points) => {
+  fitTo.current = (points, extra = 0) => {
     if (points.length < 2) return;
 
     let west = points[0].longitude;
@@ -260,10 +269,10 @@ export function MapCanvas({
     try {
       cameraRef.current?.fitBounds([west, south, east, north], {
         padding: {
-          top: FIT_PADDING_TOP,
-          right: FIT_PADDING_SIDE,
-          bottom: FIT_PADDING_BOTTOM,
-          left: FIT_PADDING_SIDE,
+          top: FIT_PADDING_TOP + extra,
+          right: FIT_PADDING_SIDE + extra,
+          bottom: FIT_PADDING_BOTTOM + extra,
+          left: FIT_PADDING_SIDE + extra,
         },
         duration: RECENTER_DURATION_MS,
       });
@@ -292,9 +301,12 @@ export function MapCanvas({
    * le suivi de course : le chauffeur qui arrive et la position du passager,
    * puis le vehicule et la destination.
    */
+  const fitPointsPaddingRef = useRef(fitPointsPadding);
+  fitPointsPaddingRef.current = fitPointsPadding;
+
   useEffect(() => {
     if (fitPointsToken === 0) return;
-    fitTo.current(fitPointsRef.current ?? []);
+    fitTo.current(fitPointsRef.current ?? [], fitPointsPaddingRef.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fitPointsToken]);
 

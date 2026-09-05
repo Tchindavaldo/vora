@@ -84,6 +84,7 @@ src/
       useRideRequest.ts    création, statuts, annulation (R8)
       useApproachRoute.ts  itinéraire du chauffeur vers le passager
       useDriverApproach.ts position animée du chauffeur sur la carte
+      useRideCamera.ts     cadrages de la carte pendant le suivi
       components/          SearchingDriverSheet, RideTrackingSheet
   services/
     geocoding.ts           MapTiler Geocoding — seul fichier qui le connaît

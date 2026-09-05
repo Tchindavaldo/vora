@@ -35,6 +35,7 @@ import { SearchingDriverSheet } from '../ride/components/SearchingDriverSheet';
 import { RideTrackingSheet } from '../ride/components/RideTrackingSheet';
 import { useDriverApproach } from '../ride/useDriverApproach';
 import { useApproachRoute } from '../ride/useApproachRoute';
+import { useRideCamera } from '../ride/useRideCamera';
 import { LocationNotice } from './components/LocationNotice';
 import { UserLocationDot } from './components/UserLocationDot';
 import { VehicleMarker } from './components/VehicleMarker';
@@ -206,42 +207,11 @@ export function HomeScreen() {
     ride.ride?.tier,
   ]);
 
-  /**
-   * Recadrages de la carte pendant le suivi de course.
-   *
-   * Deux moments seulement, sur CHANGEMENT DE STATUT et non a chaque position
-   * du vehicule : recadrer en continu empecherait l'utilisateur de deplacer la
-   * carte, la camera lui reprenant la main a chaque image.
-   *
-   * - a l'acceptation : le chauffeur qui arrive ET la position du passager,
-   *   pour voir l'approche se faire ;
-   * - au demarrage : le vehicule ET la destination, vue globale du trajet.
-   */
-  const [fitPoints, setFitPoints] = useState<{ longitude: number; latitude: number }[]>(
-    [],
-  );
-  const [fitPointsToken, setFitPointsToken] = useState(0);
-
   const rideStatus = ride.ride?.status ?? null;
-  const approachReady = approach.points.length >= 2;
 
-  useEffect(() => {
-    if (rideStatus === 'accepted' && approachReady) {
-      // Tout le trajet d'approche : ses extremites sont le chauffeur et le
-      // passager, les points intermediaires evitent que la route sorte du
-      // cadre dans un contournement.
-      setFitPoints(approach.points);
-      setFitPointsToken((token) => token + 1);
-      return;
-    }
-
-    if (rideStatus === 'in_progress') {
-      setFitPoints(booking.routePoints);
-      setFitPointsToken((token) => token + 1);
-    }
-    // Sur le seul statut : voir le commentaire ci-dessus.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rideStatus, approachReady]);
+  // Cadrages de la carte pendant le suivi : recadrages automatiques aux
+  // changements de statut, et retour a la vue d'ensemble a la demande.
+  const camera = useRideCamera(rideStatus, approach.points, booking.routePoints);
 
   // Incremente a chaque appui sur "recentrer" : voir `recenterToken` dans
   // MapCanvas.
@@ -374,8 +344,9 @@ export function HomeScreen() {
         // Le trajet d'approche n'est trace que pendant qu'il sert : une fois le
         // passager a bord, il n'a plus rien a dire et encombrerait la carte.
         approach={rideStatus === 'accepted' ? approach.points : undefined}
-        fitPoints={fitPoints}
-        fitPointsToken={fitPointsToken}
+        fitPoints={camera.fitPoints}
+        fitPointsToken={camera.fitPointsToken}
+        fitPointsPadding={camera.fitPointsPadding}
       />
 
       <HomeHeader
@@ -392,6 +363,23 @@ export function HomeScreen() {
         />
 
         <View style={styles.recenterRow} pointerEvents="box-none">
+          {/*
+            Cadrage sur l'itineraire en cours, a cote du recentrage : les deux
+            repondent a la meme envie — "remets la carte comme il faut" — l'un
+            sur soi, l'autre sur le trajet. Il n'apparait que s'il y a un trajet
+            a cadrer.
+          */}
+          {camera.activeRoutePoints.length >= 2 && (
+            <Pressable
+              style={styles.recenterButton}
+              onPress={camera.fitActiveRoute}
+              accessibilityRole="button"
+              accessibilityLabel="Afficher tout l’itinéraire"
+            >
+              <Ionicons name="git-branch" size={20} color={colors.text} />
+            </Pressable>
+          )}
+
           <Pressable
             style={styles.recenterButton}
             onPress={handleRecenter}
@@ -475,8 +463,12 @@ const styles = StyleSheet.create({
     bottom: 0,
     gap: spacing.md,
   },
+  // Les boutons de cadrage, alignes a droite : itineraire puis position.
   recenterRow: {
-    alignItems: 'flex-end',
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    gap: spacing.sm,
     paddingHorizontal: spacing.lg,
   },
   recenterButton: {

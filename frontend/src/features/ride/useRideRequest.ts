@@ -62,15 +62,10 @@ export function useRideRequest(): RideRequest {
 
         // Les changements de statut arrivent de facon asynchrone, comme le
         // feront les evenements socket du backend.
-        unsubscribeRef.current = subscribeToRideStatus(
-          created,
-          input.origin,
-          input.destination,
-          (updated) => {
-            if (!isActiveRef.current) return;
-            setRide(updated);
-          },
-        );
+        unsubscribeRef.current = subscribeToRideStatus(created, (updated) => {
+          if (!isActiveRef.current) return;
+          setRide(updated);
+        });
       })
       .catch(() => {
         if (!isActiveRef.current) return;
