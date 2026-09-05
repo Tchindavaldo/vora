@@ -254,17 +254,24 @@ export function useMapStyle(): State {
                 ],
                 layout: {
                   ...scaled.layout,
-                  'text-allow-overlap': true,
-                  'text-ignore-placement': true,
-                  'symbol-spacing': 200,
+                  // 700 px entre deux occurrences du meme nom, contre 250 par
+                  // defaut : une rue n'est ecrite qu'une fois par secteur.
+                  'symbol-spacing': 700,
+                  // Marge autour de chaque label : deux rues voisines ne
+                  // peuvent plus s'ecrire cote a cote.
+                  'text-padding': 14,
+                  // Priorite haute en vue large (on cherche a s'orienter),
+                  // basse une fois zoome (on cherche un lieu precis). Une
+                  // valeur BASSE passe devant.
+                  'symbol-sort-key': ['step', ['zoom'], 0, POI_MIN_ZOOM, 10],
                 },
               };
             }
 
-            // POI : ils restent affiches, mais deviennent facultatifs — un POI
-            // cede desormais la place a un nom de rue plutot que l'inverse. On
-            // repousse aussi leur apparition au zoom 15 : plus tot, leur
-            // densite saturait la carte et evincait rues et quartiers.
+            // POI : hierarchie inverse de celle des rues. En vue large ils
+            // s'effacent devant les noms de rues, une fois zoome ils passent
+            // devant. `text-optional` leur permet de renoncer a leur texte en
+            // gardant leur pictogramme quand la place manque.
             const source = (layer as { 'source-layer'?: string })[
               'source-layer'
             ];
@@ -272,7 +279,11 @@ export function useMapStyle(): State {
               return {
                 ...scaled,
                 minzoom: Math.max(layer.minzoom ?? 0, POI_MIN_ZOOM),
-                layout: { ...scaled.layout, 'text-optional': true },
+                layout: {
+                  ...scaled.layout,
+                  'text-optional': true,
+                  'symbol-sort-key': ['step', ['zoom'], 10, POI_MIN_ZOOM, 0],
+                },
               };
             }
 
