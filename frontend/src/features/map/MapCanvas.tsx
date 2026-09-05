@@ -143,13 +143,21 @@ export function MapCanvas({
     // approche) au lieu d'une translation lineaire, et une seconde et demie
     // laisse l'oeil suivre le deplacement. Un saut de 600 ms se lit comme un
     // teleportage.
-    cameraRef.current?.flyTo({
-      center: [center.longitude, center.latitude],
-      zoom,
-      pitch,
-      bearing: 0,
-      duration: RECENTER_DURATION_MS,
-    });
+    // La camera peut avoir ete demontee entre-temps (rechargement du style, ou
+    // hot reload en developpement) : la vue native n'existe alors plus et
+    // l'appel remonte un "Invalid reactTag". Rien a signaler a l'utilisateur —
+    // le recentrage n'a simplement plus de cible (R8).
+    try {
+      cameraRef.current?.flyTo({
+        center: [center.longitude, center.latitude],
+        zoom,
+        pitch,
+        bearing: 0,
+        duration: RECENTER_DURATION_MS,
+      });
+    } catch (error) {
+      console.warn('Recentrage ignore : camera indisponible', error);
+    }
     // Volontairement sur le seul token : recentrer doit repondre a l'appui, pas
     // au moindre rafraichissement de la position GPS.
     // eslint-disable-next-line react-hooks/exhaustive-deps
