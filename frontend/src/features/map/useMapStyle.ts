@@ -33,11 +33,19 @@ const HIDDEN_LAYER_IDS = [
   'Highway shields bicolor',
   'Highway shields bicolor top',
   'Roller coaster labels',
-  // Batiments en volume : ils n'apparaissent qu'au-dela du zoom 15, ce qui
-  // faisait changer la nature de la carte selon l'echelle — relief en zoomant,
-  // plan a plat en reculant. On garde un rendu constant.
-  'Building 3D',
 ];
+
+/**
+ * Couche des batiments en volume.
+ *
+ * On ne la SUPPRIME pas : le style fait se relayer deux couches — `Building`
+ * (2D) s'arrete a maxzoom 15 et `Building 3D` prend la suite au-dela. La
+ * retirer laissait donc les batiments disparaitre des qu'on zoomait.
+ *
+ * On l'aplatit a la place : hauteur d'extrusion forcee a zero, opacite
+ * relevee. Les batiments restent visibles a tous les zooms, toujours a plat.
+ */
+const EXTRUSION_LAYER_ID = 'Building 3D';
 
 /**
  * Facteur applique a la taille des textes.
@@ -129,6 +137,21 @@ export function useMapStyle(): State {
             return !HIDDEN_LAYER_IDS.includes(layer.id);
           })
           .map((layer) => {
+            // Batiments : on aplatit l'extrusion au lieu de retirer la couche.
+            if (layer.id === EXTRUSION_LAYER_ID) {
+              return {
+                ...layer,
+                paint: {
+                  ...(layer as { paint?: Record<string, unknown> }).paint,
+                  'fill-extrusion-height': 0,
+                  'fill-extrusion-base': 0,
+                  // L'original est a 0.4, pense pour du volume ombre. A plat,
+                  // il faut la meme densite que la couche 2D qu'il prolonge.
+                  'fill-extrusion-opacity': 0.75,
+                },
+              };
+            }
+
             if (layer.type !== 'symbol' || !layer.layout) return layer;
 
             const layout = layer.layout as Record<string, unknown>;
