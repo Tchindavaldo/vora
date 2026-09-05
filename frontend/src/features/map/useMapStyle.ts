@@ -4,22 +4,27 @@ import type { StyleSpecification } from '@maplibre/maplibre-react-native';
 import { env } from '../../config/env';
 
 /**
- * Categories de POI retirees du style.
+ * Sources masquees : TOUS les POI.
  *
- * Un style tout pret est calibre pour une carte generaliste. On garde les
- * reperes qui aident a situer une destination — commerces, restauration,
- * sante, transports, education, services publics, culture — et on ne retire
- * que ce qui n'aide jamais a s'orienter.
+ * Parti pris de l'ecran d'accueil : la carte est un decor, pas un contenu a
+ * explorer. Seuls les vehicules et la position de l'utilisateur portent de
+ * l'information ; commerces, restaurants et equipements leur feraient
+ * concurrence. Les noms de rues restent, eux, indispensables pour se situer.
  *
- * Le filtrage porte sur le `source-layer` et non sur le nom de la couche :
- * `streets-v4` range chaque famille de POI dans sa propre source, ce qui rend
- * la regle stable si MapTiler renomme une couche.
+ * Le filtrage porte sur le prefixe du `source-layer` et non sur le nom de la
+ * couche : `streets-v4` range chaque famille de POI dans sa propre source
+ * (`poi_food`, `poi_healthcare`...), ce qui rend la regle stable si MapTiler
+ * en ajoute ou en renomme.
  */
+const HIDDEN_SOURCE_PREFIXES = ['poi_'];
+
+/** Sources masquees en entier, hors POI. */
 const HIDDEN_SOURCE_LAYERS = [
   // Les numeros de rue saturent la carte a fort zoom sans jamais servir de
   // point de repere a l'echelle d'une course.
   'building_number',
   'tree',
+  'street_furniture',
 ];
 
 /** Couches retirees par identifiant, quand la source entiere doit rester. */
@@ -33,14 +38,12 @@ const HIDDEN_LAYER_IDS = [
 /**
  * Facteur applique a la taille des textes.
  *
- * Le style est calibre pour une carte plein ecran que l'on consulte ; ici elle
- * sert de decor a des marqueurs et a un bottom sheet. Des labels plus discrets
- * laissent les vehicules au premier plan.
+ * Les POI etant masques, il ne reste que les noms de rues et de quartiers : ils
+ * doivent rester lisibles, on les laisse a leur taille d'origine. Baisser ce
+ * facteur les rendait illisibles sans rien degager, puisqu'ils n'ont plus rien
+ * a concurrencer.
  */
-const TEXT_SCALE = 0.82;
-
-/** Meme logique pour les pictogrammes de POI. */
-const ICON_SCALE = 0.85;
+const TEXT_SCALE = 1;
 
 /**
  * Multiplie une valeur de taille MapLibre, qu'elle soit un nombre, une
@@ -114,11 +117,18 @@ export function useMapStyle(): State {
             const source = (layer as { 'source-layer'?: string })[
               'source-layer'
             ];
-            if (source && HIDDEN_SOURCE_LAYERS.includes(source)) return false;
+            if (source) {
+              if (HIDDEN_SOURCE_LAYERS.includes(source)) return false;
+              if (HIDDEN_SOURCE_PREFIXES.some((p) => source.startsWith(p))) {
+                return false;
+              }
+            }
             return !HIDDEN_LAYER_IDS.includes(layer.id);
           })
           .map((layer) => {
             if (layer.type !== 'symbol' || !layer.layout) return layer;
+
+            if (TEXT_SCALE === 1) return layer;
 
             const layout = layer.layout as Record<string, unknown>;
             return {
@@ -126,7 +136,6 @@ export function useMapStyle(): State {
               layout: {
                 ...layout,
                 'text-size': scaleSize(layout['text-size'], TEXT_SCALE),
-                'icon-size': scaleSize(layout['icon-size'], ICON_SCALE),
               },
             };
           });

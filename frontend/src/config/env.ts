@@ -71,9 +71,9 @@ export const DEFAULT_REGION = {
   longitude: 9.7085,
   latitude: 4.0483,
   // 13 cadrait trop large : les chauffeurs paraissaient loin de l'utilisateur.
-  // 15 rapproche la camera et, surtout, franchit le seuil a partir duquel le
-  // style affiche les batiments en volume (couche "Building 3D", minzoom 15) —
-  // sans quoi l'inclinaison de la camera ne donnerait aucune profondeur.
-  zoom: 15,
+  // 15.5 plutot que 15 : la couche "Building 3D" du style demarre exactement a
+  // 15, et s'y poser laissait le relief disparaitre au moindre dezoom. Une
+  // demi-graduation de marge suffit a le stabiliser.
+  zoom: 15.5,
   cityLabel: 'Douala',
 } as const;
