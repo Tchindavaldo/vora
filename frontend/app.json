@@ -2,6 +2,7 @@
   "expo": {
     "name": "VORA",
     "slug": "vora",
+    "owner": "rauval",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
