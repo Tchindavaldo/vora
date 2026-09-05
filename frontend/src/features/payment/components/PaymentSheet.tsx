@@ -36,7 +36,7 @@ import {
 
 type Props = {
   destinationLabel: string;
-  /** Distance du trajet, affichee en sous-titre au-dessus de la destination. */
+  /** Distance du trajet, affichee en sous-titre a cote de la destination. */
   distanceMeters: number | null;
   /** Palier retenu a l'estimation : son montant est celui a regler. */
   tier: VehicleTier;
@@ -46,10 +46,15 @@ type Props = {
   payment: Payment | null;
   isProcessing: boolean;
   isSettled: boolean;
-  onConfirm: () => void;
+  /**
+   * Etape suivante : la saisie de la monnaie en especes, le debit pour les
+   * autres modes. C'est l'ecran parent qui sait laquelle, pas ce panneau.
+   */
+  onNext: () => void;
   /** Poursuit vers la recherche de chauffeur, une fois le paiement regle. */
   onContinue: () => void;
-  onCancel: () => void;
+  /** Retour a l'estimation, itineraire conserve. */
+  onBack: () => void;
 };
 
 const ICONS: Record<PaymentMethod, keyof typeof Ionicons.glyphMap> = {
@@ -66,9 +71,9 @@ const ICONS: Record<PaymentMethod, keyof typeof Ionicons.glyphMap> = {
  * mais leur contenu, leur etat et leur suite divergent deja : ce panneau porte
  * un verdict de paiement, que l'estimation n'aura jamais.
  *
- * En-tete a deux niveaux : le sous-titre rappelle la distance et le montant du
- * mode de transport retenu, la ligne principale garde la destination. Le
- * passager doit voir ce qu'il paie sans remonter a l'ecran precedent.
+ * En-tete sur UNE ligne : destination puis, a sa droite, la distance et le
+ * montant du palier retenu. Le passager voit ce qu'il paie sans remonter a
+ * l'ecran precedent, et le panneau garde une ligne de haut pour les modes.
  */
 export function PaymentSheet({
   destinationLabel,
@@ -80,9 +85,9 @@ export function PaymentSheet({
   payment,
   isProcessing,
   isSettled,
-  onConfirm,
+  onNext,
   onContinue,
-  onCancel,
+  onBack,
 }: Props) {
   const insets = useSafeAreaInsets();
   const hasFailed = payment?.status === 'failed';
@@ -104,31 +109,22 @@ export function PaymentSheet({
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
-          <View style={styles.headings}>
-            {/* Sous-titre : distance du trajet et prix du palier retenu. */}
-            <Text style={styles.subheader} numberOfLines={1}>
-              {distanceMeters !== null
-                ? `${formatDistance(distanceMeters)} · `
-                : ''}
-              {TIER_LABELS[tier]} {formatXaf(amountXaf)}
-            </Text>
+          <Ionicons name="location" size={18} color={colors.primary} />
 
-            <View style={styles.destination}>
-              <Ionicons name="location" size={18} color={colors.primary} />
-              <Text style={styles.destinationLabel} numberOfLines={1}>
-                {destinationLabel}
-              </Text>
-            </View>
-          </View>
+          <Text style={styles.destinationLabel} numberOfLines={1}>
+            {destinationLabel}
+          </Text>
 
-          <Pressable
-            onPress={onCancel}
-            hitSlop={10}
-            accessibilityRole="button"
-            accessibilityLabel="Annuler la course"
-          >
-            <Ionicons name="close" size={22} color={colors.textMuted} />
-          </Pressable>
+          {/*
+            Sous-titre sur la MEME ligne que la destination, a sa droite :
+            distance du trajet et prix du palier retenu. Il ne se retrecit pas
+            (`flexShrink: 0`) — c'est la destination, plus longue et deja
+            tronquee, qui cede la place.
+          */}
+          <Text style={styles.subheader} numberOfLines={1}>
+            {distanceMeters !== null ? `${formatDistance(distanceMeters)} · ` : ''}
+            {TIER_LABELS[tier]} {formatXaf(amountXaf)}
+          </Text>
         </View>
 
         <Text style={styles.sectionLabel}>Mode de paiement</Text>
@@ -167,23 +163,35 @@ export function PaymentSheet({
           Paiement simulé — aucun débit réel n’est effectué.
         </Text>
 
-        <Pressable
-          style={[styles.confirm, isProcessing && styles.confirmDisabled]}
-          disabled={isProcessing}
-          onPress={isSettled ? onContinue : onConfirm}
-          accessibilityRole="button"
-          accessibilityLabel={
-            isSettled ? 'Commander la course' : 'Confirmer le paiement'
-          }
-        >
-          <Text style={styles.confirmLabel}>
-            {isSettled
-              ? 'Commander'
-              : hasFailed
-                ? 'Réessayer le paiement'
-                : `Payer ${formatXaf(amountXaf)}`}
-          </Text>
-        </Pressable>
+        {/*
+          Retour et action principale sur la MEME ligne : le passager avance ou
+          recule d'un seul geste, sans chercher une croix en haut du panneau.
+        */}
+        <View style={styles.actions}>
+          <Pressable
+            style={styles.back}
+            onPress={onBack}
+            accessibilityRole="button"
+            accessibilityLabel="Revenir à l’estimation"
+          >
+            <Ionicons name="chevron-back" size={18} color={colors.text} />
+            <Text style={styles.backLabel}>Retour</Text>
+          </Pressable>
+
+          <Pressable
+            style={[styles.confirm, isProcessing && styles.confirmDisabled]}
+            disabled={isProcessing}
+            onPress={isSettled ? onContinue : onNext}
+            accessibilityRole="button"
+            accessibilityLabel={
+              isSettled ? 'Commander la course' : 'Passer à l’étape suivante'
+            }
+          >
+            <Text style={styles.confirmLabel}>
+              {isSettled ? 'Commander' : hasFailed ? 'Réessayer' : 'Suivant'}
+            </Text>
+          </Pressable>
+        </View>
       </ScrollView>
     </View>
   );
@@ -287,20 +295,12 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
-  },
-  headings: {
-    flex: 1,
-    gap: spacing.xs,
+    gap: spacing.sm,
   },
   subheader: {
     ...typography.caption,
     color: colors.textMuted,
-  },
-  destination: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
+    flexShrink: 0,
   },
   destinationLabel: {
     ...typography.subtitle,
@@ -365,8 +365,30 @@ const styles = StyleSheet.create({
     ...typography.caption,
     marginTop: spacing.md,
   },
-  confirm: {
+  actions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
     marginTop: spacing.lg,
+  },
+  back: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.lg,
+  },
+  backLabel: {
+    ...typography.subtitle,
+    color: colors.text,
+  },
+  confirm: {
+    // L'action principale prend toute la largeur restante : elle reste la
+    // cible evidente a cote du retour.
+    flex: 1,
     backgroundColor: colors.primary,
     borderRadius: radius.pill,
     paddingVertical: spacing.lg,

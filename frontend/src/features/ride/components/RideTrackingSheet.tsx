@@ -134,6 +134,23 @@ export function RideTrackingSheet({
         </View>
 
         {/*
+          Especes : le billet annonce et la monnaie a rendre, visibles jusqu'a la
+          descente. Le chauffeur a la meme ligne sous les yeux — c'est ce qui
+          evite la discussion a l'arrivee.
+        */}
+        {ride.cash !== null && (
+          <View style={styles.cash}>
+            <Ionicons name="cash" size={18} color={colors.primary} />
+            <Text style={styles.cashText} numberOfLines={2}>
+              Espèces : vous donnez {formatXaf(ride.cash.billXaf)} ·{' '}
+              {ride.cash.changeXaf === 0
+                ? 'appoint exact'
+                : `le chauffeur vous rend ${formatXaf(ride.cash.changeXaf)}`}
+            </Text>
+          </View>
+        )}
+
+        {/*
           Securite pendant le trajet (R10) : partage de course et appel
           d'urgence, accessibles sans quitter l'ecran de suivi. Ils
           n'apparaissent qu'a partir du moment ou le passager est au contact du
@@ -286,6 +303,21 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   amount: typography.subtitle,
+  cash: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginTop: spacing.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.md,
+    backgroundColor: colors.primarySoft,
+  },
+  cashText: {
+    ...typography.label,
+    color: colors.text,
+    flex: 1,
+  },
   safety: {
     flexDirection: 'row',
     gap: spacing.sm,

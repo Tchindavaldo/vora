@@ -80,7 +80,7 @@ src/
       useBookingFlow.ts    destination, itinéraire, tarifs, palier retenu
       useRoute.ts          appel du routage, annulation, retry (R8)
       components/          FareSheet, DestinationPin
-    payment/               choix du mode de paiement (brief §8, simulé)
+    payment/               mode de paiement + monnaie en espèces (brief §8, simulé)
       usePayment.ts        mode retenu, verdict, annulation des timers (R8)
       components/          PaymentSheet
     ride/                  course : commande, chauffeur, suivi (R17 étapes 6-8)
@@ -109,7 +109,7 @@ src/
 | `search.md` | `src/features/search/` — recherche de destination |
 | `booking.md` | `src/features/booking/` — itinéraire et estimation |
 | `ride.md` | `src/features/ride/` — course : commande, chauffeur, suivi |
-| `payment.md` | `src/features/payment/` — choix du mode de paiement |
+| `payment.md` | `src/features/payment/` — mode de paiement et monnaie en espèces |
 
 ## Décisions de design notables
 

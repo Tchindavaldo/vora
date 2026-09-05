@@ -19,6 +19,11 @@ type Props = {
   amountXaf: number;
   /** Message d'echec de la creation de la course, `null` si tout va bien (R8). */
   error: string | null;
+  /**
+   * Pourquoi la recherche continue alors qu'un chauffeur a ete contacte —
+   * typiquement : il n'avait pas la monnaie. `null` en recherche ordinaire.
+   */
+  notice: string | null;
   onRetry: () => void;
   onCancel: () => void;
 };
@@ -37,6 +42,7 @@ export function SearchingDriverSheet({
   tier,
   amountXaf,
   error,
+  notice,
   onRetry,
   onCancel,
 }: Props) {
@@ -77,6 +83,18 @@ export function SearchingDriverSheet({
             <Text style={styles.summary} numberOfLines={1}>
               {TIER_LABELS[tier]} · {formatXaf(amountXaf)} · {destinationLabel}
             </Text>
+
+            {/*
+              Un refus pour manque de monnaie n'est pas une panne : on explique
+              pourquoi l'attente se prolonge plutot que de laisser tourner le
+              spinner sans un mot (R8).
+            */}
+            {notice !== null && (
+              <View style={styles.notice}>
+                <Ionicons name="cash" size={16} color={colors.textMuted} />
+                <Text style={styles.noticeText}>{notice}</Text>
+              </View>
+            )}
 
             {/*
               Le chauffeur trouve vient de donnees de demonstration tant que le
@@ -130,6 +148,21 @@ const styles = StyleSheet.create({
   },
   simulated: {
     ...typography.caption,
+    textAlign: 'center',
+  },
+  notice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.md,
+    backgroundColor: colors.surfaceAlt,
+  },
+  noticeText: {
+    ...typography.label,
+    color: colors.text,
+    flexShrink: 1,
     textAlign: 'center',
   },
   errorText: {

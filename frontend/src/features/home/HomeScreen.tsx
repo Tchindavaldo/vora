@@ -5,12 +5,12 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { Alert, Pressable, Share, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { MapCanvas, type MapMarker } from '../map/MapCanvas';
+import { MapCanvas } from '../map/MapCanvas';
 import { colors, shadows, SHEET_HEIGHT, spacing } from '../../theme';
 import { DEFAULT_REGION } from '../../config/env';
 
@@ -29,24 +29,20 @@ import {
 } from '../search/DestinationSearchScreen';
 import { useBookingFlow } from '../booking/useBookingFlow';
 import { FareSheet } from '../booking/components/FareSheet';
-import { DestinationPin } from '../booking/components/DestinationPin';
 import { usePayment } from '../payment/usePayment';
 import { PaymentSheet } from '../payment/components/PaymentSheet';
+import { CashChangeSheet } from '../payment/components/CashChangeSheet';
+import { computeCashOffer } from '../../services/payment';
 import { useRideRequest } from '../ride/useRideRequest';
 import { SearchingDriverSheet } from '../ride/components/SearchingDriverSheet';
 import { RideTrackingSheet } from '../ride/components/RideTrackingSheet';
 import { useDriverApproach } from '../ride/useDriverApproach';
 import { useApproachRoute } from '../ride/useApproachRoute';
 import { useRideCamera } from '../ride/useRideCamera';
+import { useRideSafety } from '../ride/useRideSafety';
 import { LocationNotice } from './components/LocationNotice';
-import { UserLocationDot } from './components/UserLocationDot';
-import { VehicleMarker } from './components/VehicleMarker';
-import {
-  DEMO_AREA_LABEL,
-  DEMO_USER_INITIAL,
-  NEARBY_VEHICLES,
-  SHORTCUTS,
-} from './demoData';
+import { useHomeMarkers } from './useHomeMarkers';
+import { DEMO_USER_INITIAL, NEARBY_VEHICLES, SHORTCUTS } from './demoData';
 
 /**
  * Ecran d'accueil passager.
@@ -119,6 +115,9 @@ export function HomeScreen() {
   // Mode de paiement, choisi entre l'estimation et la recherche de chauffeur.
   const payment = usePayment();
 
+  // Partage de course et SOS (R10).
+  const safety = useRideSafety(ride.ride);
+
   /**
    * Etape de paiement ouverte : le tarif est retenu, la course n'est pas encore
    * demandee. Un booleen d'ecran plutot qu'un etat dans `useBookingFlow` : la
@@ -138,86 +137,23 @@ export function HomeScreen() {
     booking.routePoints,
   );
 
-  // Une fois un chauffeur assigne, la carte ne montre plus QUE le sien : les
-  // vehicules disponibles alentour n'ont plus rien a dire, et les laisser
-  // rendrait impossible de suivre celui qui vient vous chercher.
-  const hasAssignedDriver = driverPosition !== null;
-
-  const markers = useMemo<MapMarker[]>(() => {
-    // Tant que les positions ne sont pas arretees, aucun vehicule : voir le
-    // commentaire sur `roadPoints`.
-    const vehicles: MapMarker[] =
-      roadPoints === null || hasAssignedDriver
-        ? []
-        : NEARBY_VEHICLES.map((vehicle, index) => {
-            // Position animee si elle existe, sinon la position posee sur la
-            // route, sinon l'offset de demonstration (Overpass en echec, R8).
-            const onRoad = motions[index] ?? roadPoints[index];
-
-            return {
-              id: vehicle.id,
-              longitude:
-                onRoad?.longitude ??
-                location.coords.longitude + vehicle.offsetLng,
-              latitude:
-                onRoad?.latitude ?? location.coords.latitude + vehicle.offsetLat,
-              render: () => (
-                <VehicleMarker
-                  kind={vehicle.kind}
-                  bearing={onRoad?.bearing ?? vehicle.bearing}
-                />
-              ),
-            };
-          });
-
-    // La position utilisateur n'est affichee que si elle est reelle : montrer
-    // un point "vous etes ici" sur une ville par defaut serait un mensonge.
-    if (!location.isFallback) {
-      vehicles.push({
-        id: 'user',
-        longitude: location.coords.longitude,
-        latitude: location.coords.latitude,
-        render: () => <UserLocationDot />,
-      });
-    }
-
-    // Destination de la course en preparation, a l'autre bout du trace.
-    if (booking.choice !== null) {
-      vehicles.push({
-        id: 'destination',
-        longitude: booking.choice.place.longitude,
-        latitude: booking.choice.place.latitude,
-        render: () => <DestinationPin />,
-      });
-    }
-
-    // Chauffeur de la course : seul vehicule affiche a partir de son
-    // affectation, oriente dans son sens de marche.
-    if (driverPosition !== null) {
-      vehicles.push({
-        id: 'driver',
-        longitude: driverPosition.longitude,
-        latitude: driverPosition.latitude,
-        render: () => (
-          <VehicleMarker
-            kind={ride.ride?.tier ?? 'eco'}
-            bearing={driverPosition.bearing}
-          />
-        ),
-      });
-    }
-
-    return vehicles;
-  }, [
-    location.coords,
-    location.isFallback,
+  // Composition de la carte : vehicules alentour, position, destination,
+  // chauffeur. Sortie de l'ecran pour qu'il reste lisible (R4).
+  const markers = useHomeMarkers({
+    coords: location.coords,
+    isFallbackLocation: location.isFallback,
     roadPoints,
     motions,
-    booking.choice,
-    hasAssignedDriver,
+    destination:
+      booking.choice === null
+        ? null
+        : {
+            longitude: booking.choice.place.longitude,
+            latitude: booking.choice.place.latitude,
+          },
     driverPosition,
-    ride.ride?.tier,
-  ]);
+    driverKind: ride.ride?.tier ?? 'eco',
+  });
 
   const rideStatus = ride.ride?.status ?? null;
 
@@ -278,9 +214,37 @@ export function HomeScreen() {
     setIsPaying(false);
   };
 
-  const handleConfirmPayment = () => {
+  /**
+   * Monnaie en especes, recalculee a chaque frappe : le passager voit ce que le
+   * chauffeur devra lui rendre avant meme de commander. `null` tant qu'aucune
+   * somme n'est saisie.
+   */
+  const cashOffer = useMemo(() => {
+    const bill = Number.parseInt(payment.billInput, 10);
+    if (!Number.isFinite(bill) || bill <= 0 || selectedFare === undefined) {
+      return null;
+    }
+    return computeCashOffer(selectedFare.amountXaf, bill);
+  }, [payment.billInput, selectedFare]);
+
+  /**
+   * "Suivant" : les especes ouvrent la saisie de la monnaie, les autres modes
+   * declenchent directement le debit — eux n'ont rien a annoncer au chauffeur.
+   */
+  const handleNextFromPayment = () => {
     if (selectedFare === undefined) return;
+
+    if (payment.method === 'cash') {
+      payment.openCash();
+      return;
+    }
+
     payment.confirm(selectedFare.amountXaf);
+  };
+
+  const handleConfirmCash = () => {
+    if (selectedFare === undefined) return;
+    payment.confirm(selectedFare.amountXaf, cashOffer);
   };
 
   const handleOrder = () => {
@@ -299,6 +263,9 @@ export function HomeScreen() {
       destinationLabel: choice.place.label,
       tier: fare.tier,
       amountXaf: fare.amountXaf,
+      // Le chauffeur voit la monnaie a prevoir sur la demande de course : s'il
+      // ne peut pas rendre, il refuse et la course repart vers un autre.
+      cash: payment.method === 'cash' ? cashOffer : null,
     });
   };
 
@@ -310,44 +277,6 @@ export function HomeScreen() {
     ride.cancel();
     booking.cancel();
     payment.reset();
-  };
-
-  /**
-   * Partage de course (R10) : le passager envoie a un proche le chauffeur, sa
-   * plaque et sa destination. La feuille de partage du systeme est utilisee
-   * plutot qu'un service maison — elle atteint tous les canaux deja installes
-   * sur le telephone (WhatsApp en tete, a Douala).
-   */
-  const handleShareRide = () => {
-    const current = ride.ride;
-    if (current === null || current.driver === null) return;
-
-    const message =
-      `Je suis en course VORA vers ${current.destinationLabel}. ` +
-      `Chauffeur : ${current.driver.name}, ${current.driver.vehicleModel} ` +
-      `(${current.driver.plate}).`;
-
-    Share.share({ message }).catch(() => {
-      // Feuille de partage indisponible : on le dit plutot que d'echouer en
-      // silence (R8).
-      console.warn('[ride] partage de course indisponible');
-      Alert.alert('Partage indisponible', 'Impossible d’ouvrir le partage.');
-    });
-  };
-
-  /**
-   * SOS (R10). ⚠️ SIMULE : sans backend, aucune alerte n'est reellement
-   * transmise. On l'annonce a l'utilisateur au lieu de laisser croire qu'un
-   * secours a ete prevenu (brief §23).
-   */
-  const handleSos = () => {
-    Alert.alert(
-      'Alerte d’urgence',
-      'Démonstration : aucune alerte n’est réellement transmise. En production, ' +
-        'votre position et les informations du chauffeur seraient envoyées à ' +
-        'votre contact d’urgence et à l’assistance VORA.',
-      [{ text: 'Fermer' }],
-    );
   };
 
   if (searchQuery !== null) {
@@ -447,6 +376,7 @@ export function HomeScreen() {
                 ?.amountXaf ?? 0
             }
             error={ride.error}
+            notice={ride.ride?.declineReason ?? null}
             onRetry={handleOrder}
             onCancel={handleCancelRide}
           />
@@ -455,9 +385,23 @@ export function HomeScreen() {
             ride={ride.ride}
             driver={ride.ride.driver}
             onCancel={handleCancelRide}
-            onSos={handleSos}
-            onShare={handleShareRide}
+            onSos={safety.sos}
+            onShare={safety.share}
             onDone={handleRideDone}
+          />
+        ) : isPaying && payment.step === 'cash' && booking.choice !== null ? (
+          <CashChangeSheet
+            destinationLabel={booking.choice.place.label}
+            distanceMeters={booking.distanceMeters}
+            tier={booking.selectedTier}
+            amountXaf={selectedFare?.amountXaf ?? 0}
+            billInput={payment.billInput}
+            onChangeBill={payment.setBillInput}
+            offer={cashOffer}
+            isSettled={payment.isSettled}
+            onConfirm={handleConfirmCash}
+            onContinue={handleOrder}
+            onBack={payment.back}
           />
         ) : isPaying && booking.choice !== null ? (
           <PaymentSheet
@@ -470,9 +414,9 @@ export function HomeScreen() {
             payment={payment.payment}
             isProcessing={payment.isProcessing}
             isSettled={payment.isSettled}
-            onConfirm={handleConfirmPayment}
+            onNext={handleNextFromPayment}
             onContinue={handleOrder}
-            onCancel={handleCancelPayment}
+            onBack={handleCancelPayment}
           />
         ) : booking.choice === null ? (
           <DestinationSheet

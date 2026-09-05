@@ -13,7 +13,8 @@
  * chaque panneau porte la mention "simule".
  */
 
-import type { VehicleTier } from './pricing';
+import type { CashOffer } from './payment';
+import { formatXaf, type VehicleTier } from './pricing';
 import type { RoutePoint } from './routing';
 
 /**
@@ -68,6 +69,21 @@ export type Ride = {
    * clignoter le trace.
    */
   pickup: RoutePoint;
+  /**
+   * Especes : billet annonce par le passager et monnaie a prevoir. `null` pour
+   * les autres modes de paiement.
+   *
+   * Porte par la course et non par le paiement : c'est cette information que le
+   * chauffeur voit sur la demande AVANT d'accepter, et que les deux ecrans
+   * relisent a l'arrivee.
+   */
+  cash: CashOffer | null;
+  /**
+   * Pourquoi le dernier chauffeur contacte a refuse, `null` sinon. Affiche
+   * pendant la recherche : le passager doit comprendre que l'attente se
+   * prolonge parce qu'un chauffeur n'avait pas la monnaie (R8).
+   */
+  declineReason: string | null;
 };
 
 export type CreateRideInput = {
@@ -76,6 +92,7 @@ export type CreateRideInput = {
   destinationLabel: string;
   tier: VehicleTier;
   amountXaf: number;
+  cash: CashOffer | null;
 };
 
 /** Chauffeurs de demonstration, un par categorie de vehicule. */
@@ -171,6 +188,8 @@ export async function createRide(input: CreateRideInput): Promise<Ride> {
     // reserve de la meme facon le chauffeur le plus proche avant de confirmer.
     driverOrigin: driverStartPoint(input.origin, input.destination),
     pickup: input.origin,
+    cash: input.cash,
+    declineReason: null,
   };
 }
 
@@ -220,31 +239,68 @@ export function subscribeToRideStatus(
   // comme ceux affiches sur la carte d'accueil.
   const etaMinutes = 2 + Math.floor(Math.random() * 5);
 
+  // Le premier chauffeur voit la monnaie a prevoir avant d'accepter. Trop
+  // grosse, il refuse : la course repart vers un autre chauffeur, qui l'accepte.
+  const cash = ride.cash;
+  const isRefused = lacksChange(cash);
+
   const accepted: Ride = {
     ...ride,
     status: 'accepted',
     driver: DEMO_DRIVERS[ride.tier],
     etaMinutes,
+    declineReason: null,
     // `driverOrigin` vient de la creation : le trace d'approche a ete calcule
     // dessus pendant la recherche, le changer ici le rendrait faux.
   };
 
-  at(TIMINGS.accept, () => onChange(accepted));
+  if (isRefused && cash !== null) {
+    at(TIMINGS.accept, () =>
+      onChange({
+        ...ride,
+        status: 'searching',
+        declineReason:
+          `Un chauffeur n’a pas les ${formatXaf(cash.changeXaf)} de monnaie. ` +
+          'Recherche d’un autre chauffeur…',
+      }),
+    );
+  }
 
-  at(TIMINGS.accept + TIMINGS.approach, () =>
+  // Le refus coute une recherche de plus : tout ce qui suit est decale d'autant.
+  const start = isRefused ? TIMINGS.accept * 2 : TIMINGS.accept;
+
+  at(start, () => onChange(accepted));
+
+  at(start + TIMINGS.approach, () =>
     onChange({ ...accepted, status: 'arrived', etaMinutes: 0 }),
   );
 
-  at(TIMINGS.accept + TIMINGS.approach + TIMINGS.boarding, () =>
+  at(start + TIMINGS.approach + TIMINGS.boarding, () =>
     onChange({ ...accepted, status: 'in_progress', etaMinutes: null }),
   );
 
-  at(
-    TIMINGS.accept + TIMINGS.approach + TIMINGS.boarding + TIMINGS.trip,
-    () => onChange({ ...accepted, status: 'completed', etaMinutes: null }),
+  at(start + TIMINGS.approach + TIMINGS.boarding + TIMINGS.trip, () =>
+    onChange({ ...accepted, status: 'completed', etaMinutes: null }),
   );
 
   return () => timers.forEach(clearTimeout);
+}
+
+/**
+ * Monnaie au-dela de laquelle le chauffeur simule refuse la course.
+ *
+ * 3 000 F : un chauffeur de moto en debut de journee rend sans probleme sur un
+ * billet de 2 000, rarement sur un 10 000. Le seuil rend la demonstration
+ * jouable dans les deux sens — payer avec l'appoint passe, payer un trajet de
+ * 1 250 F avec 10 000 F fait refuser le premier chauffeur.
+ *
+ * ⚠️ SIMULE : en production, c'est le chauffeur qui accepte ou refuse depuis son
+ * application, ce seuil n'existe pas.
+ */
+const CHANGE_REFUSAL_THRESHOLD = 3000;
+
+function lacksChange(cash: CashOffer | null): boolean {
+  return cash !== null && cash.changeXaf > CHANGE_REFUSAL_THRESHOLD;
 }
 
 /** Annule la course. Cote backend : `POST /rides/:id/cancel`. */

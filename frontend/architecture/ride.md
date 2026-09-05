@@ -18,11 +18,12 @@ HomeScreen (course commandée)
 | Fichier | Rôle |
 |---|---|
 | `useRideRequest.ts` | Création, abonnement au statut, annulation, erreurs (R8) |
+| `useRideSafety.ts` | Partage de course et alerte d'urgence (R10) |
 | `useApproachRoute.ts` | Itinéraire ORS du chauffeur vers le passager |
 | `useDriverApproach.ts` | Position animée du chauffeur (approche puis trajet) |
 | `useRideCamera.ts` | Cadrages de la carte pendant le suivi |
 | `components/SearchingDriverSheet.tsx` | État d'attente |
-| `components/RideTrackingSheet.tsx` | Suivi : les quatre statuts, SOS, partage |
+| `components/RideTrackingSheet.tsx` | Suivi : les quatre statuts, monnaie en espèces, SOS, partage |
 | `../../services/rides.ts` | Backend **simulé** — seul fichier à remplacer par l'API |
 
 ## Machine à états
@@ -39,18 +40,22 @@ HomeScreen (course commandée)
 
 1. « Commander » (`FareSheet`) → panneau de paiement (`features/payment`, voir
    `payment.md`). Le « Commander » du paiement appelle `ride.request()` avec
-   origine, destination, palier et montant du tarif retenu.
+   origine, destination, palier, montant du tarif retenu et, en espèces, la
+   monnaie annoncée (`cash`).
 2. `createRide` répond après 500 ms avec une course au statut `searching` —
    l'état d'attente s'affiche.
-3. `subscribeToRideStatus` programme toute la suite : acceptation à **3,5 s**,
+3. Espèces avec plus de **3 000 F** de monnaie à rendre : le premier chauffeur
+   refuse (il n'a pas la monnaie), la recherche repart pour 3,5 s avec le motif
+   affiché, un second chauffeur accepte. Simulation — voir `payment.md`.
+4. `subscribeToRideStatus` programme toute la suite : acceptation à **3,5 s**,
    arrivée au départ après **20 s** d'approche, démarrage après **2,5 s**
    d'embarquement, fin après **25 s** de trajet.
-4. `useApproachRoute` calcule **un vrai itinéraire** (ORS) entre le chauffeur et
+5. `useApproachRoute` calcule **un vrai itinéraire** (ORS) entre le chauffeur et
    le point de prise en charge, tracé en pointillés sur la carte.
-5. `useDriverApproach` anime le marqueur à 120 ms le long de ce tracé, puis le
+6. `useDriverApproach` anime le marqueur à 120 ms le long de ce tracé, puis le
    long de l'itinéraire de la course. Le cap vient du **segment courant** : le
    véhicule reste parallèle à la chaussée dans chaque virage.
-6. « Annuler » (possible jusqu'à la montée à bord) coupe tous les timers et
+7. « Annuler » (possible jusqu'à la montée à bord) coupe tous les timers et
    revient à l'estimation, **itinéraire conservé** : le calcul de route n'est
    pas refait.
 
