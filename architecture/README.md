@@ -37,7 +37,7 @@ frontend/              application mobile passager (Expo, initialisé)
       home/            écran d'accueil — FAIT
       search/          recherche de destination — FAIT
       booking/         estimation, confirmation — FAIT
-      payment/         mode de paiement (espèces, portefeuille, MoMo) — FAIT, simulé
+      payment/         paiement (espèces + monnaie, portefeuille, MoMo) — FAIT, simulé
       ride/            course : chauffeur, suivi jusqu'à la fin — FAIT
     services/          géocodage (MapTiler), routage (ORS), tarifs, paiement simulé
     contexts/          (vide) Auth, Ride, Location
@@ -71,7 +71,7 @@ feature.
 | [`frontend/architecture/search.md`](../frontend/architecture/search.md) | Recherche de destination |
 | [`frontend/architecture/booking.md`](../frontend/architecture/booking.md) | Itinéraire et estimation de prix |
 | [`frontend/architecture/ride.md`](../frontend/architecture/ride.md) | Course : commande, chauffeur, suivi jusqu'à la fin |
-| [`frontend/architecture/payment.md`](../frontend/architecture/payment.md) | Paiement : espèces, portefeuille, Mobile Money (simulé) |
+| [`frontend/architecture/payment.md`](../frontend/architecture/payment.md) | Paiement : espèces et monnaie annoncée, portefeuille, Mobile Money (simulé) |
 
 ## 5. Flux principal (brief §13)
 
