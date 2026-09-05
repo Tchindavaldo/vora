@@ -25,7 +25,7 @@ HomeScreen (course commandée)
 | `useRideCamera.ts` | Cadrages de la carte pendant le suivi |
 | `useRideRating.ts` | Note, commentaire et envoi de l'évaluation (R8, R12) |
 | `components/SearchingDriverSheet.tsx` | État d'attente |
-| `components/RideTrackingSheet.tsx` | Suivi : les quatre statuts, monnaie en espèces, SOS, partage, signalement |
+| `components/RideTrackingSheet.tsx` | Suivi : les quatre statuts, mode de paiement, monnaie en espèces, SOS, partage, signalement |
 | `components/EmergencySheet.tsx` | Panneau d'urgence (R10) — voir [`safety.md`](safety.md) |
 | `components/ReportSheet.tsx` | Signalement du chauffeur (R10) — voir [`safety.md`](safety.md) |
 | `components/RatingSheet.tsx` | Évaluation, temps 1 : étoiles + Suivant (copie dédiée, R16) |

@@ -68,7 +68,7 @@ export const radius = {
  * meme surface visible d'un ecran a l'autre. Sans cela, chaque panneau
  * redimensionnerait la carte en apparaissant, et le trace sauterait.
  */
-export const SHEET_HEIGHT = 310;
+export const SHEET_HEIGHT = 330;
 
 export const typography = {
   title: { fontSize: 22, fontWeight: '700' as const, color: colors.text },
