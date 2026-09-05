@@ -6,8 +6,8 @@
 
 ## 1. État du projet
 
-**Phase actuelle** : frontend initialisé, écran d'accueil passager fonctionnel.
-Backend non démarré.
+**Phase actuelle** : frontend initialisé, accueil passager et recherche de
+destination fonctionnels (R17 étapes 2 et 3). Backend non démarré.
 
 | Couche | Choix | Justification |
 |---|---|---|
@@ -17,6 +17,7 @@ Backend non démarré.
 | Backend / API | _à définir_ | |
 | Base de données | _à définir_ | |
 | Cartographie | MapLibre GL Native + tuiles MapTiler | Open source, styles personnalisables, gratuit sans carte bancaire |
+| Géocodage | MapTiler Geocoding | La clé des tuiles couvre déjà l'usage — aucun service de plus à configurer |
 | Temps réel | _à définir_ | |
 | IA / innovation | _à définir_ | |
 
@@ -32,8 +33,9 @@ frontend/              application mobile passager (Expo, initialisé)
     features/
       map/             encapsulation MapLibre (R11)
       home/            écran d'accueil — FAIT
+      search/          recherche de destination — FAIT
       booking/         (vide) estimation, confirmation
-    services/          (vide) API, routage, géocodage
+    services/          géocodage (MapTiler) ; routage et API à venir
     contexts/          (vide) Auth, Ride, Location
   architecture/        doc du frontend
 backend/               (non initialisé)
@@ -62,6 +64,7 @@ feature.
 | Doc | Feature |
 |---|---|
 | [`frontend/architecture/home.md`](../frontend/architecture/home.md) | Écran d'accueil passager |
+| [`frontend/architecture/search.md`](../frontend/architecture/search.md) | Recherche de destination |
 
 ## 5. Flux principal (brief §13)
 

@@ -106,12 +106,18 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.textFaint,
   },
+  // Grille et non simple rangee : au-dela de trois raccourcis, les tuiles
+  // passent a la ligne au lieu de s'ecraser en largeur.
   shortcutRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: spacing.md,
   },
   shortcut: {
-    flex: 1,
+    // Trois par ligne : une base sous le tiers de la largeur force le retour a
+    // la ligne au quatrieme, `flexGrow` rattrape l'espace restant.
+    flexBasis: '30%',
+    flexGrow: 1,
     alignItems: 'center',
     gap: spacing.sm,
     backgroundColor: colors.surfaceAlt,

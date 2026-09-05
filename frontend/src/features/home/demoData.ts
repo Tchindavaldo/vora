@@ -40,6 +40,11 @@ export const SHORTCUTS: Shortcut[] = [
   { id: 'home', label: 'Maison', icon: 'home' },
   { id: 'work', label: 'Travail', icon: 'briefcase' },
   { id: 'airport', label: 'Aéroport', icon: 'airplane' },
+  // Seconde rangee. Destinations du quotidien a Douala, au meme titre que le
+  // domicile ou le travail.
+  { id: 'market', label: 'Marché', icon: 'cart' },
+  { id: 'hospital', label: 'Hôpital', icon: 'medkit' },
+  { id: 'school', label: 'École', icon: 'school' },
 ];
 
 /** Quartier affiche dans le badge. Viendra du reverse-geocoding. */
