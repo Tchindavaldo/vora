@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
@@ -7,7 +7,11 @@ import { MapCanvas, type MapMarker } from '../map/MapCanvas';
 import { colors, radius, shadows, spacing } from '../../theme';
 import { DEFAULT_REGION } from '../../config/env';
 
-import { fetchRoadPoints, type RoadPoint } from '../../services/roads';
+import type { RoadPoint } from '../../services/roads';
+import {
+  fetchRoadPointsFromMap,
+  type RoadQueryTarget,
+} from '../../services/roadsFromMap';
 import { useUserLocation } from './useUserLocation';
 import { useVehicleMotion } from './useVehicleMotion';
 import { HomeHeader } from './components/HomeHeader';
@@ -42,27 +46,42 @@ export function HomeScreen() {
   // apparaissent a leur place definitive et n'en bougent plus.
   const [roadPoints, setRoadPoints] = useState<RoadPoint[] | null>(null);
 
+  // Meme information que `roadPoints`, lisible sans attendre un nouveau rendu :
+  // la carte peut signaler deux fins de rendu avant que l'etat ne soit a jour.
+  const roadPointsRef = useRef<RoadPoint[] | null>(null);
+
   // On depend des COORDONNEES, pas de l'objet `location.coords` : celui-ci est
   // recree a chaque rendu, et la carte en declenche beaucoup (le suivi du cap
-  // de camera en produit un par image pendant une rotation). Dependre de
-  // l'objet relancerait la requete en boucle, chaque relance annulant la
-  // precedente — Overpass n'aboutirait jamais.
+  // en produit un par image pendant une rotation).
   const { longitude, latitude } = location.coords;
 
-  useEffect(() => {
-    if (location.status === 'loading') return;
+  /**
+   * Les routes viennent de la carte elle-meme, une fois ses tuiles dessinees.
+   *
+   * On n'interroge PAS de service exterieur (Overpass) : il est injoignable
+   * depuis certains reseaux, et la carte a de toute facon deja telecharge la
+   * geometrie des routes pour les afficher. Les vehicules tombent ainsi
+   * exactement sur le trace visible, et non a cote.
+   *
+   * `useCallback` car la valeur est passee en prop a la carte : sans elle, une
+   * nouvelle fonction a chaque rendu.
+   */
+  const handleRoadsAvailable = useCallback(
+    (map: RoadQueryTarget) => {
+      // Une seule fois : la carte signale chaque fin de rendu, et refaire le
+      // placement a chaque geste ferait sauter les vehicules d'une rue a
+      // l'autre sous les yeux de l'utilisateur.
+      if (roadPointsRef.current) return;
 
-    let cancelled = false;
-    fetchRoadPoints({ longitude, latitude }, NEARBY_VEHICLES.length).then(
-      (points) => {
-        if (!cancelled) setRoadPoints(points);
-      },
-    );
-
-    return () => {
-      cancelled = true;
-    };
-  }, [location.status, longitude, latitude]);
+      fetchRoadPointsFromMap(map, { longitude, latitude }, NEARBY_VEHICLES.length)
+        .then((points) => {
+          if (points.length === 0) return;
+          roadPointsRef.current = points;
+          setRoadPoints(points);
+        });
+    },
+    [longitude, latitude],
+  );
 
   // Les vehicules roulent le long de leur rue. Tant que les positions ne sont
   // pas connues, le hook ne renvoie rien et la carte reste sans vehicule.
@@ -109,6 +128,12 @@ export function HomeScreen() {
     return vehicles;
   }, [location.coords, location.isFallback, roadPoints, motions]);
 
+  // Incremente a chaque appui sur "recentrer" : voir `recenterToken` dans
+  // MapCanvas.
+  const [recenterToken, setRecenterToken] = useState(0);
+
+  const handleRecenter = () => setRecenterToken((token) => token + 1);
+
   const handleSearchPress = () => {
     // TODO: naviguer vers l'ecran de recherche de destination.
   };
@@ -125,6 +150,8 @@ export function HomeScreen() {
         center={location.coords}
         zoom={DEFAULT_REGION.zoom}
         markers={markers}
+        onRoadsAvailable={handleRoadsAvailable}
+        recenterToken={recenterToken}
       />
 
       <HomeHeader
@@ -143,6 +170,7 @@ export function HomeScreen() {
         <View style={styles.recenterRow} pointerEvents="box-none">
           <Pressable
             style={styles.recenterButton}
+            onPress={handleRecenter}
             accessibilityRole="button"
             accessibilityLabel="Recentrer sur ma position"
           >

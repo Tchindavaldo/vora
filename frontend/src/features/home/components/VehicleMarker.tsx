@@ -58,10 +58,9 @@ export function VehicleMarker({ kind, bearing = 0 }: Props) {
   const size = VEHICLE_SIZES[kind];
 
   // Le contenu d'un marqueur est pose a plat sur l'ecran : il ne tourne pas
-  // avec la carte. Pour rester aligne sur sa rue quand l'utilisateur fait
+  // avec la carte. Pour rester parallele a sa rue quand l'utilisateur fait
   // pivoter la vue, le vehicule doit compenser le cap de la camera.
   const cameraBearing = useMapBearing();
-  const screenRotation = bearing - cameraBearing;
 
   return (
     <View
@@ -70,7 +69,7 @@ export function VehicleMarker({ kind, bearing = 0 }: Props) {
         {
           width: size,
           height: size,
-          transform: [{ rotate: `${screenRotation}deg` }],
+          transform: [{ rotate: `${bearing - cameraBearing}deg` }],
         },
       ]}
     >

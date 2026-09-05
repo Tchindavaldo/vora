@@ -21,6 +21,7 @@ HomeScreen
 |---|---|
 | `HomeScreen.tsx` | Assemble la carte et les surcouches, construit les marqueurs |
 | `useUserLocation.ts` | Permission + position, avec repli sur Douala |
+| `useVehicleMotion.ts` | Fait avancer chaque véhicule le long du tracé de sa rue |
 | `demoData.ts` | Véhicules simulés, raccourcis, quartier — **temporaire** |
 | `components/HomeHeader.tsx` | Barre supérieure flottante |
 | `components/DestinationSheet.tsx` | Bottom sheet de saisie de destination |
@@ -34,9 +35,18 @@ HomeScreen
 2. Accordée et position obtenue → carte centrée dessus, point utilisateur affiché.
 3. Refusée ou position introuvable → carte centrée sur Douala, `LocationNotice`
    visible, point utilisateur **masqué**.
-4. Les véhicules de démo sont positionnés relativement au centre courant, donc
-   toujours visibles quelle que soit la ville.
-5. Appui sur le champ de recherche ou un raccourci → handlers vides pour
+4. Une fois les tuiles dessinées, la carte se laisse interroger : les routes
+   voisines sont lues dans les tuiles (`services/roadsFromMap.ts`) et chaque
+   véhicule de démo est posé sur l'une d'elles, orienté dans son axe. Une seule
+   fois — refaire le placement à chaque geste ferait sauter les véhicules d'une
+   rue à l'autre. Tant que ces positions ne sont pas connues, **aucun véhicule
+   n'est affiché** : les montrer ailleurs puis les déplacer produirait un saut
+   visible.
+5. `useVehicleMotion` les fait ensuite rouler le long de leur tracé.
+6. Le bouton recentrer incrémente un `recenterToken` passé à `MapCanvas`, ce
+   qui ramène la caméra sur la position courante — pas de `ref` impérative
+   exposée à l'écran (R11).
+7. Appui sur le champ de recherche ou un raccourci → handlers vides pour
    l'instant (`TODO` dans `HomeScreen.tsx`), en attente de l'écran de recherche.
 
 ## Ancrage local (brief §11)
@@ -63,7 +73,6 @@ jury (brief §23).
 
 ## Reste à faire
 
-- Brancher le bouton recentrer (nécessite une `ref` sur la `Camera` MapLibre)
 - Navigation vers l'écran de recherche de destination
 - Skeleton de chargement sur le sheet pendant la résolution de la position
 - Bandeau hors-ligne (distinct du bandeau géoloc)

@@ -57,11 +57,14 @@ src/
     home/                  écran d'accueil passager
       HomeScreen.tsx       assemblage carte + header + sheet
       useUserLocation.ts   position utilisateur avec repli (R8)
+      useVehicleMotion.ts  déplacement des véhicules le long de leur rue
       demoData.ts          données simulées — À REMPLACER par l'API
       components/          HomeHeader, DestinationSheet, VehicleMarker,
                            UserLocationDot, LocationNotice
     booking/               (vide) estimation et confirmation de course
-  services/                (vide) appels API, routage, géocodage
+  services/
+    roadsFromMap.ts        routes lues dans les tuiles déjà affichées — utilisé
+    roads.ts               mêmes types + variante Overpass — non utilisée
   contexts/                (vide) AuthContext, RideContext, LocationContext
   components/              (vide) composants transverses
 ```
@@ -89,10 +92,21 @@ vient de trois couches empilées (ombre, carrosserie, vitrage) ; les feux
 arrière rouges donnent le sens de marche d'un coup d'œil.
 
 **Chaque véhicule porte un cap et pivote.** En production il viendra du GPS du
-chauffeur. Les véhicules ne sont pas contraints de suivre le tracé des rues :
-cela demanderait la géométrie du réseau routier et du map-matching, hors de
-portée sur 48 h et sans valeur pour le jury — les positions réelles seront
-naturellement sur les routes.
+chauffeur.
+
+**Les véhicules roulent sur de vraies rues.** Leur géométrie n'est pas demandée
+à un service tiers (Overpass, injoignable depuis certains réseaux) mais lue
+dans les tuiles que la carte a déjà téléchargées pour les dessiner
+(`services/roadsFromMap.ts`) : aucune requête ni clé supplémentaire, et les
+positions viennent de la même source que le tracé visible — donc exactement
+dessus. `useVehicleMotion` les fait ensuite avancer le long de ce tracé, ce
+qu'une simple translation ne permettrait pas (le véhicule quitterait la
+chaussée au premier virage). `services/roads.ts` garde les types partagés et
+la variante Overpass, conservée comme repli documenté mais non branchée.
+
+**Trois catégories de véhicules** : `moto`, `eco`, `comfort` — les mêmes
+paliers que l'estimation de prix à venir, pour que la carte annonce dès
+l'accueil ce que l'app propose.
 
 **Le point utilisateur n'est affiché que si la position est réelle.** Un point
 « vous êtes ici » sur une ville par défaut serait un mensonge.

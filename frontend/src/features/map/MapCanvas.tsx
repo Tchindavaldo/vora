@@ -1,6 +1,14 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { Camera, Map, Marker } from '@maplibre/maplibre-react-native';
+import {
+  Camera,
+  LogManager,
+  Map,
+  Marker,
+  type MapRef,
+} from '@maplibre/maplibre-react-native';
+
+import type { RoadQueryTarget } from '../../services/roadsFromMap';
 
 import { colors, spacing, typography } from '../../theme';
 import { env, DEFAULT_REGION } from '../../config/env';
@@ -18,6 +26,17 @@ import { useMapStyle } from './useMapStyle';
  * poser : MapLibre est libre, contrairement a Mapbox.
  */
 
+/**
+ * Seules les erreurs remontent des couches natives de MapLibre.
+ *
+ * Le style MapTiler declenche a chaque chargement une dizaine de
+ * "ParseStyle: layer doesn't support this property" et un
+ * "source must have tiles" (sa source d'attribution ne porte pas de tuiles).
+ * Ces avertissements viennent du style amont, pas de notre code, et ne
+ * changent rien au rendu : ils ne font que noyer les logs utiles.
+ */
+LogManager.setLogLevel('error');
+
 export type MapMarker = {
   id: string;
   longitude: number;
@@ -29,11 +48,9 @@ export type MapMarker = {
  * Cap de la camera, en degres (0 = le nord est en haut de l'ecran).
  *
  * Le contenu d'un `Marker` est pose a plat sur l'ecran : il ne tourne PAS avec
- * la carte. Un marqueur oriente selon un cap geographique (un vehicule aligne
- * sur sa rue) se desaligne donc des que l'utilisateur fait pivoter la carte.
- *
- * On publie le cap courant pour que ces marqueurs puissent le compenser. Voir
- * `useMapBearing`.
+ * la carte. Un vehicule aligne sur un cap geographique se retrouve donc de
+ * travers des que l'utilisateur fait pivoter la vue. On publie le cap courant
+ * pour qu'il puisse le compenser.
  */
 const MapBearingContext = createContext(0);
 
@@ -41,7 +58,7 @@ const MapBearingContext = createContext(0);
  * Cap courant de la camera.
  *
  * Un marqueur oriente geographiquement doit tourner de
- * `capGeographique - capCamera` pour rester aligne sur le terrain.
+ * `capGeographique - capCamera` pour rester parallele a sa rue.
  */
 export function useMapBearing(): number {
   return useContext(MapBearingContext);
@@ -57,6 +74,24 @@ type Props = {
    * perspective. Voir DEFAULT_PITCH.
    */
   pitch?: number;
+  /**
+   * Appele quand les tuiles sont dessinees et que la carte peut renseigner sur
+   * ce qu'elle affiche — les routes, notamment.
+   *
+   * L'objet transmis n'expose que l'interrogation des routes : les ecrans ne
+   * manipulent jamais l'API MapLibre elle-meme (R11).
+   */
+  onRoadsAvailable?: (map: RoadQueryTarget) => void;
+  /**
+   * Compteur de recentrage : chaque increment ramene la camera sur `center`.
+   *
+   * La `Camera` MapLibre est declarative — elle ne bouge que si une de ses
+   * props change. Apres un deplacement au doigt, le centre demande est
+   * inchange : repasser la meme valeur ne provoquerait rien. On fait donc
+   * varier une prop dont c'est le seul role, plutot que d'exposer aux ecrans
+   * une ref imperative sur la camera (R11).
+   */
+  recenterToken?: number;
 };
 
 /**
@@ -76,20 +111,23 @@ export function MapCanvas({
   zoom,
   markers,
   pitch = DEFAULT_PITCH,
+  onRoadsAvailable,
+  recenterToken = 0,
 }: Props) {
   const mapStyle = useMapStyle();
+  const mapRef = useRef<MapRef>(null);
 
-  // Cap courant de la camera, tenu a jour pendant que l'utilisateur fait
-  // pivoter la carte, pour que les marqueurs orientes restent alignes.
+  // Cap courant de la camera, pour que les marqueurs orientes restent alignes
+  // sur leur rue pendant que l'utilisateur fait pivoter la carte.
   const [bearing, setBearing] = useState(0);
 
   /**
    * N'enregistre le cap que s'il a change de facon perceptible.
    *
    * La carte emet un evenement par image pendant un geste. Repercuter chacun
-   * d'eux re-rendrait tout l'ecran a la meme cadence, ce qui a deja suffi a
-   * empecher les requetes reseau d'aboutir. Un degre est en-deca de ce qui se
-   * voit sur une icone de 38 px.
+   * d'eux re-rendrait tout l'ecran a la meme cadence — assez pour empecher les
+   * effets asynchrones d'aboutir. Un degre est en-deca de ce qui se voit sur
+   * une icone de 38 px.
    */
   const trackBearing = (next: number) => {
     setBearing((current) => (Math.abs(next - current) < 1 ? current : next));
@@ -109,6 +147,7 @@ export function MapCanvas({
 
   return (
     <Map
+      ref={mapRef}
       style={StyleSheet.absoluteFill}
       mapStyle={mapStyle.style}
       logo={false}
@@ -118,13 +157,27 @@ export function MapCanvas({
       // on verrouille le geste a deux doigts qui la modifie. Deplacement, zoom
       // et rotation restent libres.
       touchPitch={false}
-      // Pendant le geste de rotation, et non seulement a la fin : sans mise a
-      // jour continue, les vehicules resteraient de travers tant que le doigt
-      // n'a pas quitte l'ecran.
+      // Pendant le geste de rotation, et non seulement a la fin : sinon les
+      // vehicules resteraient de travers tant que le doigt est sur l'ecran.
       onRegionIsChanging={(event) => trackBearing(event.nativeEvent.bearing)}
       onRegionDidChange={(event) => trackBearing(event.nativeEvent.bearing)}
+      // "Fully" et non "onDidFinishRenderingMap" : c'est le seul moment ou les
+      // tuiles sont reellement dessinees et ou les routes peuvent etre
+      // interrogees. Plus tot, la carte repondrait une liste vide.
+      onDidFinishRenderingMapFully={() => {
+        const map = mapRef.current;
+        if (map && onRoadsAvailable) {
+          onRoadsAvailable({
+            queryRenderedFeatures: (options) =>
+              map.queryRenderedFeatures(options),
+          });
+        }
+      }}
     >
       <Camera
+        // Remonter la camera est ce qui la fait reappliquer son centre : c'est
+        // le seul levier declaratif disponible quand seule la vue a bouge.
+        key={recenterToken}
         center={[center.longitude, center.latitude]}
         zoom={zoom}
         pitch={pitch}
