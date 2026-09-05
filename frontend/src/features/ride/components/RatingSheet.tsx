@@ -78,7 +78,7 @@ export function RatingSheet({
 
           <Pressable
             onPress={onClose}
-            style={styles.submit}
+            style={[styles.submit, styles.thanksButton]}
             accessibilityRole="button"
             accessibilityLabel="Revenir à l’accueil"
           >
@@ -266,6 +266,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: spacing.sm,
     paddingHorizontal: spacing.xl,
+  },
+  // Le conteneur du remerciement centre ses enfants : sans largeur explicite,
+  // le bouton se reduirait a la taille de son texte.
+  thanksButton: {
+    alignSelf: 'stretch',
   },
   thanksTitle: typography.subtitle,
   thanksText: {
