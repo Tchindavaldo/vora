@@ -36,6 +36,26 @@ const ROAD_LAYER_IDS = [
   'Minor road bridge',
 ];
 
+/**
+ * Distance minimale entre l'utilisateur et un vehicule, en degres.
+ *
+ * ~0.0007 degre vaut environ 75 m. En-deca, au zoom d'accueil, l'icone du
+ * vehicule (38 px) recouvre le point de position : les deux marqueurs se
+ * chevauchent et on ne lit plus ni l'un ni l'autre.
+ *
+ * Une rue peut evidemment passer devant chez l'utilisateur — mais y poser un
+ * vehicule de demonstration nuit a la lecture de la carte sans rien apporter.
+ */
+const MIN_DISTANCE = 0.0007;
+
+/**
+ * Ecart minimal entre deux vehicules, en degres (~55 m).
+ *
+ * Un peu moins que la distance a l'utilisateur : deux vehicules cote a cote
+ * restent lisibles, alors qu'un vehicule sur le point de position le masque.
+ */
+const MIN_SPACING = 0.0005;
+
 /** Ce qu'on attend de la carte : de quoi interroger les routes visibles. */
 export type RoadQueryTarget = {
   queryRenderedFeatures: (
@@ -148,14 +168,23 @@ export async function fetchRoadPointsFromMap(
     };
   });
 
-  // On ecarte les routes tres eloignees : une rue visible au bord de l'ecran
-  // donnerait un vehicule "proche" a l'autre bout du quartier.
+  // On ecarte les routes trop proches ET les trop eloignees : sous la position
+  // de l'utilisateur, un vehicule chevauche son point bleu et devient
+  // illisible ; a l'autre bout de l'ecran, il n'a rien d'un vehicule "a
+  // proximite".
   const sorted = candidates
-    .filter((candidate) => candidate.distance > 0)
+    .filter((candidate) => candidate.distance >= MIN_DISTANCE)
     .sort((left, right) => left.distance - right.distance)
     .slice(0, Math.max(count * 12, 40));
 
-  const remaining = sorted.length > 0 ? sorted : candidates;
+  // Si le filtre ne laisse rien (utilisateur au milieu d'une zone sans rue
+  // proche), on reprend les candidats en n'ecartant que ceux qui tombent
+  // exactement sur la position : mieux vaut un vehicule un peu loin qu'un
+  // vehicule colle au point bleu.
+  const remaining =
+    sorted.length > 0
+      ? sorted
+      : candidates.filter((candidate) => candidate.distance > 0);
   const points: RoadPoint[] = [];
 
   // Un secteur angulaire par vehicule, et dans chaque secteur la route la
@@ -178,6 +207,15 @@ export async function fetchRoadPointsFromMap(
     });
 
     const [chosen] = remaining.splice(bestAt, 1);
+
+    // Deux routes differentes peuvent se croiser ou se longer : retirer
+    // seulement celle qu'on vient de prendre laisserait deux vehicules
+    // se chevaucher. On ecarte tout ce qui est trop pres du point retenu.
+    for (let at = remaining.length - 1; at >= 0; at -= 1) {
+      if (distanceBetween(chosen, remaining[at]) < MIN_SPACING) {
+        remaining.splice(at, 1);
+      }
+    }
     points.push({
       longitude: chosen.longitude,
       latitude: chosen.latitude,
