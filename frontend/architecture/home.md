@@ -20,6 +20,7 @@ HomeScreen
 | Fichier | Rôle |
 |---|---|
 | `HomeScreen.tsx` | Assemble la carte, les surcouches et l'enchaînement des panneaux |
+| `useRideOrder.ts` | Enchaînement estimation → paiement → commande, sorti de l'écran (R4) |
 | `useHomeMarkers.tsx` | Marqueurs de la carte : véhicules, position, destination, chauffeur |
 | `useUserLocation.ts` | Permission + position, avec repli sur Douala |
 | `useVehicleMotion.ts` | Fait avancer chaque véhicule le long du tracé de sa rue |

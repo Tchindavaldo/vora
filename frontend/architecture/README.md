@@ -67,6 +67,8 @@ src/
       RouteLayers.tsx      tracés : course (plein) et approche (pointillés)
     home/                  écran d'accueil passager
       HomeScreen.tsx       assemblage carte + header + sheet
+      useRideOrder.ts      estimation → paiement → commande, sorti de l'écran (R4)
+      useHomeMarkers.tsx   marqueurs : véhicules, position, destination, chauffeur
       useUserLocation.ts   position utilisateur avec repli (R8)
       useVehicleMotion.ts  déplacement des véhicules le long de leur rue
       demoData.ts          données simulées — À REMPLACER par l'API
@@ -82,19 +84,23 @@ src/
       components/          FareSheet, DestinationPin
     payment/               mode de paiement + monnaie en espèces (brief §8, simulé)
       usePayment.ts        mode retenu, verdict, annulation des timers (R8)
-      components/          PaymentSheet
+      components/          PaymentSheet, CashChangeSheet
     ride/                  course : commande, chauffeur, suivi (R17 étapes 6-8)
       useRideRequest.ts    création, statuts, annulation (R8)
       useApproachRoute.ts  itinéraire du chauffeur vers le passager
       useDriverApproach.ts position animée du chauffeur sur la carte
       useRideCamera.ts     cadrages de la carte pendant le suivi
-      components/          SearchingDriverSheet, RideTrackingSheet
+      useRideSafety.ts     partage de course et alerte d'urgence (R10)
+      useRideRating.ts     note, commentaire, envoi de l'évaluation (R8)
+      components/          SearchingDriverSheet, RideTrackingSheet,
+                           RatingSheet, RatingCommentScreen
   services/
     geocoding.ts           MapTiler Geocoding — seul fichier qui le connaît
     routing.ts             OpenRouteService — idem pour l'itinéraire
     rides.ts               courses — backend SIMULÉ, à remplacer par l'API
     pricing.ts             grille tarifaire, service pur (R16)
     payment.ts             verdicts de paiement SIMULÉS, à remplacer par l'API
+    ratings.ts             envoi de l'évaluation SIMULÉ, à remplacer par l'API
     roadsFromMap.ts        routes lues dans les tuiles déjà affichées — utilisé
     roads.ts               mêmes types + variante Overpass — non utilisée
   contexts/                (vide) AuthContext, RideContext, LocationContext
