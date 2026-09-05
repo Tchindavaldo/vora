@@ -40,11 +40,14 @@ type Props = {
 /**
  * Inclinaison par defaut de la camera.
  *
- * Une carte inclinee donne de la profondeur et rapproche l'app des references
- * du secteur. On reste a 50 : au-dela, l'horizon entre dans le cadre et les
- * marqueurs lointains deviennent minuscules.
+ * 25 degres et non 50 : les batiments en volume ayant ete retires du style, une
+ * forte inclinaison n'aurait rien a mettre en relief — elle ne ferait qu'etirer
+ * les rues vers l'horizon et rapetisser les marqueurs eloignes. Un leger angle
+ * suffit a donner de la profondeur sans deformer le plan.
+ *
+ * Mettre 0 pour une vue strictement verticale.
  */
-export const DEFAULT_PITCH = 50;
+export const DEFAULT_PITCH = 25;
 
 export function MapCanvas({
   center,

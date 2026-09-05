@@ -33,17 +33,20 @@ const HIDDEN_LAYER_IDS = [
   'Highway shields bicolor',
   'Highway shields bicolor top',
   'Roller coaster labels',
+  // Batiments en volume : ils n'apparaissent qu'au-dela du zoom 15, ce qui
+  // faisait changer la nature de la carte selon l'echelle — relief en zoomant,
+  // plan a plat en reculant. On garde un rendu constant.
+  'Building 3D',
 ];
 
 /**
  * Facteur applique a la taille des textes.
  *
- * Les POI etant masques, il ne reste que les noms de rues et de quartiers : ils
- * doivent rester lisibles, on les laisse a leur taille d'origine. Baisser ce
- * facteur les rendait illisibles sans rien degager, puisqu'ils n'ont plus rien
- * a concurrencer.
+ * Le style est calibre pour une carte plein ecran que l'on consulte ; ici elle
+ * sert de fond a des marqueurs. Des noms de rues plus discrets laissent les
+ * vehicules au premier plan sans cesser d'etre lisibles.
  */
-const TEXT_SCALE = 1;
+const TEXT_SCALE = 0.78;
 
 /**
  * Multiplie une valeur de taille MapLibre, qu'elle soit un nombre, une
@@ -127,8 +130,6 @@ export function useMapStyle(): State {
           })
           .map((layer) => {
             if (layer.type !== 'symbol' || !layer.layout) return layer;
-
-            if (TEXT_SCALE === 1) return layer;
 
             const layout = layer.layout as Record<string, unknown>;
             return {
