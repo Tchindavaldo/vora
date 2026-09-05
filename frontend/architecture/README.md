@@ -59,7 +59,8 @@ un development build (voir « Lancer le projet » plus bas).
 ```text
 src/
   config/env.ts            lecture des variables d'environnement (R9)
-  theme/index.ts           design system : couleurs, espacements, ombres
+  theme/index.ts           design system : couleurs, espacements, ombres,
+                           SHEET_HEIGHT (hauteur commune des bottom sheets)
   features/
     map/MapCanvas.tsx      encapsulation MapLibre (R11) — seul fichier qui l'importe
     home/                  écran d'accueil passager

@@ -39,6 +39,20 @@ HomeScreen (course en préparation)
 5. « Commander » reste un `TODO` (étapes 6-7 : création de la course, recherche
    d'un chauffeur).
 
+## Bottom sheets : hauteur commune
+
+Tous les sheets partagent `SHEET_HEIGHT` (`src/theme/index.ts`), calée sur le
+sheet d'accueil. La marge basse du système **s'ajoute** à cette hauteur au lieu
+d'être prise dessus : la barre de navigation du téléphone garde son espace, et
+le contenu défile dans la zone restante plutôt que de déborder.
+
+La carte reste plein écran et passe sous le panneau, mais sa caméra reçoit un
+`bottomPadding` égal à la hauteur du sheet : le centre optique remonte au milieu
+de la zone visible, sinon la position de l'utilisateur apparaît à moitié cachée.
+
+Pendant le calcul, le panneau n'affiche que le loader et son label, centrés :
+la destination et la croix n'ont rien à dire tant que le trajet est inconnu.
+
 ## Choix du fournisseur (brief §4.2)
 
 **OpenRouteService**, appelé sur `api.heigit.org/openrouteservice/v2/` —
