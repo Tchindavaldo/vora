@@ -14,6 +14,8 @@ type Props = {
   onOpenEmergencyContacts: () => void;
   onOpenHistory: () => void;
   onClose: () => void;
+  /** Bascule vers l'écran chauffeur, pour la démonstration (R17 étape 9). */
+  onSwitchToDriver: () => void;
 };
 
 /**
@@ -34,6 +36,7 @@ export function ProfileScreen({
   onOpenEmergencyContacts,
   onOpenHistory,
   onClose,
+  onSwitchToDriver,
 }: Props) {
   const insets = useSafeAreaInsets();
   const { items } = useEmergencyContacts();
@@ -134,6 +137,15 @@ export function ProfileScreen({
           label="Confidentialité"
           hint="Bientôt : données partagées et suppression du compte"
           disabled
+        />
+
+        <Text style={styles.section}>Démonstration</Text>
+
+        <Row
+          icon="swap-horizontal-outline"
+          label="Changer de compte"
+          hint="Basculer sur le mode chauffeur"
+          onPress={onSwitchToDriver}
         />
 
         <Text style={styles.notice}>

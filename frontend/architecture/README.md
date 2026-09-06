@@ -98,6 +98,16 @@ src/
       components/          SearchingDriverSheet, RideTrackingSheet,
                            RatingSheet, RatingCommentScreen,
                            EmergencySheet, ReportSheet
+    driver/                mode chauffeur (R17 étape 9, simulé)
+      useDriverSession.ts  statut en ligne, écran affiché, étape de la course
+      driverRequests.ts    demandes de démonstration + monnaie à rendre
+      useDriverTripGeometry.ts  position, points, tracés et véhicule animé
+      useDriverTripRoutes.ts    les deux itinéraires ORS de la course
+      useDriverVehicleMotion.ts position animée du véhicule du chauffeur
+      DriverMapCanvas.tsx  carte partagée dashboard/course (copie, R16)
+      DriverVehicleMarker.tsx, DriverRouteLine.tsx, DriverMapControls.tsx
+      DriverDashboardScreen, DriverTripScreen/Sheet, DriverStatusSheet,
+      IncomingRequestOverlay, DriverProfileScreen
     profile/               profil, paramètres et contacts d'urgence (R10)
       ProfileScreen.tsx    sections sécurité / courses / compte
       EmergencyContactsScreen.tsx  ajout et suppression des contacts
@@ -132,6 +142,7 @@ src/
 | `payment.md` | `src/features/payment/` — mode de paiement et monnaie en espèces |
 | `history.md` | `src/features/history/` — historique des courses et de leurs reçus |
 | `safety.md` | `src/features/ride/` + `src/features/profile/` — SOS, partage, signalement, contacts d'urgence |
+| `driver.md` | `src/features/driver/` — mode chauffeur : demande, course, encaissement |
 
 ## Décisions de design notables
 

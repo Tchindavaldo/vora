@@ -47,13 +47,30 @@ import {
 } from "./demoData";
 
 /**
+ * Deplacement automatique des vehicules alentour sur la carte.
+ *
+ * A `false` : les vehicules restent affiches, poses sur leur voie, mais
+ * immobiles. Le seul vehicule qui bouge est alors celui du chauffeur affecte
+ * a la course, dont le mouvement porte une information (il vient vous
+ * chercher) au lieu d'etre decoratif.
+ *
+ * Repasser a `true` remet le trafic d'ambiance en mouvement.
+ */
+const AMBIENT_VEHICLES_MOVE = false;
+
+/**
  * Ecran d'accueil passager.
  *
  * Parti pris de mise en page : la carte occupe TOUTE la hauteur et passe sous
  * le header comme sous le bottom sheet. Aucune bande blanche, aucune carte
  * encadree — c'est ce qui separe une app de mobilite credible d'une maquette.
  */
-export function HomeScreen() {
+type Props = {
+  /** Bascule vers l'ecran chauffeur, pour la demonstration (R17 etape 9). */
+  onSwitchToDriver: () => void;
+};
+
+export function HomeScreen({ onSwitchToDriver }: Props) {
   const location = useUserLocation();
   const insets = useSafeAreaInsets();
 
@@ -119,7 +136,12 @@ export function HomeScreen() {
   // Les vehicules roulent le long de leur rue. Tant que les positions ne sont
   // pas connues, le hook ne renvoie rien et la carte reste sans vehicule.
   // Sans geoloc, on ne lui passe rien : l'animation s'arrete.
-  const motions = useVehicleMotion(hasPosition ? roadPoints : null);
+  //
+  // DESACTIVE : passer `AMBIENT_VEHICLES_MOVE` a `true` remet les vehicules en
+  // mouvement. Ils restent affiches, poses sur leur voie, simplement immobiles.
+  const motions = useVehicleMotion(
+    AMBIENT_VEHICLES_MOVE && hasPosition ? roadPoints : null,
+  );
 
   // Course en preparation : destination, itineraire et tarifs (R17 etapes 4-5).
   const booking = useBookingFlow(location.coords);
@@ -295,6 +317,7 @@ export function HomeScreen() {
         onOpenEmergencyContacts={nav.openContacts}
         onOpenHistory={nav.openHistory}
         onClose={nav.close}
+        onSwitchToDriver={onSwitchToDriver}
       />
     );
   }

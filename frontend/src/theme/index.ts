@@ -18,6 +18,14 @@ export const colors = {
   userDot: '#3B5BFF',
   userHalo: 'rgba(59, 91, 255, 0.22)',
 
+  // Halo sous un vehicule, sur les DEUX cartes. Rouge la ou la position du
+  // passager est bleue : un vehicule ne doit jamais se confondre avec le
+  // point "vous etes ici".
+  driverHalo: 'rgba(176, 30, 20, 0.55)',
+
+  // Meme halo cote passager : un vehicule se lit pareil des deux cotes.
+  vehicleHalo: 'rgba(176, 30, 20, 0.55)',
+
   // Statut : chauffeurs disponibles.
   online: '#12B76A',
 

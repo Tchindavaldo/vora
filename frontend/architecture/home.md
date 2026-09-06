@@ -27,7 +27,7 @@ HomeScreen
 | `demoData.ts` | Véhicules simulés, raccourcis, quartier — **temporaire** |
 | `components/HomeHeader.tsx` | Barre supérieure flottante |
 | `components/DestinationSheet.tsx` | Bottom sheet de saisie de destination |
-| `components/VehicleMarker.tsx` | Pastille véhicule (moto / voiture) |
+| `components/VehicleMarker.tsx` | Véhicule vu de dessus, orienté, sur halo **rouge** qui bat en boucle |
 | `components/UserLocationDot.tsx` | Position utilisateur (halo + point) |
 | `components/LocationNotice.tsx` | Bandeau d'état dégradé géoloc |
 
@@ -44,7 +44,10 @@ HomeScreen
    rue à l'autre. Tant que ces positions ne sont pas connues, **aucun véhicule
    n'est affiché** : les montrer ailleurs puis les déplacer produirait un saut
    visible.
-5. `useVehicleMotion` les fait ensuite rouler le long de leur tracé.
+5. `useVehicleMotion` peut ensuite les faire rouler le long de leur tracé —
+   **désactivé** : le drapeau `AMBIENT_VEHICLES_MOVE` (en tête de
+   `HomeScreen.tsx`) est à `false`, les véhicules restent posés sur leur voie
+   sans bouger. Le repasser à `true` remet le trafic d'ambiance en mouvement.
 6. Le bouton recentrer incrémente un `recenterToken` passé à `MapCanvas`, ce
    qui ramène la caméra sur la position courante — pas de `ref` impérative
    exposée à l'écran (R11).
