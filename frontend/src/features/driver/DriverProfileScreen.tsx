@@ -11,7 +11,7 @@ import { DEMO_DRIVER } from './useDriverSession';
 type Props = {
   earningsTodayXaf: number;
   ridesToday: number;
-  /** Ferme le mode chauffeur et revient a l'accueil passager, avec ses mises a jour. */
+  /** Deconnecte et renvoie a l'ecran de connexion : le role vient du compte. */
   onExitToHome: () => void;
   /** Revient au tableau de bord chauffeur, sans quitter le mode chauffeur. */
   onClose: () => void;
@@ -98,18 +98,18 @@ export function DriverProfileScreen({
         />
 
         <Text style={styles.notice}>
-          Profil de démonstration — le compte et l’authentification chauffeur
-          arriveront avec le serveur.
+          Profil de démonstration — les informations affichées arriveront avec
+          le serveur.
         </Text>
 
         <Pressable
           style={styles.exitButton}
           onPress={onExitToHome}
           accessibilityRole="button"
-          accessibilityLabel="Revenir à l’accueil passager"
+          accessibilityLabel="Se déconnecter et changer de compte"
         >
-          <Ionicons name="arrow-back" size={18} color={colors.surface} />
-          <Text style={styles.exitLabel}>Revenir au passager</Text>
+          <Ionicons name="log-out-outline" size={18} color={colors.surface} />
+          <Text style={styles.exitLabel}>Changer de compte</Text>
         </Pressable>
       </ScrollView>
     </View>

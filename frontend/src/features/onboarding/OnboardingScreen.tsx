@@ -38,7 +38,9 @@ export function OnboardingScreen({ onDone }: Props) {
   const isLast = index === ONBOARDING_SLIDES.length - 1;
 
   const finish = useCallback(() => {
-    markOnboardingSeen();
+    // L'ecriture disque n'a pas a retarder la sortie : elle ne sert qu'au
+    // prochain lancement, et son echec est deja tolere cote service (R8).
+    void markOnboardingSeen();
     onDone();
   }, [onDone]);
 

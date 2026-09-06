@@ -9,7 +9,12 @@ import {
 } from 'react-native';
 
 import { colors, radius, spacing, typography } from '../../../theme';
-import { COUNTRY_CODE, PHONE_LENGTH, formatPhone } from '../../../services/session';
+import {
+  COUNTRY_CODE,
+  DEMO_ACCOUNTS,
+  PHONE_LENGTH,
+  formatPhone,
+} from '../../../services/session';
 
 type Props = {
   phone: string;
@@ -17,7 +22,9 @@ type Props = {
   pending: boolean;
   error: string | null;
   onChangePhone: (value: string) => void;
-  onSubmitPassenger: () => void;
+  /** Connexion normale : le role est deduit du numero saisi. */
+  onSubmit: () => void;
+  /** Raccourci de demonstration : force le role chauffeur, quel que soit le numero. */
   onSubmitDriver: () => void;
 };
 
@@ -35,7 +42,7 @@ export function PhoneStep({
   pending,
   error,
   onChangePhone,
-  onSubmitPassenger,
+  onSubmit,
   onSubmitDriver,
 }: Props) {
   return (
@@ -65,8 +72,23 @@ export function PhoneStep({
 
       {error != null ? <Text style={styles.error}>{error}</Text> : null}
 
+      {/* Comptes de demonstration annonces a l'ecran : le jury doit pouvoir
+          tester chaque role sans chercher dans le README, et savoir que
+          l'authentification est simulee. */}
+      <View style={styles.demo}>
+        <Text style={styles.demoTitle}>Démonstration</Text>
+        {DEMO_ACCOUNTS.map((account) => (
+          <Text key={account.suffix} style={styles.demoLine}>
+            Numéro finissant par {account.suffix} — {account.label}
+          </Text>
+        ))}
+        <Text style={styles.demoLine}>
+          Tout autre numéro ouvre un compte passager.
+        </Text>
+      </View>
+
       <Pressable
-        onPress={onSubmitPassenger}
+        onPress={onSubmit}
         disabled={!phoneValid || pending}
         style={({ pressed }) => [
           styles.cta,
@@ -149,6 +171,21 @@ const styles = StyleSheet.create({
     ...typography.label,
     color: colors.danger,
     marginTop: spacing.md,
+  },
+  demo: {
+    marginTop: spacing.xl,
+    padding: spacing.lg,
+    borderRadius: radius.md,
+    backgroundColor: colors.surfaceAlt,
+  },
+  demoTitle: {
+    ...typography.label,
+    color: colors.text,
+    marginBottom: spacing.xs,
+  },
+  demoLine: {
+    ...typography.caption,
+    lineHeight: 18,
   },
   cta: {
     height: 54,

@@ -65,7 +65,7 @@ export function LoginScreen({ onAuthenticated }: Props) {
               pending={auth.pending}
               error={auth.error}
               onChangePhone={auth.setPhone}
-              onSubmitPassenger={() => auth.submitPhone('passenger')}
+              onSubmit={() => auth.submitPhone()}
               onSubmitDriver={() => auth.submitPhone('driver')}
             />
           ) : (

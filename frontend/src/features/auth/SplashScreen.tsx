@@ -3,19 +3,20 @@ import { Animated, StyleSheet, Text, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 
 import { colors, spacing } from '../../theme';
+import { restoreSession } from '../../services/session';
 
 /**
  * Splash de demarrage.
  *
- * Il ne sert PAS a faire joli : il couvre le temps de verification de la
- * session et du chargement des polices, pour que l'utilisateur ne voie jamais
- * un ecran a moitie rendu. D'ou sa duree plafonnee : passe ce delai, l'app
- * continue meme si le reste n'est pas pret.
+ * Il ne sert PAS a faire joli : il couvre la relecture de la session sur le
+ * disque et le chargement des polices, pour que l'utilisateur ne voie jamais
+ * un ecran a moitie rendu ni un passage eclair par la connexion alors qu'il
+ * est deja identifie.
  */
 const SPLASH_DURATION_MS = 1500;
 
 type Props = {
-  /** Appele une fois le delai ecoule : l'appelant decide de la suite. */
+  /** Appele une fois la session relue ET le delai ecoule. */
   onDone: () => void;
 };
 
@@ -31,8 +32,22 @@ export function SplashScreen({ onDone }: Props) {
       useNativeDriver: true,
     }).start();
 
-    const timer = setTimeout(onDone, SPLASH_DURATION_MS);
-    return () => clearTimeout(timer);
+    // On attend les DEUX : la relecture de session et la duree minimale. Sortir
+    // des que le disque a repondu ferait clignoter le splash sur un appareil
+    // rapide ; sortir au seul minuteur risquerait d'aiguiller avant de savoir
+    // s'il y a une session.
+    let cancelled = false;
+    const minimumDelay = new Promise((resolve) =>
+      setTimeout(resolve, SPLASH_DURATION_MS),
+    );
+
+    Promise.all([restoreSession(), minimumDelay]).then(() => {
+      if (!cancelled) onDone();
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [onDone, opacity]);
 
   return (

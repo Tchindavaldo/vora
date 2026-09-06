@@ -49,7 +49,8 @@ frontend/              application mobile passager (Expo, initialisé)
       history/         historique des courses et de leurs reçus — FAIT
       profile/         profil, paramètres, contacts d'urgence — FAIT
     services/          géocodage (MapTiler), routage (ORS), tarifs, paiement,
-                       évaluations, transactions et sécurité (simulés)
+                       évaluations, transactions, sécurité et session
+                       (persistée, comptes de démo) — simulés
     contexts/          (vide) Auth, Ride, Location
   architecture/        doc du frontend
 backend/               (non initialisé)

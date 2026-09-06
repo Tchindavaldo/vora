@@ -9,6 +9,7 @@ import { LoginScreen } from './src/features/auth/LoginScreen';
 import {
   getSession,
   hasSeenOnboarding,
+  signOut,
   type Session,
   type UserRole,
 } from './src/services/session';
@@ -43,6 +44,18 @@ export default function App() {
     setStage('app');
   }, []);
 
+  /**
+   * Changement de compte : c'est une DECONNEXION, pas une bascule d'affichage.
+   *
+   * Le role etant desormais porte par le compte (un numero = un role), passer
+   * de passager a chauffeur sans repasser par la connexion reviendrait a
+   * contourner le controle d'acces qu'on vient de mettre en place (R10).
+   */
+  const onSwitchAccount = useCallback(() => {
+    void signOut();
+    setStage('login');
+  }, []);
+
   if (stage === 'splash') {
     return (
       <SafeAreaProvider>
@@ -67,12 +80,15 @@ export default function App() {
     );
   }
 
+  // NOTE : `admin` n'a pas de branche — le dashboard administrateur est prevu
+  // en web et n'existe pas encore. Un compte admin ouvre donc l'application
+  // passager, plutot qu'un ecran vide.
   return (
     <SafeAreaProvider>
       {role === 'driver' ? (
-        <DriverApp onExitToHome={() => setRole('passenger')} />
+        <DriverApp onExitToHome={onSwitchAccount} />
       ) : (
-        <HomeScreen onSwitchToDriver={() => setRole('driver')} />
+        <HomeScreen onSignOut={onSwitchAccount} />
       )}
     </SafeAreaProvider>
   );

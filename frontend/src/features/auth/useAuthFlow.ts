@@ -27,7 +27,10 @@ export function useAuthFlow(onAuthenticated: (session: Session) => void) {
   const [step, setStep] = useState<AuthStep>('phone');
   const [phone, setPhoneRaw] = useState('');
   const [code, setCodeRaw] = useState('');
-  const [role, setRole] = useState<UserRole>('passenger');
+  // Role IMPOSE par le raccourci de demonstration. `undefined` = laisser le
+  // numero decider (cas normal), ce qui est le comportement a garder quand
+  // l'authentification passera cote serveur.
+  const [forcedRole, setForcedRole] = useState<UserRole | undefined>(undefined);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [secondsLeft, setSecondsLeft] = useState(0);
@@ -65,9 +68,9 @@ export function useAuthFlow(onAuthenticated: (session: Session) => void) {
 
   /** Envoie le code et passe a l'etape suivante. */
   const submitPhone = useCallback(
-    async (nextRole: UserRole = role) => {
+    async (nextForcedRole?: UserRole) => {
       if (!phoneValid || pending) return;
-      setRole(nextRole);
+      setForcedRole(nextForcedRole);
       setPending(true);
       setError(null);
       try {
@@ -84,7 +87,7 @@ export function useAuthFlow(onAuthenticated: (session: Session) => void) {
         if (mounted.current) setPending(false);
       }
     },
-    [phone, phoneValid, pending, role],
+    [phone, phoneValid, pending],
   );
 
   const submitCode = useCallback(async () => {
@@ -92,7 +95,7 @@ export function useAuthFlow(onAuthenticated: (session: Session) => void) {
     setPending(true);
     setError(null);
     try {
-      const session = await verifyOtp(phone, code, role);
+      const session = await verifyOtp(phone, code, forcedRole);
       if (!mounted.current) return;
       onAuthenticated(session);
     } catch (cause) {
@@ -103,7 +106,7 @@ export function useAuthFlow(onAuthenticated: (session: Session) => void) {
     } finally {
       if (mounted.current) setPending(false);
     }
-  }, [code, codeComplete, onAuthenticated, pending, phone, role]);
+  }, [code, codeComplete, forcedRole, onAuthenticated, pending, phone]);
 
   const resendCode = useCallback(async () => {
     if (secondsLeft > 0 || pending) return;
@@ -133,7 +136,7 @@ export function useAuthFlow(onAuthenticated: (session: Session) => void) {
     step,
     phone,
     code,
-    role,
+    forcedRole,
     pending,
     error,
     secondsLeft,
@@ -142,7 +145,6 @@ export function useAuthFlow(onAuthenticated: (session: Session) => void) {
     demoCode: DEMO_OTP,
     setPhone,
     setCode,
-    setRole,
     submitPhone,
     submitCode,
     resendCode,

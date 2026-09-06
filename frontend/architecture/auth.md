@@ -6,21 +6,47 @@ parcours du rôle connecté.
 ## Flux
 
 ```text
-SPLASH (1,5 s) ─┬─ session ouverte ──────────────► APP (passager | chauffeur)
-                └─ pas de session ─┬─ onboarding déjà vu ──► CONNEXION
-                                   └─ première fois ───────► ONBOARDING → CONNEXION
+SPLASH ─┬─ session restaurée du disque ───────► APP (passager | chauffeur)
+        └─ pas de session ─┬─ onboarding déjà vu ──► CONNEXION
+                           └─ première fois ───────► ONBOARDING → CONNEXION
 
 CONNEXION : numéro (+237, 9 chiffres) → code à 4 chiffres → session
+
+« Changer de compte » (profil passager ou chauffeur) → DÉCONNEXION → CONNEXION
 ```
+
+Le splash attend **les deux** : la relecture disque et sa durée minimale de
+1,5 s. Sortir dès la réponse du disque ferait clignoter l'écran sur un appareil
+rapide ; sortir au seul minuteur risquerait d'aiguiller avant de savoir s'il y a
+une session.
 
 L'aiguillage vit dans `App.tsx` (`AppStage`). Il passera dans l'`AuthContext`
 (R6) quand un écran profond devra déconnecter ou lire le rôle sans prop.
+
+## Comptes de démonstration
+
+Un numéro par rôle : c'est ce que le jury cherche pour tester, et cela
+matérialise la séparation stricte des rôles (brief §10). Seuls les trois
+derniers chiffres comptent. Code unique `1234`, annoncé comme simulé à l'écran.
+
+| Suffixe | Rôle | État |
+|---|---|---|
+| `001` | Passager | Routé |
+| `002` | Chauffeur | Routé |
+| `003` | Administrateur | **Réservé, non routé** — dashboard web non livré, ouvre le compte passager |
+
+Tout autre numéro à 9 chiffres ouvre un compte **passager** : un numéro mal
+retenu ne doit jamais bloquer la démonstration.
+
+Le lien **« Continuer comme chauffeur »** passe un `forcedRole` qui prime sur le
+numéro. Il ne survivra pas au branchement du backend — c'est un confort de
+démonstration, pas un mécanisme d'autorisation.
 
 ## Fichiers
 
 | Fichier | Rôle |
 |---|---|
-| `src/services/session.ts` | Session, validation et formatage du numéro, envoi et vérification du code — **simulé** |
+| `src/services/session.ts` | Session persistée (AsyncStorage), comptes de démo, validation et formatage du numéro, vérification du code — **simulé** |
 | `src/features/auth/SplashScreen.tsx` | Logo sur fond de marque, 1,5 s, couvre la vérification de session |
 | `src/features/onboarding/OnboardingScreen.tsx` | 3 écrans balayables, bouton « Passer », vu une seule fois |
 | `src/features/onboarding/slides.tsx` | Textes et illustrations SVG maison des 3 écrans |
@@ -33,9 +59,20 @@ L'aiguillage vit dans `App.tsx` (`AppStage`). Il passera dans l'`AuthContext`
 
 - **Indicatif +237 verrouillé** : l'app ne dessert que le Cameroun. Un sélecteur
   de pays n'ajouterait qu'une source d'erreur.
-- **Le lien « Continuer comme chauffeur » tient lieu de sélecteur de rôle** :
-  pas d'écran de choix imposé à l'ouverture. Le rôle est transmis avec la
-  demande de code et fixé à la vérification.
+- **Le rôle est porté par le compte, pas par l'écran** : `roleForPhone()` le
+  déduit du numéro. Un numéro passager ne peut donc pas ouvrir l'application
+  chauffeur — c'est ce qui rend la séparation des rôles démontrable.
+- **« Changer de compte » déconnecte** au lieu de basculer l'affichage :
+  puisque le rôle vient du compte, une bascule sans reconnexion contournerait
+  le contrôle d'accès qu'on vient de poser (R10).
+- **Dégradation si AsyncStorage manque** : c'est un module natif, absent tant
+  que le dev-client n'a pas été reconstruit. Le service le détecte et retombe
+  sur une session en mémoire au lieu de planter au démarrage (R8) — un
+  coéquipier qui pull sans rebuilder garde une application utilisable.
+- **Session persistée sur l'appareil** : un utilisateur déjà connecté ne
+  repasse pas par la connexion à chaque ouverture. Seule la session est
+  stockée — aucun token, puisqu'il n'y en a pas encore ; le jour venu il devra
+  aller en stockage sécurisé, pas dans AsyncStorage.
 - **Une seule saisie invisible pour le code**, les 4 cases n'en sont que
   l'affichage : quatre champs séparés obligeraient à gérer focus, effacement et
   collage du SMS à la main (R18).
@@ -47,7 +84,12 @@ L'aiguillage vit dans `App.tsx` (`AppStage`). Il passera dans l'`AuthContext`
 - **Vérification simulée** : le code de démonstration est `1234`, aucun SMS
   n'est envoyé, et l'écran l'annonce explicitement — jamais présenter du faux
   comme du réel (brief §23).
-- **Session en mémoire** : perdue au redémarrage de l'application, donc on
-  repasse par onboarding puis connexion. À brancher sur `POST /auth/otp` et
-  `POST /auth/verify` (R12), avec le token en stockage sécurisé (R10).
-- **Pas de déconnexion depuis le profil** tant que l'`AuthContext` n'existe pas.
+- **Le rôle est décidé côté client**, à partir du numéro. C'est acceptable pour
+  une démonstration sans backend, jamais en production : le serveur devra
+  porter le rôle dans sa réponse (R10). À brancher sur `POST /auth/otp` et
+  `POST /auth/verify` (R12), avec le token en stockage sécurisé.
+- **Dashboard administrateur non livré** : le rôle `admin` existe dans le type
+  mais n'a pas de branche dans `App.tsx`.
+- **Pas encore d'`AuthContext`** : l'aiguillage et la déconnexion vivent dans
+  `App.tsx`, transmis en prop. Suffisant tant qu'il n'y a qu'un point de
+  décision (R6).
