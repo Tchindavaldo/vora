@@ -158,7 +158,8 @@ src/
 | `payment.md` | `src/features/payment/` — mode de paiement et monnaie en espèces |
 | `history.md` | `src/features/history/` — historique des courses et de leurs reçus |
 | `safety.md` | `src/features/ride/` + `src/features/profile/` — SOS, partage, signalement, contacts d'urgence |
-| `driver.md` | `src/features/driver/` — mode chauffeur : demande, course, encaissement |
+| `driver.md` | `src/features/driver/` — mode chauffeur : demande, course, encaissement, historique |
+| `support.md` | `src/features/support/` — assistance passager : contact, FAQ, litige |
 
 ## Décisions de design notables
 
@@ -192,6 +193,20 @@ la variante Overpass, conservée comme repli documenté mais non branchée.
 **Trois catégories de véhicules** : `moto`, `eco`, `comfort` — les mêmes
 paliers que l'estimation de prix à venir, pour que la carte annonce dès
 l'accueil ce que l'app propose.
+
+**L'identité vit dans l'en-tête des écrans de profil**, passager comme
+chauffeur : avatar, nom et rôle sont posés dans la barre du haut, à côté de la
+flèche de retour, et non en tête de liste. Ils ne défilent donc pas — un
+utilisateur descendu jusqu'à « Changer de compte » voit toujours de quel compte
+il parle. Le titre (« Profil », « Profil chauffeur ») est supprimé : le nom et
+le rôle le disent déjà, et deux lignes de titre au-dessus d'une liste mangent
+la hauteur utile.
+
+**Les listes plein écran réservent `Math.max(insets.bottom,
+LIST_BOTTOM_SAFE_GAP)`** en marge basse (constante du thème). `insets.bottom`
+seul ne suffit pas : sur les Android à navigation gestuelle il vaut souvent 0
+alors que la barre de geste reste posée sur les derniers pixels, et la dernière
+ligne d'une liste s'y retrouvait à moitié masquée et intouchable.
 
 **Le point utilisateur n'est affiché que si la position est réelle.** Un point
 « vous êtes ici » sur une ville par défaut serait un mensonge.

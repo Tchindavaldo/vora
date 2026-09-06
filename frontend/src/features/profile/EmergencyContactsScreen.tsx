@@ -13,7 +13,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { colors, radius, spacing, typography } from '../../theme';
+import {
+  colors,
+  LIST_BOTTOM_SAFE_GAP,
+  radius,
+  spacing,
+  typography,
+} from '../../theme';
 import {
   useEmergencyContacts,
   validateContact,
@@ -77,7 +83,7 @@ export function EmergencyContactsScreen({ onClose }: Props) {
         style={styles.scroll}
         contentContainerStyle={[
           styles.content,
-          { paddingBottom: insets.bottom + spacing.xl },
+          { paddingBottom: Math.max(insets.bottom, LIST_BOTTOM_SAFE_GAP) + spacing.xl },
         ]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}

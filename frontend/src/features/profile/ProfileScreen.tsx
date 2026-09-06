@@ -4,8 +4,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { colors, radius, spacing, typography } from '../../theme';
-import { SUPPORT_PHONE } from '../../services/safety';
+import {
+  colors,
+  LIST_BOTTOM_SAFE_GAP,
+  radius,
+  spacing,
+  typography,
+} from '../../theme';
 import { COUNTRY_CODE, formatPhone } from '../../services/session';
 import { useAuth } from '../../contexts/AuthContext';
 import { useEmergencyContacts } from './useEmergencyContacts';
@@ -14,6 +19,8 @@ type Props = {
   userName: string;
   userInitial: string;
   onOpenEmergencyContacts: () => void;
+  /** Ouvre l'assistance : contact du support, FAQ, litige (brief §14). */
+  onOpenSupport: () => void;
   onOpenHistory: () => void;
   onClose: () => void;
 };
@@ -34,6 +41,7 @@ export function ProfileScreen({
   userName,
   userInitial,
   onOpenEmergencyContacts,
+  onOpenSupport,
   onOpenHistory,
   onClose,
 }: Props) {
@@ -58,32 +66,36 @@ export function ProfileScreen({
           <Ionicons name="arrow-back" size={22} color={colors.text} />
         </Pressable>
 
-        <Text style={styles.title}>Profil</Text>
-      </View>
-
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={[
-          styles.content,
-          { paddingBottom: insets.bottom + spacing.xl },
-        ]}
-        showsVerticalScrollIndicator={false}
-      >
+        {/* IDENTITE DANS L'EN-TETE, et non en tete de liste : elle ne defile
+            pas. Le passager qui descend jusqu'a la deconnexion voit toujours
+            de quel compte il parle. Le titre "Profil" disparait : le nom et le
+            role le disent deja. */}
         <View style={styles.identity}>
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>{userInitial}</Text>
           </View>
           <View style={styles.identityBody}>
-            <Text style={styles.name}>{userName}</Text>
-            <Text style={styles.role}>
+            <Text style={styles.name} numberOfLines={1}>
+              {userName}
+            </Text>
+            <Text style={styles.role} numberOfLines={1}>
               {session != null
                 ? `Passager · ${COUNTRY_CODE} ${formatPhone(session.phone)}`
                 : 'Passager'}
             </Text>
           </View>
         </View>
+      </View>
 
-        <Text style={styles.section}>Sécurité</Text>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: Math.max(insets.bottom, LIST_BOTTOM_SAFE_GAP) + spacing.xl },
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
+        <Text style={styles.sectionFirst}>Sécurité</Text>
 
         <Row
           icon="people-outline"
@@ -102,8 +114,8 @@ export function ProfileScreen({
         <Row
           icon="headset-outline"
           label="Assistance VORA"
-          hint={SUPPORT_PHONE}
-          disabled
+          hint="Nous contacter, questions fréquentes, litige sur une course"
+          onPress={onOpenSupport}
         />
 
         <Row
@@ -202,7 +214,9 @@ function Row({ icon, label, hint, onPress, disabled = false, warn = false }: Row
   );
 }
 
-const AVATAR = 56;
+/** Avatar d'en-tete : plus petit qu'en tete de liste, la barre ne doit pas
+ *  manger la hauteur utile de l'ecran. */
+const AVATAR = 40;
 
 const styles = StyleSheet.create({
   root: {
@@ -224,10 +238,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  title: {
-    ...typography.subtitle,
-    flex: 1,
-  },
   scroll: {
     flex: 1,
   },
@@ -236,6 +246,7 @@ const styles = StyleSheet.create({
     paddingTop: spacing.lg,
   },
   identity: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
@@ -249,7 +260,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   avatarText: {
-    ...typography.title,
+    ...typography.subtitle,
     color: colors.surface,
   },
   identityBody: {
@@ -258,6 +269,12 @@ const styles = StyleSheet.create({
   },
   name: typography.subtitle,
   role: typography.caption,
+  // La premiere section suit directement l'en-tete : pas de marge haute, sinon
+  // l'ecran s'ouvre sur un vide.
+  sectionFirst: {
+    ...typography.caption,
+    marginBottom: spacing.xs,
+  },
   section: {
     ...typography.caption,
     marginTop: spacing.xl,

@@ -10,8 +10,8 @@
 connexion par numéro et code, simulée — R17 étape 1), accueil, recherche de destination,
 itinéraire, estimation de prix, paiement simulé, commande, recherche de
 chauffeur, suivi de la course jusqu'à sa fin, évaluation du chauffeur,
-historique des courses et sécurité du passager (R17 étapes 2 à 8 et 10, la
-course étant simulée). **Mode chauffeur** livré également : tableau de bord,
+historique des courses, sécurité et assistance du passager (support, FAQ,
+litige) (R17 étapes 2 à 8 et 10, la course étant simulée). **Mode chauffeur** livré également : tableau de bord,
 demande entrante, course en quatre étapes jusqu'à l'encaissement, revenus du jour
 et historique des courses passées (R17
 étape 9, simulé). Backend non démarré.
@@ -50,6 +50,7 @@ frontend/              application mobile passager (Expo, initialisé)
                        revenus du jour, historique des courses,
                        assistance (urgence, support, signalement) — FAIT, simulé
       history/         historique des courses et de leurs reçus — FAIT
+      support/         assistance passager : contact, FAQ, litige — FAIT, simulé
       profile/         profil, paramètres, contacts d'urgence — FAIT
     services/          géocodage (MapTiler), routage (ORS), tarifs, paiement,
                        évaluations, transactions, sécurité et session
@@ -90,6 +91,7 @@ feature.
 | [`frontend/architecture/payment.md`](../frontend/architecture/payment.md) | Paiement : espèces et monnaie annoncée, portefeuille, Mobile Money (simulé) |
 | [`frontend/architecture/history.md`](../frontend/architecture/history.md) | Historique des courses et de leurs reçus |
 | [`frontend/architecture/safety.md`](../frontend/architecture/safety.md) | Sécurité : SOS, partage, signalement, contacts d'urgence |
+| [`frontend/architecture/support.md`](../frontend/architecture/support.md) | Assistance passager : contact du support, FAQ, litige sur une course |
 | [`frontend/architecture/driver.md`](../frontend/architecture/driver.md) | Parcours chauffeur : demande, course en 4 étapes, encaissement |
 
 ## 5. Flux principal (brief §13)

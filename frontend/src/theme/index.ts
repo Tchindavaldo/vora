@@ -78,6 +78,17 @@ export const radius = {
  */
 export const SHEET_HEIGHT = 330;
 
+/**
+ * Marge basse minimale sous une liste plein ecran.
+ *
+ * `insets.bottom` ne suffit PAS : sur les Android a navigation gestuelle, il
+ * vaut souvent 0 alors que la barre de geste reste posee sur les derniers
+ * pixels. La derniere ligne d'une liste s'y retrouvait a moitie masquee et
+ * intouchable. On prend donc `Math.max(insets.bottom, LIST_BOTTOM_SAFE_GAP)`
+ * partout ou une liste defile jusqu'au bas de l'ecran.
+ */
+export const LIST_BOTTOM_SAFE_GAP = 24;
+
 export const typography = {
   title: { fontSize: 22, fontWeight: '700' as const, color: colors.text },
   subtitle: { fontSize: 16, fontWeight: '600' as const, color: colors.text },

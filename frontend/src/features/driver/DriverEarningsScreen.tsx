@@ -11,7 +11,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { colors, radius, spacing, typography } from '../../theme';
+import {
+  colors,
+  LIST_BOTTOM_SAFE_GAP,
+  radius,
+  spacing,
+  typography,
+} from '../../theme';
 import { formatDistance, formatXaf } from '../../services/pricing';
 import { totalEarned, totalEarnedDistance } from '../../services/driverEarnings';
 import { useDriverEarnings } from './useDriverEarnings';
@@ -116,7 +122,7 @@ export function DriverEarningsScreen({ onClose, onOpenHistory }: Props) {
           renderItem={({ item }) => <DriverEarningRow item={item} />}
           contentContainerStyle={[
             styles.list,
-            { paddingBottom: insets.bottom + spacing.xl },
+            { paddingBottom: Math.max(insets.bottom, LIST_BOTTOM_SAFE_GAP) + spacing.xl },
           ]}
           showsVerticalScrollIndicator={false}
           // Mention obligatoire : ne jamais presenter du simule comme reel

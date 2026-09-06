@@ -4,7 +4,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { colors, radius, spacing, typography } from '../../theme';
+import {
+  colors,
+  LIST_BOTTOM_SAFE_GAP,
+  radius,
+  spacing,
+  typography,
+} from '../../theme';
 import { formatXaf } from '../../services/pricing';
 import { useAuth } from '../../contexts/AuthContext';
 import { DEMO_DRIVER } from './useDriverSession';
@@ -63,25 +69,35 @@ export function DriverProfileScreen({
           <Ionicons name="arrow-back" size={22} color={colors.text} />
         </Pressable>
 
-        <Text style={styles.title}>Profil chauffeur</Text>
-      </View>
-
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + spacing.xl }]}
-        showsVerticalScrollIndicator={false}
-      >
+        {/* IDENTITE DANS L'EN-TETE, et non en tete de liste : elle ne defile
+            pas. Le chauffeur qui descend jusqu'a la deconnexion voit toujours
+            de quel compte il parle — c'est la seule information de l'ecran qui
+            doit rester visible en permanence. Le titre "Profil chauffeur"
+            disparait : le nom et le role le disent deja. */}
         <View style={styles.identity}>
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>{DEMO_DRIVER.initial}</Text>
           </View>
           <View style={styles.identityBody}>
-            <Text style={styles.name}>{DEMO_DRIVER.name}</Text>
-            <Text style={styles.role}>Chauffeur</Text>
+            <Text style={styles.name} numberOfLines={1}>
+              {DEMO_DRIVER.name}
+            </Text>
+            <Text style={styles.role} numberOfLines={1}>
+              Chauffeur · {DEMO_DRIVER.plate}
+            </Text>
           </View>
         </View>
+      </View>
 
-        <Text style={styles.section}>Aujourd’hui</Text>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: Math.max(insets.bottom, LIST_BOTTOM_SAFE_GAP) + spacing.xl },
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
+        <Text style={styles.sectionFirst}>Aujourd’hui</Text>
 
         {/* Second acces aux revenus, apres la card du tableau de bord : le
             chauffeur qui vient consulter son profil cherche le meme detail. */}
@@ -191,7 +207,9 @@ function Row({ icon, label, hint, disabled = false, onPress }: RowProps) {
   );
 }
 
-const AVATAR = 56;
+/** Avatar d'en-tete : plus petit qu'en tete de liste, la barre ne doit pas
+ *  manger la hauteur utile de l'ecran. */
+const AVATAR = 40;
 
 const styles = StyleSheet.create({
   root: {
@@ -213,10 +231,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  title: {
-    ...typography.subtitle,
-    flex: 1,
-  },
   scroll: {
     flex: 1,
   },
@@ -225,6 +239,7 @@ const styles = StyleSheet.create({
     paddingTop: spacing.lg,
   },
   identity: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
@@ -238,7 +253,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   avatarText: {
-    ...typography.title,
+    ...typography.subtitle,
     color: colors.surface,
   },
   identityBody: {
@@ -250,6 +265,12 @@ const styles = StyleSheet.create({
   section: {
     ...typography.caption,
     marginTop: spacing.xl,
+    marginBottom: spacing.xs,
+  },
+  // La premiere section suit directement l'en-tete : pas de marge haute, sinon
+  // l'ecran s'ouvre sur un vide.
+  sectionFirst: {
+    ...typography.caption,
     marginBottom: spacing.xs,
   },
   row: {
