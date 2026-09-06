@@ -51,6 +51,9 @@ export function useUserLocation(): State {
   // au premier plan.
   const cancelledRef = useRef(false);
 
+  // Abonnement aux positions successives, a couper au demontage.
+  const subscriptionRef = useRef<Location.LocationSubscription | null>(null);
+
   const resolve = useCallback(async (promptIfNeeded: boolean) => {
     try {
       // Au retour de Reglages, on se contente de LIRE la permission : la
@@ -66,20 +69,38 @@ export function useUserLocation(): State {
         return;
       }
 
-      const position = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
-      });
-
-      if (cancelledRef.current) return;
-
-      setState({
-        status: "granted",
-        coords: {
-          longitude: position.coords.longitude,
-          latitude: position.coords.latitude,
+      // Un abonnement, pas une mesure unique. Au tout premier lancement apres
+      // installation, le GPS est froid : `getCurrentPositionAsync` peut mettre
+      // longtemps a repondre, voire echouer, et l'ecran restait alors sur la
+      // ville par defaut sans jamais se corriger une fois le fix obtenu. Avec
+      // `watchPositionAsync`, la premiere position connue arrive des qu'elle
+      // existe, et les suivantes affinent la precision.
+      subscriptionRef.current?.remove();
+      subscriptionRef.current = await Location.watchPositionAsync(
+        {
+          accuracy: Location.Accuracy.Balanced,
+          // Sous ce seuil, un rafraichissement ne deplacerait pas visiblement
+          // le point mais ferait re-rendre toute la carte.
+          distanceInterval: 10,
         },
-        isFallback: false,
-      });
+        (position) => {
+          if (cancelledRef.current) return;
+
+          setState({
+            status: "granted",
+            coords: {
+              longitude: position.coords.longitude,
+              latitude: position.coords.latitude,
+            },
+            isFallback: false,
+          });
+        },
+      );
+
+      if (cancelledRef.current) {
+        subscriptionRef.current?.remove();
+        subscriptionRef.current = null;
+      }
     } catch {
       // Permission accordee mais position injoignable : on garde le repli
       // et on le signale, sans faire tomber l'ecran.
@@ -94,15 +115,19 @@ export function useUserLocation(): State {
 
     resolve(true);
 
-    const subscription = AppState.addEventListener("change", (next) => {
-      if (next === "active") {
+    const appState = AppState.addEventListener("change", (next) => {
+      // Deja abonne : la position se met a jour toute seule, inutile de
+      // relancer une resolution a chaque bascule d'application.
+      if (next === "active" && subscriptionRef.current === null) {
         resolve(false);
       }
     });
 
     return () => {
       cancelledRef.current = true;
-      subscription.remove();
+      appState.remove();
+      subscriptionRef.current?.remove();
+      subscriptionRef.current = null;
     };
   }, [resolve]);
 

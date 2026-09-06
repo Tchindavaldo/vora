@@ -40,6 +40,7 @@ import { EmergencyContactsScreen } from "../profile/EmergencyContactsScreen";
 import { useEmergencyContacts } from "../profile/useEmergencyContacts";
 import { NotificationsScreen } from "../notifications/NotificationsScreen";
 import { LocationNotice } from "./components/LocationNotice";
+import { LocationPlaceholder } from "./components/LocationPlaceholder";
 import { useHomeMarkers } from "./useHomeMarkers";
 import {
   DEMO_USER_INITIAL,
@@ -350,6 +351,14 @@ export function HomeScreen() {
     <View style={styles.root}>
       <StatusBar style="dark" />
 
+      {/*
+        Sans position reelle, on n'affiche PAS de carte : une carte centree sur
+        la ville par defaut se lit comme "vous etes ici" et ment (R8). On la
+        remplace par le point de localisation seul, entoure d'ondes animees.
+      */}
+      {!hasPosition ? (
+        <LocationPlaceholder />
+      ) : (
       <MapCanvas
         center={location.coords}
         zoom={DEFAULT_REGION.zoom}
@@ -369,6 +378,7 @@ export function HomeScreen() {
         fitPointsToken={camera.fitPointsToken}
         fitPointsPadding={camera.fitPointsPadding}
       />
+      )}
 
       <HomeHeader
         nearbyCount={NEARBY_VEHICLES.length}
