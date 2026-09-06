@@ -16,6 +16,7 @@ import {
   type DriverTripStage,
 } from './driverRequests';
 import { recordDriverEarning } from '../../services/driverEarnings';
+import { recordDriverRide } from '../../services/driverRides';
 
 export type DriverRoute =
   | 'dashboard'
@@ -23,6 +24,7 @@ export type DriverRoute =
   | 'trip'
   | 'profile'
   | 'earnings'
+  | 'ride_history'
   | 'emergency_contacts';
 
 /** Chauffeur de demonstration : identite affichee sur le tableau de bord et le profil. */
@@ -142,6 +144,22 @@ export function useDriverSession() {
         amountXaf: request.earningsXaf,
         method: request.method,
       });
+
+      // La meme course rejoint l'historique, qui la gardera au-dela du jour.
+      // Deux archivages et non un seul relais : les revenus du jour et
+      // l'historique seront deux endpoints distincts (R12).
+      recordDriverRide({
+        id: request.id,
+        pickupLabel: request.pickupLabel,
+        destinationLabel: request.destinationLabel,
+        tier: request.tier,
+        distanceMeters: request.distanceMeters,
+        durationMinutes: request.durationMinutes,
+        amountXaf: request.earningsXaf,
+        method: request.method,
+        // La note arrive quand le passager evalue, apres la fin de course.
+        passengerRating: null,
+      });
     }
 
     setRequest(null);
@@ -168,6 +186,21 @@ export function useDriverSession() {
     setRoute(earningsOriginRef.current);
   }, []);
 
+  /**
+   * Ecran d'ou l'historique a ete ouvert : sa fermeture y revient. Meme raison
+   * que pour les revenus — le profil et l'ecran des revenus y menent tous deux.
+   */
+  const historyOriginRef = useRef<DriverRoute>('profile');
+
+  const openRideHistory = useCallback((from: DriverRoute = 'profile') => {
+    historyOriginRef.current = from;
+    setRoute('ride_history');
+  }, []);
+
+  const closeRideHistory = useCallback(() => {
+    setRoute(historyOriginRef.current);
+  }, []);
+
   // Les contacts d'urgence ne s'ouvrent que depuis le profil : leur fermeture y
   // revient, sans avoir a memoriser d'ou l'on vient.
   const openEmergencyContacts = useCallback(() => setRoute('emergency_contacts'), []);
@@ -192,6 +225,8 @@ export function useDriverSession() {
     closeProfile,
     openEarnings,
     closeEarnings,
+    openRideHistory,
+    closeRideHistory,
     openEmergencyContacts,
     closeEmergencyContacts,
   };

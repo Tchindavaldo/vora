@@ -26,6 +26,35 @@ Chaque course encaissee est ajoutee par
 `finishTrip` via `recordDriverEarning` (`services/driverEarnings.ts`, simule et
 en memoire, sur le meme modele que `transactions.ts` cote passager).
 
+## Historique des courses (brief §6, §14)
+
+`DriverRideHistoryScreen` repond a une question que les revenus du jour ne
+couvrent pas : « qu'est-ce que j'ai fait cette semaine ». Deux ecrans distincts
+et non un onglet de plus dans les revenus — l'un se lit entre deux courses,
+l'autre le soir ou en fin de semaine.
+
+- **Periode** selectionnable : 7 ou 30 derniers jours. L'historique complet
+  serait illisible sur mobile, et le backend paginera (`GET
+  /driver/rides?from=&to=`). Changer de periode relance la lecture dans
+  `useDriverRides` — le filtre n'est PAS applique cote client, sinon il
+  faudrait avoir deja tout charge.
+- **Groupement par jour** (`SectionList`, en-tetes collants) : « Aujourd'hui »,
+  « Hier », puis la date. Chaque jour porte son total encaisse — l'unite que le
+  chauffeur lit est une journee de travail.
+- **Bilan de periode** en tete : total encaisse, nombre de courses, distance et
+  note moyenne. Les courses non evaluees sont ECARTEES de la moyenne, jamais
+  comptees zero.
+- La ligne (`DriverRideRow`, copie de `DriverEarningRow` — R16) porte en plus la
+  duree et la note recue : sur un historique on regarde comment on a travaille,
+  pas seulement ce qu'on a encaisse.
+
+Entrees : ligne « Historique des courses » du profil chauffeur, et pastille
+« Historique » dans l'en-tete des revenus du jour. La fermeture revient a
+l'ecran d'ou l'ouverture est partie (`openRideHistory('profile' | 'earnings')`).
+
+`finishTrip` archive la course DEUX fois — `recordDriverEarning` et
+`recordDriverRide` — parce que les deux deviendront deux endpoints distincts.
+
 L'etat vit dans `useDriverSession` (pas de librairie de navigation, R18) :
 `route`, `isOnline`, `request`, `stage`, gains du jour.
 
@@ -43,6 +72,10 @@ L'etat vit dans `useDriverSession` (pas de librairie de navigation, R18) :
 | `useDriverEarnings.ts` | Lecture des revenus — chargement / succes / erreur (R12) |
 | `DriverEarningRow.tsx` | Une course encaissee (copie de `TransactionRow`, R16) |
 | `../../services/driverEarnings.ts` | Archivage et lecture **simules** — seul fichier a remplacer par l'API |
+| `DriverRideHistoryScreen.tsx` | Historique : periode, jours groupes, bilan, etats degrades |
+| `useDriverRides.ts` | Lecture de l'historique par periode (R12) |
+| `DriverRideRow.tsx` | Une course passee (copie de `DriverEarningRow`, R16) |
+| `../../services/driverRides.ts` | Historique **simule** — a remplacer par `GET /driver/rides` |
 | `DriverMapCanvas.tsx` | Carte du mode chauffeur (copie de `MapCanvas`, R16) |
 | `DriverRouteLine.tsx` | Trace d'itineraire (copie de `RouteLine`, R16) |
 | `DriverVehicleMarker.tsx` | Vehicule du chauffeur, halo ROUGE (copie de `VehicleMarker`, R16) |
@@ -157,6 +190,9 @@ bouton SOS flottant en haut de la carte hors course.
 - `driverRequests.ts` : demandes de demonstration -> abonnement socket (R6).
 - `driverEarnings.ts` : `listDriverEarnings` -> `GET /driver/rides?day=today`,
   et `recordDriverEarning` disparait (c'est le backend qui archive la course).
+- `driverRides.ts` : `listDriverRides` -> `GET /driver/rides?from=&to=` (pagine),
+  `recordDriverRide` disparait, et `passengerRating` viendra de l'evaluation
+  laissee par le passager.
 - `useDriverVehicleMotion` : disparait, les positions viendront du GPS reel.
 - Points de prise en charge / destination : decales autour de la position du
   chauffeur, faute de geocodage cote chauffeur.

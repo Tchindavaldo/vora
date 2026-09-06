@@ -12,7 +12,8 @@ itinéraire, estimation de prix, paiement simulé, commande, recherche de
 chauffeur, suivi de la course jusqu'à sa fin, évaluation du chauffeur,
 historique des courses et sécurité du passager (R17 étapes 2 à 8 et 10, la
 course étant simulée). **Mode chauffeur** livré également : tableau de bord,
-demande entrante, course en quatre étapes jusqu'à l'encaissement et revenus du jour (R17
+demande entrante, course en quatre étapes jusqu'à l'encaissement, revenus du jour
+et historique des courses passées (R17
 étape 9, simulé). Backend non démarré.
 
 | Couche | Choix | Justification |
@@ -46,6 +47,7 @@ frontend/              application mobile passager (Expo, initialisé)
       payment/         paiement (espèces + monnaie, portefeuille, MoMo) — FAIT, simulé
       ride/            course : chauffeur, suivi, évaluation — FAIT
       driver/          mode chauffeur : tableau de bord, demande, course,
+                       revenus du jour, historique des courses,
                        assistance (urgence, support, signalement) — FAIT, simulé
       history/         historique des courses et de leurs reçus — FAIT
       profile/         profil, paramètres, contacts d'urgence — FAIT
