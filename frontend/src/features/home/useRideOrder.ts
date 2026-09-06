@@ -11,7 +11,7 @@
 
 import { useMemo, useState } from 'react';
 
-import { computeCashOffer } from '../../services/payment';
+import { computeCashOffer, walletBalance } from '../../services/payment';
 import { recordTransaction } from '../../services/transactions';
 import { requestNotificationPermission } from '../../services/notifications';
 import type { RoutePoint } from '../../services/routing';
@@ -95,10 +95,16 @@ export function useRideOrder({ origin, booking, payment, ride }: Args) {
   };
 
   /**
-   * "Suivant" : les especes ouvrent la saisie de la monnaie, les autres modes
-   * declenchent directement le debit — eux n'ont rien a annoncer au chauffeur.
+   * Action principale du panneau de paiement.
+   *
+   * Especes : ouvrir la saisie de la monnaie, seule information que le chauffeur
+   * doit connaitre avant de partir.
+   *
+   * Portefeuille et Mobile Money : rien a saisir, et rien a debiter au depart —
+   * les deux sont regles a l'arrivee (voir `startPayment`). On retient donc le
+   * mode et on commande dans la foulee, sans etape intermediaire.
    */
-  const nextFromPayment = () => {
+  const nextFromPayment = async () => {
     if (selectedFare === undefined) return;
 
     if (payment.method === 'cash') {
@@ -107,6 +113,15 @@ export function useRideOrder({ origin, booking, payment, ride }: Args) {
     }
 
     payment.confirm(selectedFare.amountXaf);
+
+    // Solde insuffisant : `confirm` emet un echec, et le panneau l'affiche.
+    // On s'arrete la plutot que de commander une course qui ne pourra pas se
+    // regler a la descente (R8).
+    if (payment.method === 'wallet' && selectedFare.amountXaf > walletBalance()) {
+      return;
+    }
+
+    await order();
   };
 
   /**

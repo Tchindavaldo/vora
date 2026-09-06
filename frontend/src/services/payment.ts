@@ -161,6 +161,24 @@ export function startPayment(
   return () => timers.forEach(clearTimeout);
 }
 
+/**
+ * Ce a quoi le mode choisi engage, AVANT tout paiement.
+ *
+ * Affiche des la selection d'une carte : le passager sait ce qui se passera a
+ * l'arrivee sans avoir a appuyer sur un bouton pour le decouvrir. Le libelle est
+ * volontairement le meme que celui du verdict `due` (voir `resultLabel`) : ce
+ * qui est annonce est exactement ce qui sera fait.
+ */
+export function settlementLabel(method: PaymentMethod): string {
+  if (method === 'wallet') {
+    return 'Portefeuille — débité à la fin de la course.';
+  }
+  if (method === 'mobile_money') {
+    return 'Mobile Money — à valider sur votre téléphone à l’arrivée.';
+  }
+  return 'Espèces — à régler au chauffeur à la descente.';
+}
+
 /** Ce que le panneau affiche pendant l'attente, selon le mode choisi. */
 export function pendingLabel(method: PaymentMethod): string {
   if (method === 'mobile_money') {

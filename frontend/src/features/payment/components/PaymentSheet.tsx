@@ -29,6 +29,7 @@ import {
   PAYMENT_METHODS,
   pendingLabel,
   resultLabel,
+  settlementLabel,
   type Payment,
   type PaymentMethod,
 } from '../../../services/payment';
@@ -37,12 +38,13 @@ import { AnimatedBorderGlow } from './AnimatedBorderGlow';
 /**
  * Hauteur de la capsule d'action.
  *
- * Plus haute qu'un bouton ordinaire : elle accueille aussi le message
- * d'attente du paiement, sur deux lignes au besoin. Cette hauteur ne change
- * jamais d'un etat a l'autre — sinon le panneau sauterait au moment de
- * l'appui, et les modes affiches au-dessus se decaleraient.
+ * Elle accueille aussi le message d'attente du paiement, sur une ligne. Cette
+ * hauteur ne change jamais d'un etat a l'autre — sinon le panneau sauterait au
+ * moment de l'appui, et les modes affiches au-dessus se decaleraient. Elle
+ * reste volontairement contenue : la barre d'action est ancree sous le scroll,
+ * donc chaque pixel qu'elle prend est retire au contenu lisible au-dessus.
  */
-const CONFIRM_HEIGHT = 62;
+const CONFIRM_HEIGHT = 50;
 
 type Props = {
   destinationLabel: string;
@@ -101,6 +103,15 @@ export function PaymentSheet({
 }: Props) {
   const insets = useSafeAreaInsets();
   const hasFailed = payment?.status === 'failed';
+
+  /*
+    Portefeuille et Mobile Money sont regles A LA FIN de la course : il n'y a
+    rien a saisir ni a valider ici. Leur bouton commande donc directement, sans
+    etape « Suivant » intermediaire — seules les especes ouvrent encore un
+    ecran, celui de la monnaie a annoncer au chauffeur.
+  */
+  const ordersDirectly = selectedMethod !== 'cash';
+  const actionLabel = isSettled || ordersDirectly ? 'Commander' : 'Suivant';
 
   return (
     <View
@@ -211,7 +222,7 @@ export function PaymentSheet({
             accessibilityLabel={
               isProcessing
                 ? pendingLabel(selectedMethod)
-                : isSettled
+                : actionLabel === 'Commander'
                   ? 'Commander la course'
                   : 'Passer à l’étape suivante'
             }
@@ -224,11 +235,9 @@ export function PaymentSheet({
             <Text style={styles.confirmLabel} numberOfLines={2}>
               {isProcessing
                 ? pendingLabel(selectedMethod)
-                : isSettled
-                  ? 'Commander'
-                  : hasFailed
-                    ? 'Réessayer'
-                    : 'Suivant'}
+                : hasFailed
+                  ? 'Réessayer'
+                  : actionLabel}
             </Text>
         </Pressable>
       </View>
@@ -250,13 +259,27 @@ function PaymentState({
   isProcessing: boolean;
   selectedMethod: PaymentMethod;
 }) {
-  if (payment === null) return null;
-
   // Pendant l'attente, le message vit DANS la capsule d'action (bordure
   // animee) : le repeter ici afficherait deux fois la meme phrase, et la
   // hauteur de cette ligne ferait sauter la mise en page a chaque changement
   // d'etat.
   if (isProcessing) return null;
+
+  /*
+    Aucun paiement encore lance : on annonce DES MAINTENANT ce que le mode
+    choisi impliquera a l'arrivee — « Portefeuille — débité à la fin de la
+    course », « Mobile Money — à valider sur votre téléphone à l'arrivée ».
+    Le passager n'a pas a appuyer sur un bouton pour decouvrir a quoi il
+    s'engage : il compare les trois modes en les touchant.
+  */
+  if (payment === null) {
+    return (
+      <View style={styles.state}>
+        <Ionicons name="information-circle" size={20} color={colors.textMuted} />
+        <Text style={styles.stateText}>{settlementLabel(selectedMethod)}</Text>
+      </View>
+    );
+  }
 
   const isFailure = payment.status === 'failed';
 
@@ -327,6 +350,9 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
+    // La mention « paiement simule » est la derniere ligne du scroll : sans
+    // cette marge, la barre d'action ancree la coupe en bas de panneau.
+    paddingBottom: spacing.sm,
   },
   header: {
     flexDirection: 'row',
@@ -408,12 +434,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.md,
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.sm,
   },
   back: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: spacing.xs,
     borderWidth: 1,
     borderColor: colors.border,
@@ -421,7 +448,7 @@ const styles = StyleSheet.create({
     // doivent s'aligner, quelle que soit la hauteur retenue pour la capsule.
     height: CONFIRM_HEIGHT,
     borderRadius: CONFIRM_HEIGHT / 2,
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.md,
   },
   backLabel: {
     ...typography.subtitle,
