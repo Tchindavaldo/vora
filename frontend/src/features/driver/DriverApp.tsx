@@ -72,6 +72,8 @@ export function DriverApp({ onExitToHome }: Props) {
         earningsTodayXaf={session.earningsTodayXaf}
         ridesToday={session.ridesToday}
         onExitToHome={onExitToHome}
+        onClose={session.closeProfile}
+        onOpenEarnings={() => session.openEarnings('profile')}
       />
     );
   }
@@ -136,7 +138,7 @@ export function DriverApp({ onExitToHome }: Props) {
           distanceTodayMeters={session.distanceTodayMeters}
           onToggleOnline={(value) => (value ? session.goOnline() : session.goOffline())}
           onOpenProfile={session.openProfile}
-          onOpenEarnings={session.openEarnings}
+          onOpenEarnings={() => session.openEarnings('dashboard')}
         />
       )}
 
