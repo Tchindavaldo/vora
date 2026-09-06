@@ -11,7 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { colors, spacing } from '../../theme';
+import { colors, LIST_BOTTOM_SAFE_GAP, spacing } from '../../theme';
 import { useAuth } from '../../contexts/AuthContext';
 import { useAuthFlow } from './useAuthFlow';
 import { PhoneStep } from './components/PhoneStep';
@@ -54,7 +54,10 @@ export function LoginScreen() {
         <ScrollView
           contentContainerStyle={[
             styles.content,
-            { paddingBottom: insets.bottom + spacing.xxxl },
+            {
+              paddingBottom:
+                Math.max(insets.bottom, LIST_BOTTOM_SAFE_GAP) + spacing.xxxl,
+            },
           ]}
           keyboardShouldPersistTaps="handled"
         >

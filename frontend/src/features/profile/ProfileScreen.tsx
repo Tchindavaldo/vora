@@ -4,13 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import {
-  colors,
-  LIST_BOTTOM_SAFE_GAP,
-  radius,
-  spacing,
-  typography,
-} from '../../theme';
+import { colors, radius, spacing, typography } from '../../theme';
+import { SafeBottomArea } from '../../components/SafeBottomArea';
 import { COUNTRY_CODE, formatPhone } from '../../services/session';
 import { useAuth } from '../../contexts/AuthContext';
 import { useEmergencyContacts } from './useEmergencyContacts';
@@ -56,16 +51,6 @@ export function ProfileScreen({
       <StatusBar style="dark" />
 
       <View style={[styles.header, { paddingTop: insets.top + spacing.md }]}>
-        <Pressable
-          onPress={onClose}
-          hitSlop={10}
-          style={styles.back}
-          accessibilityRole="button"
-          accessibilityLabel="Retour à l’accueil"
-        >
-          <Ionicons name="arrow-back" size={22} color={colors.text} />
-        </Pressable>
-
         {/* IDENTITE DANS L'EN-TETE, et non en tete de liste : elle ne defile
             pas. Le passager qui descend jusqu'a la deconnexion voit toujours
             de quel compte il parle. Le titre "Profil" disparait : le nom et le
@@ -85,90 +70,101 @@ export function ProfileScreen({
             </Text>
           </View>
         </View>
+
+        {/* Retour a DROITE : le pouce l'atteint sans changer de main sur un
+            grand telephone, et il ne se confond plus avec l'avatar. */}
+        <Pressable
+          onPress={onClose}
+          hitSlop={10}
+          style={styles.back}
+          accessibilityRole="button"
+          accessibilityLabel="Retour à l’accueil"
+        >
+          <Ionicons name="arrow-back" size={22} color={colors.text} />
+        </Pressable>
       </View>
 
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={[
-          styles.content,
-          { paddingBottom: Math.max(insets.bottom, LIST_BOTTOM_SAFE_GAP) + spacing.xl },
-        ]}
-        showsVerticalScrollIndicator={false}
-      >
-        <Text style={styles.sectionFirst}>Sécurité</Text>
+      <SafeBottomArea>
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+        >
+          <Text style={styles.sectionFirst}>Sécurité</Text>
 
-        <Row
-          icon="people-outline"
-          label="Contacts d’urgence"
-          hint={
-            items.length === 0
-              ? 'Aucun contact — le SOS n’aurait personne à prévenir'
-              : `${items.length} contact${items.length > 1 ? 's' : ''} prévenu${
-                  items.length > 1 ? 's' : ''
-                } en cas d’alerte`
-          }
-          warn={items.length === 0}
-          onPress={onOpenEmergencyContacts}
-        />
+          <Row
+            icon="people-outline"
+            label="Contacts d’urgence"
+            hint={
+              items.length === 0
+                ? 'Aucun contact — le SOS n’aurait personne à prévenir'
+                : `${items.length} contact${items.length > 1 ? 's' : ''} prévenu${
+                    items.length > 1 ? 's' : ''
+                  } en cas d’alerte`
+            }
+            warn={items.length === 0}
+            onPress={onOpenEmergencyContacts}
+          />
 
-        <Row
-          icon="headset-outline"
-          label="Assistance VORA"
-          hint="Nous contacter, questions fréquentes, litige sur une course"
-          onPress={onOpenSupport}
-        />
+          <Row
+            icon="headset-outline"
+            label="Assistance VORA"
+            hint="Nous contacter, questions fréquentes, litige sur une course"
+            onPress={onOpenSupport}
+          />
 
-        <Row
-          icon="shield-checkmark-outline"
-          label="Partage automatique de course"
-          hint="Bientôt : prévenir un proche à chaque départ"
-          disabled
-        />
+          <Row
+            icon="shield-checkmark-outline"
+            label="Partage automatique de course"
+            hint="Bientôt : prévenir un proche à chaque départ"
+            disabled
+          />
 
-        <Text style={styles.section}>Mes courses</Text>
+          <Text style={styles.section}>Mes courses</Text>
 
-        <Row
-          icon="receipt-outline"
-          label="Historique et reçus"
-          hint="Courses passées, montants et monnaie rendue"
-          onPress={onOpenHistory}
-        />
+          <Row
+            icon="receipt-outline"
+            label="Historique et reçus"
+            hint="Courses passées, montants et monnaie rendue"
+            onPress={onOpenHistory}
+          />
 
-        <Row
-          icon="wallet-outline"
-          label="Portefeuille"
-          hint="Bientôt : solde et recharge"
-          disabled
-        />
+          <Row
+            icon="wallet-outline"
+            label="Portefeuille"
+            hint="Bientôt : solde et recharge"
+            disabled
+          />
 
-        <Text style={styles.section}>Compte</Text>
+          <Text style={styles.section}>Compte</Text>
 
-        <Row
-          icon="person-outline"
-          label="Informations personnelles"
-          hint="Bientôt : nom, téléphone, mot de passe"
-          disabled
-        />
+          <Row
+            icon="person-outline"
+            label="Informations personnelles"
+            hint="Bientôt : nom, téléphone, mot de passe"
+            disabled
+          />
 
-        <Row
-          icon="lock-closed-outline"
-          label="Confidentialité"
-          hint="Bientôt : données partagées et suppression du compte"
-          disabled
-        />
+          <Row
+            icon="lock-closed-outline"
+            label="Confidentialité"
+            hint="Bientôt : données partagées et suppression du compte"
+            disabled
+          />
 
-        <Row
-          icon="log-out-outline"
-          label="Changer de compte"
-          hint="Déconnexion, puis retour à l’écran de connexion"
-          onPress={signOut}
-        />
+          <Row
+            icon="log-out-outline"
+            label="Changer de compte"
+            hint="Déconnexion, puis retour à l’écran de connexion"
+            onPress={signOut}
+          />
 
-        <Text style={styles.notice}>
-          Profil de démonstration — les informations affichées arriveront avec
-          le serveur.
-        </Text>
-      </ScrollView>
+          <Text style={styles.notice}>
+            Profil de démonstration — les informations affichées arriveront avec
+            le serveur.
+          </Text>
+        </ScrollView>
+      </SafeBottomArea>
     </View>
   );
 }

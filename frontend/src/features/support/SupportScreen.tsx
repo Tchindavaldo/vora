@@ -11,13 +11,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import {
-  colors,
-  LIST_BOTTOM_SAFE_GAP,
-  radius,
-  spacing,
-  typography,
-} from '../../theme';
+import { colors, radius, spacing, typography } from '../../theme';
+import { SafeBottomArea } from '../../components/SafeBottomArea';
 import { formatXaf } from '../../services/pricing';
 import { formatTransactionDate } from '../../services/transactions';
 import {
@@ -60,7 +55,11 @@ export function SupportScreen({ onClose }: Props) {
     <View style={styles.root}>
       <StatusBar style="dark" />
 
+      {/* Retour a DROITE, comme sur les ecrans de profil : le pouce l'atteint
+          sans changer de main sur un grand telephone. */}
       <View style={[styles.header, { paddingTop: insets.top + spacing.md }]}>
+        <Text style={styles.title}>Assistance</Text>
+
         <Pressable
           onPress={onClose}
           hitSlop={10}
@@ -70,129 +69,126 @@ export function SupportScreen({ onClose }: Props) {
         >
           <Ionicons name="arrow-back" size={22} color={colors.text} />
         </Pressable>
-
-        <Text style={styles.title}>Assistance</Text>
       </View>
 
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={[
-          styles.content,
-          { paddingBottom: Math.max(insets.bottom, LIST_BOTTOM_SAFE_GAP) + spacing.xl },
-        ]}
-        showsVerticalScrollIndicator={false}
-      >
-        <Text style={styles.section}>Nous contacter</Text>
-
-        <Pressable
-          style={styles.contact}
-          onPress={support.callSupport}
-          accessibilityRole="button"
-          accessibilityLabel={`Appeler l’assistance au ${SUPPORT_PHONE}`}
+      <SafeBottomArea>
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
         >
-          <View style={styles.contactIcon}>
-            <Ionicons name="call-outline" size={20} color={colors.text} />
-          </View>
-          <View style={styles.contactBody}>
-            <Text style={styles.contactLabel}>Appeler l’assistance</Text>
-            <Text style={styles.contactHint}>
-              {SUPPORT_PHONE} · {SUPPORT_HOURS}
-            </Text>
-          </View>
-          <Ionicons name="chevron-forward" size={16} color={colors.textFaint} />
-        </Pressable>
+          <Text style={styles.section}>Nous contacter</Text>
 
-        <Pressable
-          style={styles.contact}
-          onPress={support.emailSupport}
-          accessibilityRole="button"
-          accessibilityLabel={`Écrire à l’assistance à ${SUPPORT_EMAIL}`}
-        >
-          <View style={styles.contactIcon}>
-            <Ionicons name="mail-outline" size={20} color={colors.text} />
-          </View>
-          <View style={styles.contactBody}>
-            <Text style={styles.contactLabel}>Écrire à l’assistance</Text>
-            <Text style={styles.contactHint}>
-              {SUPPORT_EMAIL} · réponse sous 48 h
-            </Text>
-          </View>
-          <Ionicons name="chevron-forward" size={16} color={colors.textFaint} />
-        </Pressable>
-
-        <Text style={styles.section}>Questions fréquentes</Text>
-
-        {/* Accordeon maison plutot qu'une librairie (R18) : une question
-            ouverte a la fois, l'ecran reste parcourable. */}
-        {FAQ_ENTRIES.map((entry) => {
-          const isOpen = entry.id === support.openFaqId;
-
-          return (
-            <View key={entry.id} style={styles.faq}>
-              <Pressable
-                style={styles.faqHead}
-                onPress={() => support.toggleFaq(entry.id)}
-                accessibilityRole="button"
-                accessibilityState={{ expanded: isOpen }}
-                accessibilityLabel={entry.question}
-              >
-                <Text style={styles.faqQuestion}>{entry.question}</Text>
-                <Ionicons
-                  name={isOpen ? 'chevron-up' : 'chevron-down'}
-                  size={16}
-                  color={colors.textFaint}
-                />
-              </Pressable>
-
-              {isOpen && <Text style={styles.faqAnswer}>{entry.answer}</Text>}
+          <Pressable
+            style={styles.contact}
+            onPress={support.callSupport}
+            accessibilityRole="button"
+            accessibilityLabel={`Appeler l’assistance au ${SUPPORT_PHONE}`}
+          >
+            <View style={styles.contactIcon}>
+              <Ionicons name="call-outline" size={20} color={colors.text} />
             </View>
-          );
-        })}
+            <View style={styles.contactBody}>
+              <Text style={styles.contactLabel}>Appeler l’assistance</Text>
+              <Text style={styles.contactHint}>
+                {SUPPORT_PHONE} · {SUPPORT_HOURS}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={colors.textFaint} />
+          </Pressable>
 
-        <Text style={styles.section}>Litige sur une course</Text>
+          <Pressable
+            style={styles.contact}
+            onPress={support.emailSupport}
+            accessibilityRole="button"
+            accessibilityLabel={`Écrire à l’assistance à ${SUPPORT_EMAIL}`}
+          >
+            <View style={styles.contactIcon}>
+              <Ionicons name="mail-outline" size={20} color={colors.text} />
+            </View>
+            <View style={styles.contactBody}>
+              <Text style={styles.contactLabel}>Écrire à l’assistance</Text>
+              <Text style={styles.contactHint}>
+                {SUPPORT_EMAIL} · réponse sous 48 h
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={colors.textFaint} />
+          </Pressable>
 
-        <Text style={styles.sectionBody}>
-          Montant incorrect, trajet non respecté, objet oublié : choisissez la
-          course concernée, notre équipe la reprend avec le chauffeur.
-        </Text>
+          <Text style={styles.section}>Questions fréquentes</Text>
 
-        {isLoading ? (
-          <View style={styles.ridesState}>
-            <ActivityIndicator color={colors.primary} />
-          </View>
-        ) : error !== null ? (
-          // L'echec de lecture ne doit pas bloquer TOUT l'ecran : le numero du
-          // support reste au-dessus, joignable (R8).
-          <Text style={styles.ridesError}>
-            {error} En attendant, appelez l’assistance ci-dessus.
-          </Text>
-        ) : rides.length === 0 ? (
-          <Text style={styles.ridesEmpty}>
-            Aucune course à contester pour l’instant.
-          </Text>
-        ) : (
-          rides.map((ride) => (
-            <Pressable
-              key={ride.id}
-              style={styles.ride}
-              onPress={() => support.openDispute(ride.id)}
-              accessibilityRole="button"
-              accessibilityLabel={`Ouvrir un litige sur la course vers ${ride.destinationLabel}`}
-            >
-              <View style={styles.rideBody}>
-                <Text style={styles.rideLabel} numberOfLines={1}>
-                  {ride.destinationLabel}
-                </Text>
-                <Text style={styles.rideHint}>
-                  {formatTransactionDate(ride.completedAt)} ·{' '}
-                  {formatXaf(ride.amountXaf)}
-                </Text>
+          {/* Accordeon maison plutot qu'une librairie (R18) : une question
+              ouverte a la fois, l'ecran reste parcourable. */}
+          {FAQ_ENTRIES.map((entry) => {
+            const isOpen = entry.id === support.openFaqId;
+
+            return (
+              <View key={entry.id} style={styles.faq}>
+                <Pressable
+                  style={styles.faqHead}
+                  onPress={() => support.toggleFaq(entry.id)}
+                  accessibilityRole="button"
+                  accessibilityState={{ expanded: isOpen }}
+                  accessibilityLabel={entry.question}
+                >
+                  <Text style={styles.faqQuestion}>{entry.question}</Text>
+                  <Ionicons
+                    name={isOpen ? 'chevron-up' : 'chevron-down'}
+                    size={16}
+                    color={colors.textFaint}
+                  />
+                </Pressable>
+
+                {isOpen && <Text style={styles.faqAnswer}>{entry.answer}</Text>}
               </View>
-              <Ionicons name="chevron-forward" size={16} color={colors.textFaint} />
-            </Pressable>
-          ))
-        )}
-      </ScrollView>
+            );
+          })}
+
+          <Text style={styles.section}>Litige sur une course</Text>
+
+          <Text style={styles.sectionBody}>
+            Montant incorrect, trajet non respecté, objet oublié : choisissez la
+            course concernée, notre équipe la reprend avec le chauffeur.
+          </Text>
+
+          {isLoading ? (
+            <View style={styles.ridesState}>
+              <ActivityIndicator color={colors.primary} />
+            </View>
+          ) : error !== null ? (
+            // L'echec de lecture ne doit pas bloquer TOUT l'ecran : le numero du
+            // support reste au-dessus, joignable (R8).
+            <Text style={styles.ridesError}>
+              {error} En attendant, appelez l’assistance ci-dessus.
+            </Text>
+          ) : rides.length === 0 ? (
+            <Text style={styles.ridesEmpty}>
+              Aucune course à contester pour l’instant.
+            </Text>
+          ) : (
+            rides.map((ride) => (
+              <Pressable
+                key={ride.id}
+                style={styles.ride}
+                onPress={() => support.openDispute(ride.id)}
+                accessibilityRole="button"
+                accessibilityLabel={`Ouvrir un litige sur la course vers ${ride.destinationLabel}`}
+              >
+                <View style={styles.rideBody}>
+                  <Text style={styles.rideLabel} numberOfLines={1}>
+                    {ride.destinationLabel}
+                  </Text>
+                  <Text style={styles.rideHint}>
+                    {formatTransactionDate(ride.completedAt)} ·{' '}
+                    {formatXaf(ride.amountXaf)}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color={colors.textFaint} />
+              </Pressable>
+            ))
+          )}
+        </ScrollView>
+      </SafeBottomArea>
 
       {disputedRide !== undefined && (
         <DisputeSheet

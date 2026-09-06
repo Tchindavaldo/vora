@@ -13,13 +13,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import {
-  colors,
-  LIST_BOTTOM_SAFE_GAP,
-  radius,
-  spacing,
-  typography,
-} from '../../theme';
+import { colors, radius, spacing, typography } from '../../theme';
+import { SafeBottomArea } from '../../components/SafeBottomArea';
 import {
   useDriverEmergencyContacts,
   validateDriverContact,
@@ -67,6 +62,9 @@ export function DriverEmergencyContactsScreen({ onClose }: Props) {
       <StatusBar style="dark" />
 
       <View style={[styles.header, { paddingTop: insets.top + spacing.md }]}>
+        <Text style={styles.title}>Contacts d’urgence</Text>
+
+        {/* Retour a DROITE, comme sur les ecrans de profil. */}
         <Pressable
           onPress={onClose}
           hitSlop={10}
@@ -76,102 +74,99 @@ export function DriverEmergencyContactsScreen({ onClose }: Props) {
         >
           <Ionicons name="arrow-back" size={22} color={colors.text} />
         </Pressable>
-
-        <Text style={styles.title}>Contacts d’urgence</Text>
       </View>
 
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={[
-          styles.content,
-          { paddingBottom: Math.max(insets.bottom, LIST_BOTTOM_SAFE_GAP) + spacing.xl },
-        ]}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
-        <Text style={styles.intro}>
-          Ces personnes reçoivent votre position et la course en cours quand vous
-          déclenchez une alerte, y compris entre deux courses.
-        </Text>
-
-        {items.length === 0 ? (
-          <View style={styles.empty}>
-            <Ionicons name="alert-circle-outline" size={20} color={colors.danger} />
-            <Text style={styles.emptyText}>
-              Aucun contact enregistré : le bouton SOS n’aurait personne à
-              prévenir.
-            </Text>
-          </View>
-        ) : (
-          items.map((contact) => (
-            <View key={contact.id} style={styles.row}>
-              <View style={styles.rowBody}>
-                <Text style={styles.rowTitle} numberOfLines={1}>
-                  {contact.name}
-                </Text>
-                <Text style={styles.rowMeta} numberOfLines={1}>
-                  {contact.relation} · {contact.phone}
-                </Text>
-              </View>
-
-              <Pressable
-                onPress={() => remove(contact.id)}
-                hitSlop={10}
-                accessibilityRole="button"
-                accessibilityLabel={`Retirer ${contact.name}`}
-              >
-                <Ionicons name="trash-outline" size={18} color={colors.danger} />
-              </Pressable>
-            </View>
-          ))
-        )}
-
-        <Text style={styles.section}>Ajouter un contact</Text>
-
-        <TextInput
-          style={styles.input}
-          value={draft.name}
-          onChangeText={(name) => setDraft({ ...draft, name })}
-          placeholder="Nom"
-          placeholderTextColor={colors.textMuted}
-          accessibilityLabel="Nom du contact"
-        />
-
-        <TextInput
-          style={styles.input}
-          value={draft.relation}
-          onChangeText={(relation) => setDraft({ ...draft, relation })}
-          placeholder="Lien (épouse, frère…)"
-          placeholderTextColor={colors.textMuted}
-          accessibilityLabel="Lien avec le contact"
-        />
-
-        <TextInput
-          style={styles.input}
-          value={draft.phone}
-          onChangeText={(phone) => setDraft({ ...draft, phone })}
-          placeholder="+237 6 90 00 00 21"
-          placeholderTextColor={colors.textMuted}
-          keyboardType="phone-pad"
-          accessibilityLabel="Numéro du contact"
-        />
-
-        {error !== null && <Text style={styles.error}>{error}</Text>}
-
-        <Pressable
-          onPress={handleAdd}
-          style={styles.add}
-          accessibilityRole="button"
-          accessibilityLabel="Ajouter ce contact"
+      <SafeBottomArea>
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
-          <Text style={styles.addLabel}>Ajouter</Text>
-        </Pressable>
+          <Text style={styles.intro}>
+            Ces personnes reçoivent votre position et la course en cours quand vous
+            déclenchez une alerte, y compris entre deux courses.
+          </Text>
 
-        <Text style={styles.notice}>
-          Contacts conservés le temps de la session — ils seront rattachés à
-          votre compte chauffeur quand le serveur existera.
-        </Text>
-      </ScrollView>
+          {items.length === 0 ? (
+            <View style={styles.empty}>
+              <Ionicons name="alert-circle-outline" size={20} color={colors.danger} />
+              <Text style={styles.emptyText}>
+                Aucun contact enregistré : le bouton SOS n’aurait personne à
+                prévenir.
+              </Text>
+            </View>
+          ) : (
+            items.map((contact) => (
+              <View key={contact.id} style={styles.row}>
+                <View style={styles.rowBody}>
+                  <Text style={styles.rowTitle} numberOfLines={1}>
+                    {contact.name}
+                  </Text>
+                  <Text style={styles.rowMeta} numberOfLines={1}>
+                    {contact.relation} · {contact.phone}
+                  </Text>
+                </View>
+
+                <Pressable
+                  onPress={() => remove(contact.id)}
+                  hitSlop={10}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Retirer ${contact.name}`}
+                >
+                  <Ionicons name="trash-outline" size={18} color={colors.danger} />
+                </Pressable>
+              </View>
+            ))
+          )}
+
+          <Text style={styles.section}>Ajouter un contact</Text>
+
+          <TextInput
+            style={styles.input}
+            value={draft.name}
+            onChangeText={(name) => setDraft({ ...draft, name })}
+            placeholder="Nom"
+            placeholderTextColor={colors.textMuted}
+            accessibilityLabel="Nom du contact"
+          />
+
+          <TextInput
+            style={styles.input}
+            value={draft.relation}
+            onChangeText={(relation) => setDraft({ ...draft, relation })}
+            placeholder="Lien (épouse, frère…)"
+            placeholderTextColor={colors.textMuted}
+            accessibilityLabel="Lien avec le contact"
+          />
+
+          <TextInput
+            style={styles.input}
+            value={draft.phone}
+            onChangeText={(phone) => setDraft({ ...draft, phone })}
+            placeholder="+237 6 90 00 00 21"
+            placeholderTextColor={colors.textMuted}
+            keyboardType="phone-pad"
+            accessibilityLabel="Numéro du contact"
+          />
+
+          {error !== null && <Text style={styles.error}>{error}</Text>}
+
+          <Pressable
+            onPress={handleAdd}
+            style={styles.add}
+            accessibilityRole="button"
+            accessibilityLabel="Ajouter ce contact"
+          >
+            <Text style={styles.addLabel}>Ajouter</Text>
+          </Pressable>
+
+          <Text style={styles.notice}>
+            Contacts conservés le temps de la session — ils seront rattachés à
+            votre compte chauffeur quand le serveur existera.
+          </Text>
+        </ScrollView>
+      </SafeBottomArea>
     </KeyboardAvoidingView>
   );
 }

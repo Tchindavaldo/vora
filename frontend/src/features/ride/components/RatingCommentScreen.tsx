@@ -126,7 +126,15 @@ export function RatingCommentScreen({
 
       {/* Barre d'action collee au bas : elle remonte avec le clavier, donc
           l'envoi reste atteignable pendant la saisie. */}
-      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, LIST_BOTTOM_SAFE_GAP) + spacing.md }]}>
+      <View
+        style={[
+          styles.footer,
+          {
+            paddingBottom:
+              Math.max(insets.bottom, LIST_BOTTOM_SAFE_GAP) + spacing.md,
+          },
+        ]}
+      >
         <Pressable
           onPress={onSubmit}
           disabled={isSending}
