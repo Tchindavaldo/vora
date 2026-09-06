@@ -14,6 +14,7 @@ import { DriverDashboardScreen } from './DriverDashboardScreen';
 import { IncomingRequestOverlay } from './IncomingRequestOverlay';
 import { DriverTripScreen } from './DriverTripScreen';
 import { DriverProfileScreen } from './DriverProfileScreen';
+import { DriverEarningsScreen } from './DriverEarningsScreen';
 
 type Props = {
   /** Quitte le mode chauffeur et revient a l'accueil passager (R17 etape 9). */
@@ -58,6 +59,12 @@ export function DriverApp({ onExitToHome }: Props) {
 
   // Recentrage sur le vehicule, a la demande du chauffeur.
   const [recenterToken, setRecenterToken] = useState(0);
+
+  // Revenus du jour : ecran plein, comme le profil. La carte est demontee le
+  // temps de la consultation — le chauffeur lit une liste, pas un plan.
+  if (session.route === 'earnings') {
+    return <DriverEarningsScreen onClose={session.closeEarnings} />;
+  }
 
   if (session.route === 'profile') {
     return (
@@ -129,6 +136,7 @@ export function DriverApp({ onExitToHome }: Props) {
           distanceTodayMeters={session.distanceTodayMeters}
           onToggleOnline={(value) => (value ? session.goOnline() : session.goOffline())}
           onOpenProfile={session.openProfile}
+          onOpenEarnings={session.openEarnings}
         />
       )}
 

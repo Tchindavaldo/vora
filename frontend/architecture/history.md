@@ -100,4 +100,6 @@ effectué. »
 
 - Écran de détail d'une course (trajet sur la carte, reçu téléchargeable)
 - Filtre par période et export, une fois l'historique venu du backend
-- Revenus côté chauffeur, dérivés des mêmes courses
+Les revenus côté chauffeur sont livrés à part
+(`driver/DriverEarningsScreen`, service `driverEarnings.ts`) : ils dériveront
+des mêmes courses une fois le backend en place.

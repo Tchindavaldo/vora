@@ -1,5 +1,5 @@
 import React from 'react';
-import { ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -16,6 +16,8 @@ type Props = {
   vehicleModel: string;
   vehiclePlate: string;
   onToggleOnline: (value: boolean) => void;
+  /** Ouvre le detail des revenus du jour. */
+  onOpenEarnings: () => void;
 };
 
 /**
@@ -37,6 +39,7 @@ export function DriverStatusSheet({
   vehicleModel,
   vehiclePlate,
   onToggleOnline,
+  onOpenEarnings,
 }: Props) {
   const insets = useSafeAreaInsets();
 
@@ -82,10 +85,21 @@ export function DriverStatusSheet({
         */}
         <View style={styles.statsGrid}>
           <View style={styles.statsRow}>
-            <View style={styles.statCard}>
+            {/* Seule card cliquable : les gains sont le seul chiffre dont le
+                chauffeur veut le detail — d'ou vient la somme, course par
+                course. Le chevron le signale sans ajouter de bouton. */}
+            <Pressable
+              style={styles.statCard}
+              onPress={onOpenEarnings}
+              accessibilityRole="button"
+              accessibilityLabel="Voir le détail de mes revenus du jour"
+            >
               <Text style={styles.statValue}>{formatXaf(earningsTodayXaf)}</Text>
-              <Text style={styles.statLabel}>Gains</Text>
-            </View>
+              <View style={styles.statLabelRow}>
+                <Text style={styles.statLabel}>Gains</Text>
+                <Ionicons name="chevron-forward" size={12} color={colors.textFaint} />
+              </View>
+            </Pressable>
             <View style={styles.statCard}>
               <Text style={styles.statValue}>{ridesToday}</Text>
               <Text style={styles.statLabel}>Courses</Text>
@@ -188,6 +202,11 @@ const styles = StyleSheet.create({
   statLabel: {
     ...typography.caption,
     textAlign: 'center',
+  },
+  statLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
   },
   ratingRow: {
     flexDirection: 'row',

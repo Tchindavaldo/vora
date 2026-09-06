@@ -14,6 +14,13 @@ DASHBOARD (hors ligne)
 COURSE : to_pickup -> arrived -> in_progress -> completed -> DASHBOARD
 ```
 
+Depuis le tableau de bord, la card **Gains** ouvre l'ecran des revenus du jour
+(`DriverEarningsScreen`) : total encaisse en tete, puis la liste des courses qui
+le composent. Ecran plein comme le profil — une liste se parcourt, elle n'a pas
+a partager la hauteur avec la carte. Chaque course encaissee y est ajoutee par
+`finishTrip` via `recordDriverEarning` (`services/driverEarnings.ts`, simule et
+en memoire, sur le meme modele que `transactions.ts` cote passager).
+
 L'etat vit dans `useDriverSession` (pas de librairie de navigation, R18) :
 `route`, `isOnline`, `request`, `stage`, gains du jour.
 
@@ -27,6 +34,10 @@ L'etat vit dans `useDriverSession` (pas de librairie de navigation, R18) :
 | `DriverTripScreen.tsx` | Panneau bas de la course |
 | `DriverTripSheet.tsx` | Panneau bas : etape courante, action, detail du paiement |
 | `DriverProfileScreen.tsx` | Profil chauffeur, sortie vers le mode passager |
+| `DriverEarningsScreen.tsx` | Revenus du jour : total, courses encaissees, etats degrades |
+| `useDriverEarnings.ts` | Lecture des revenus — chargement / succes / erreur (R12) |
+| `DriverEarningRow.tsx` | Une course encaissee (copie de `TransactionRow`, R16) |
+| `../../services/driverEarnings.ts` | Archivage et lecture **simules** — seul fichier a remplacer par l'API |
 | `DriverMapCanvas.tsx` | Carte du mode chauffeur (copie de `MapCanvas`, R16) |
 | `DriverRouteLine.tsx` | Trace d'itineraire (copie de `RouteLine`, R16) |
 | `DriverVehicleMarker.tsx` | Vehicule du chauffeur, halo ROUGE (copie de `VehicleMarker`, R16) |
@@ -101,6 +112,8 @@ trace (R8).
 ## Simulations a remplacer
 
 - `driverRequests.ts` : demandes de demonstration -> abonnement socket (R6).
+- `driverEarnings.ts` : `listDriverEarnings` -> `GET /driver/rides?day=today`,
+  et `recordDriverEarning` disparait (c'est le backend qui archive la course).
 - `useDriverVehicleMotion` : disparait, les positions viendront du GPS reel.
 - Points de prise en charge / destination : decales autour de la position du
   chauffeur, faute de geocodage cote chauffeur.

@@ -11,8 +11,8 @@ itinéraire, estimation de prix, paiement simulé, commande, recherche de
 chauffeur, suivi de la course jusqu'à sa fin, évaluation du chauffeur,
 historique des courses et sécurité du passager (R17 étapes 2 à 8 et 10, la
 course étant simulée). **Mode chauffeur** livré également : tableau de bord,
-demande entrante, course en quatre étapes jusqu'à l'encaissement (R17 étape 9,
-simulé). Backend non démarré.
+demande entrante, course en quatre étapes jusqu'à l'encaissement et revenus du jour (R17
+étape 9, simulé). Backend non démarré.
 
 | Couche | Choix | Justification |
 |---|---|---|

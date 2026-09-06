@@ -15,8 +15,14 @@ import {
   type DriverRideRequest,
   type DriverTripStage,
 } from './driverRequests';
+import { recordDriverEarning } from '../../services/driverEarnings';
 
-export type DriverRoute = 'dashboard' | 'incoming_request' | 'trip' | 'profile';
+export type DriverRoute =
+  | 'dashboard'
+  | 'incoming_request'
+  | 'trip'
+  | 'profile'
+  | 'earnings';
 
 /** Chauffeur de demonstration : identite affichee sur le tableau de bord et le profil. */
 export const DEMO_DRIVER = {
@@ -122,6 +128,21 @@ export function useDriverSession() {
     setEarningsTodayXaf((total) => total + (request?.earningsXaf ?? 0));
     setRidesToday((count) => count + 1);
     setDistanceTodayMeters((total) => total + (request?.distanceMeters ?? 0));
+
+    // La course rejoint les revenus du jour : c'est le dernier moment ou le
+    // trajet, le montant et le mode d'encaissement sont connus ensemble.
+    if (request !== null) {
+      recordDriverEarning({
+        id: request.id,
+        pickupLabel: request.pickupLabel,
+        destinationLabel: request.destinationLabel,
+        tier: request.tier,
+        distanceMeters: request.distanceMeters,
+        amountXaf: request.earningsXaf,
+        method: request.method,
+      });
+    }
+
     setRequest(null);
     setStage('to_pickup');
     setRoute('dashboard');
@@ -129,6 +150,9 @@ export function useDriverSession() {
 
   const openProfile = useCallback(() => setRoute('profile'), []);
   const closeProfile = useCallback(() => setRoute('dashboard'), []);
+
+  const openEarnings = useCallback(() => setRoute('earnings'), []);
+  const closeEarnings = useCallback(() => setRoute('dashboard'), []);
 
   return {
     route,
@@ -147,6 +171,8 @@ export function useDriverSession() {
     finishTrip,
     openProfile,
     closeProfile,
+    openEarnings,
+    closeEarnings,
   };
 }
 
