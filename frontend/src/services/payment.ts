@@ -10,15 +10,17 @@
  */
 
 import { formatXaf } from './pricing';
+import { getBalance } from './wallet';
 
 export type PaymentMethod = 'cash' | 'wallet' | 'mobile_money';
 
 /**
  * Etats traverses par un paiement.
  *
- * `pending` couvre l'attente de validation sur le telephone (Mobile Money) ;
- * `due` est l'etat propre aux especes : rien n'est debite, le chauffeur
- * encaissera a la descente.
+ * `pending` couvre la mise en place du mode a la commande ; `due` signifie que
+ * le mode est retenu et sera execute A L'ARRIVEE — especes remises au
+ * chauffeur, portefeuille debite, ou tunnel Mobile Money joue a la descente.
+ * `succeeded` n'apparait donc qu'en fin de course.
  */
 export type PaymentStatus = 'idle' | 'pending' | 'succeeded' | 'failed' | 'due';
 
@@ -96,9 +98,13 @@ export const METHOD_HINTS: Record<PaymentMethod, string> = {
 /**
  * Solde du portefeuille virtuel, en francs CFA.
  *
- * Valeur de demonstration : le solde reel viendra du backend avec le profil.
+ * Lu depuis `services/wallet`, qui porte desormais le solde et ses mouvements :
+ * il change au fil des recharges et des courses payees, il ne peut donc plus
+ * etre une constante.
  */
-export const DEMO_WALLET_BALANCE = 7500;
+export function walletBalance(): number {
+  return getBalance();
+}
 
 /** Delais de la simulation, cales pour rester visibles pendant la demo. */
 const WALLET_DELAY_MS = 900;
@@ -132,23 +138,45 @@ export function startPayment(
     return () => {};
   }
 
-  // Portefeuille : debit immediat sur un solde deja present dans l'app.
+  // Portefeuille : on ne debite PAS ici. Comme chez Yango ou Uber, le mode est
+  // choisi a la commande et execute a l'arrivee (brief §8) — debiter au depart
+  // ferait payer une course annulee. On verifie seulement que le solde couvre
+  // l'estimation, pour ne pas laisser partir une course qui echouera a la
+  // descente (R8).
   if (method === 'wallet') {
-    if (amountXaf > DEMO_WALLET_BALANCE) {
+    if (amountXaf > getBalance()) {
       emit('failed', 'Solde insuffisant. Rechargez ou choisissez un autre mode.');
       return () => {};
     }
 
     emit('pending');
-    timers.push(setTimeout(() => emit('succeeded'), WALLET_DELAY_MS));
+    timers.push(setTimeout(() => emit('due'), WALLET_DELAY_MS));
     return () => timers.forEach(clearTimeout);
   }
 
-  // Mobile Money : l'operateur envoie une demande sur le telephone, le
-  // passager saisit son code, puis le verdict revient.
+  // Mobile Money : le tunnel USSD ne se joue qu'a l'arrivee, lui aussi. A la
+  // commande, on retient seulement le mode.
   emit('pending');
-  timers.push(setTimeout(() => emit('succeeded'), MOBILE_MONEY_PROMPT_MS));
+  timers.push(setTimeout(() => emit('due'), MOBILE_MONEY_PROMPT_MS));
   return () => timers.forEach(clearTimeout);
+}
+
+/**
+ * Ce a quoi le mode choisi engage, AVANT tout paiement.
+ *
+ * Affiche des la selection d'une carte : le passager sait ce qui se passera a
+ * l'arrivee sans avoir a appuyer sur un bouton pour le decouvrir. Le libelle est
+ * volontairement le meme que celui du verdict `due` (voir `resultLabel`) : ce
+ * qui est annonce est exactement ce qui sera fait.
+ */
+export function settlementLabel(method: PaymentMethod): string {
+  if (method === 'wallet') {
+    return 'Portefeuille — débité à la fin de la course.';
+  }
+  if (method === 'mobile_money') {
+    return 'Mobile Money — à valider sur votre téléphone à l’arrivée.';
+  }
+  return 'Espèces — à régler au chauffeur à la descente.';
 }
 
 /** Ce que le panneau affiche pendant l'attente, selon le mode choisi. */
@@ -162,6 +190,16 @@ export function pendingLabel(method: PaymentMethod): string {
 /** Ce que le panneau affiche une fois le paiement conclu. */
 export function resultLabel(payment: Payment): string {
   if (payment.status === 'due') {
+    // Les trois modes sont regles a l'arrivee, mais pas de la meme facon : les
+    // especes passent de la main a la main, les deux autres se declenchent tout
+    // seuls a la fin de la course.
+    if (payment.method === 'wallet') {
+      return 'Portefeuille — débité à la fin de la course.';
+    }
+    if (payment.method === 'mobile_money') {
+      return 'Mobile Money — à valider sur votre téléphone à l’arrivée.';
+    }
+
     const settle = `${formatMethod(payment.method)} — à régler au chauffeur à la descente.`;
     // La monnaie fait partie du verdict : c'est elle que le passager relira a
     // l'arrivee, pas le montant de la course.

@@ -4,6 +4,7 @@ import { DestinationSheet, type Shortcut } from './DestinationSheet';
 import { FareSheet } from '../../booking/components/FareSheet';
 import { PaymentSheet } from '../../payment/components/PaymentSheet';
 import { CashChangeSheet } from '../../payment/components/CashChangeSheet';
+import { SettlementSheet } from '../../payment/components/SettlementSheet';
 import { SearchingDriverSheet } from '../../ride/components/SearchingDriverSheet';
 import { RideTrackingSheet } from '../../ride/components/RideTrackingSheet';
 import { RatingSheet } from '../../ride/components/RatingSheet';
@@ -13,6 +14,7 @@ import type { useBookingFlow } from '../../booking/useBookingFlow';
 import type { usePayment } from '../../payment/usePayment';
 import type { useRideRequest } from '../../ride/useRideRequest';
 import type { useRideRating } from '../../ride/useRideRating';
+import type { Settlement } from '../../payment/useSettlement';
 import type { RideSafety } from '../../ride/useRideSafety';
 import type { EmergencyContact } from '../../../services/safety';
 import type { useRideOrder } from '../useRideOrder';
@@ -26,11 +28,15 @@ type Props = {
   safety: RideSafety;
   emergencyContacts: EmergencyContact[];
   shortcuts: Shortcut[];
+  settlement: Settlement;
+  isSettling: boolean;
   isRating: boolean;
   onSearchPress: () => void;
   onShortcutPress: (shortcut: Shortcut) => void;
   onCancelRide: () => void;
   onRideDone: () => void;
+  onSettled: () => void;
+  onFallbackToCash: () => void;
   onOpenComment: () => void;
   onRatingClose: () => void;
 };
@@ -56,11 +62,15 @@ export function HomeSheets({
   safety,
   emergencyContacts,
   shortcuts,
+  settlement,
+  isSettling,
   isRating,
   onSearchPress,
   onShortcutPress,
   onCancelRide,
   onRideDone,
+  onSettled,
+  onFallbackToCash,
   onOpenComment,
   onRatingClose,
 }: Props) {
@@ -92,6 +102,19 @@ export function HomeSheets({
         error={safety.reportError}
         onSubmit={safety.sendReport}
         onClose={safety.close}
+      />
+    );
+  }
+
+  // Reglement : etape qui precede l'evaluation, dans le meme panneau — la
+  // course est finie, seul le paiement compte a cet instant.
+  if (isSettling) {
+    return (
+      <SettlementSheet
+        settlement={settlement}
+        amountXaf={ride.ride?.amountXaf ?? 0}
+        onDone={onSettled}
+        onFallbackToCash={onFallbackToCash}
       />
     );
   }

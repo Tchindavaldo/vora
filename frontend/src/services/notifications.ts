@@ -50,20 +50,25 @@ export async function hasNotificationPermission(): Promise<boolean> {
 }
 
 export async function notify(title: string, body: string) {
-  const hasPerm = await hasNotificationPermission();
-  if (!hasPerm) return;
-
   const id = Math.random().toString(36).substring(7);
-  
+
   const record: NotificationRecord = {
     id,
     title,
     body,
     date: new Date(),
   };
-  
+
+  // L'historique est alimente MEME SANS PERMISSION : la liste des
+  // notifications de l'application est un journal de ce qui s'est passe sur le
+  // compte (recharge creditee, course acceptee). Un passager qui a refuse les
+  // notifications systeme doit quand meme retrouver l'evenement en ouvrant
+  // l'ecran. Seul l'envoi a la barre systeme, lui, exige la permission.
   history = [record, ...history];
   emit();
+
+  const hasPerm = await hasNotificationPermission();
+  if (!hasPerm) return;
 
   try {
     await Notifications.scheduleNotificationAsync({

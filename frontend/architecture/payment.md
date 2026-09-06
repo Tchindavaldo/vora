@@ -7,15 +7,24 @@ MTN MoMo ou Orange Money (R13, brief §23).
 ## Position dans le flux
 
 ```text
+COMMANDE — on RETIENT le mode, on ne débite pas
 FareSheet « Commander » → PaymentSheet → « Suivant »
   ├─ espèces        → CashChangeSheet (monnaie) → « Commander »
-  └─ autres modes   → débit simulé              → « Commander »
-→ SearchingDriverSheet
+  └─ autres modes   → vérification du solde     → « Commander »
+→ SearchingDriverSheet → suivi de course
+
+ARRIVÉE — le mode retenu s'EXÉCUTE (SettlementScreen)
+« Terminer » → SettlementScreen
+  ├─ espèces       → « Payez 2 500 F au chauffeur » → « J'ai payé »
+  ├─ portefeuille  → débit du solde + ligne de mouvement
+  └─ Mobile Money  → tunnel USSD (waiting → ussd_sent → success / failed)
+→ évaluation du chauffeur → historique
 ```
 
-La course n'est créée qu'une fois le paiement réglé — payé, ou « dû » en
-espèces. Annuler le paiement revient à l'estimation, itinéraire conservé : le
-calcul de route n'est pas refait.
+**Le paiement a lieu à la fin de la course, jamais au départ** (brief §8, comme
+Yango et Uber) : débiter à la commande ferait payer une course annulée. À la
+commande on ne fait que retenir le mode et vérifier que le portefeuille couvre
+l'estimation. Annuler le paiement revient à l'estimation, itinéraire conservé.
 
 ## Composition
 
@@ -31,24 +40,92 @@ HomeScreen (tarif retenu)
 
 | Fichier | Rôle |
 |---|---|
-| `usePayment.ts` | Mode retenu, étape (`method` / `cash`), somme saisie, verdict, timers (R8) |
+| `usePayment.ts` | Mode retenu à la commande, étape (`method` / `cash`), somme saisie |
+| `useSettlement.ts` | Règlement **à l'arrivée** : espèces dues, débit portefeuille, tunnel USSD |
+| `SettlementScreen.tsx` | Écran plein de fin de course : état du règlement, réessayer, repli espèces |
 | `components/PaymentSheet.tsx` | Panneau : modes, montant, état, « Suivant » |
 | `components/CashChangeSheet.tsx` | Étape espèces : somme annoncée, monnaie à rendre |
-| `../../services/payment.ts` | Verdicts **simulés** + calcul de la monnaie — seul fichier à remplacer par l'API |
+| `../../services/payment.ts` | Modes et verdicts **simulés** + calcul de la monnaie |
+| `../../services/momo.ts` | Tunnel Mobile Money **simulé** : `waiting → ussd_sent → success / failed` |
+| `../../services/wallet.ts` | Solde du portefeuille, recharges, débits, mouvements (**simulé**, en mémoire) |
+| `../wallet/` | Écran portefeuille : solde, recharge Mobile Money, mouvements |
 
 ## Les trois modes (brief §8)
 
-| Mode | Parcours affiché | État final |
+| Mode | À la commande | À l'arrivée |
 |---|---|---|
-| Espèces | rien n'est débité, le chauffeur encaisse à la descente | `due` immédiat |
-| Portefeuille | solde VORA débité immédiatement | `pending` 0,9 s puis `succeeded` |
-| Mobile Money | « Validez la demande sur votre téléphone… » | `pending` 3,5 s puis `succeeded` |
+| Espèces | monnaie annoncée au chauffeur | « Payez 2 500 F au chauffeur » + confirmation |
+| Portefeuille | vérification du solde | débit du solde, ligne dans les mouvements |
+| Mobile Money | mode simplement retenu | tunnel USSD (voir ci-dessous) |
 
-Le portefeuille est **simulé** : solde de démonstration (7 500 F), refus si le
-montant dépasse le solde. Le Mobile Money imite la demande opérateur : l'app
-attend, le passager valide sur son téléphone, le verdict revient. La vraie
-différence entre les modes est le **parcours affiché** ; la logique commune
-tient dans `startPayment`.
+Le portefeuille est **simulé et en mémoire** (`services/wallet.ts`) : solde
+d'ouverture 7 500 F, rechargeable, refus si le montant dépasse le solde. Le
+solde est revérifié **au moment du débit** et pas seulement à la commande — une
+autre course a pu passer entre-temps.
+
+## Tunnel USSD Mobile Money (`services/momo.ts`)
+
+Même machine à états pour la recharge du portefeuille et pour le paiement d'une
+course — c'est la même demande envoyée à l'opérateur, seul le sens de l'argent
+change :
+
+| État | Écran |
+|---|---|
+| `waiting` | « Envoi de la demande à l'opérateur… » + spinner |
+| `ussd_sent` | « Composez *126# et validez le paiement de 2 500 F sur MTN MoMo. » |
+| `success` | ✓ « Paiement de 2 500 F confirmé. » |
+| `failed` | ❌ « Demande annulée ou expirée. Réessayez ou changez de mode. » |
+
+Codes USSD : MTN MoMo `*126#`, Orange Money `#150#`. **Un paiement sur cinq
+échoue volontairement** : un tunnel qui réussit toujours ne prouve rien, et le
+brief (§20) pénalise l'application qui ne marche que dans le scénario idéal.
+L'échec ouvre « Réessayer » et « Payer en espèces ».
+
+Chaque écran du tunnel porte le badge « Paiement simulé — démonstration. Aucun
+débit réel. » (`features/wallet/components/SimulatedPaymentBadge.tsx`, R13).
+
+### La capsule porte le tunnel (`payment/components/AnimatedBorderGlow.tsx`)
+
+Sur le portefeuille comme sur le panneau de paiement, **les messages du tunnel
+s'affichent DANS le bouton d'action**, entouré d'une bordure lumineuse qui
+tourne (segment SVG parcourant le contour, un quart du périmètre, tour de
+1,8 s). Pas de spinner, pas de carte de statut qui remplacerait le formulaire.
+
+Conséquence voulue : **rien de ce qui est au-dessus ne disparaît ni ne bouge**
+pendant l'opération — opérateur retenu, montant, numéro saisi, modes de
+paiement restent lisibles pendant que le passager compose son code USSD, et
+c'est justement le moment où il a besoin de les relire. La capsule a une
+hauteur minimale (58 px portefeuille, 62 px paiement) : elle peut grandir pour
+un message long, jamais rétrécir. Sur le panneau de paiement, la ligne
+d'action est de plus **ancrée hors du ScrollView**.
+
+Un seul bouton porte les trois suites : lancer, « Réessayer » après un échec
+(fond sombre, plus l'aplat d'accent qui se lirait comme un succès), ou fermer
+une fois le solde crédité.
+
+### Notification de recharge
+
+Une recharge créditée déclenche une **notification locale** (« Recharge
+confirmée — 5 000 F ajoutés à votre portefeuille VORA ») : le passager compose
+son code USSD dans une autre application, souvent écran éteint, et doit être
+prévenu sans revenir vérifier lui-même.
+
+L'événement est enregistré dans l'**historique des notifications** de l'app
+(écran Notifications) **même si la permission système a été refusée** :
+l'historique est le journal du compte, pas un doublon de la barre système —
+seul l'envoi à celle-ci exige la permission.
+
+## Portefeuille et recharge (`src/features/wallet/`)
+
+Ouvert depuis Profil → Portefeuille. Trois blocs : le **solde**, la **recharge**
+(opérateur MTN / Orange, raccourcis 1 000 / 2 000 / 5 000 / 10 000, montant
+libre à partir de 500 F, numéro Mobile Money) et les **mouvements** (recharges
+et courses payées, du plus récent au plus ancien).
+
+Le solde n'est **crédité qu'au verdict positif** du tunnel : l'afficher plus tôt
+montrerait de l'argent qui n'est pas arrivé. Il vit dans le service et notifie
+ses abonnés (`subscribeWallet`) — plusieurs écrans le lisent, aucun n'en garde
+sa propre copie (R6).
 
 ## Machine à états
 
@@ -106,7 +183,10 @@ que les types `Payment` et `PaymentMethod`.
 
 | Situation | Comportement |
 |---|---|
-| Solde portefeuille insuffisant | `failed` + « Réessayer » ou changer de mode |
+| Solde portefeuille insuffisant à la commande | `failed` + « Réessayer » ou changer de mode |
+| Solde devenu insuffisant à l'arrivée | règlement en échec, repli « Payer en espèces » proposé |
+| Tunnel USSD annulé ou expiré | « Réessayer » (même montant) ou « Payer en espèces » |
+| Recharge quittée pendant l'attente | timers coupés, solde inchangé — rien n'est crédité |
 | Somme en espèces inférieure au prix | « Cette somme ne couvre pas la course. », bouton bloqué |
 | Chauffeur sans monnaie | retour en recherche, motif affiché, un autre chauffeur prend la course |
 | Changement de mode pendant `pending` | cartes désactivées : un seul paiement en vol |

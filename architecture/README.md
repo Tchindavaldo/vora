@@ -45,6 +45,8 @@ frontend/              application mobile passager (Expo, initialisé)
       search/          recherche de destination — FAIT
       booking/         estimation, confirmation — FAIT
       payment/         paiement (espèces + monnaie, portefeuille, MoMo) — FAIT, simulé
+                       mode retenu à la commande, réglé À L'ARRIVÉE
+      wallet/          portefeuille : solde, recharge Mobile Money, mouvements — FAIT, simulé
       ride/            course : chauffeur, suivi, évaluation — FAIT
       driver/          mode chauffeur : tableau de bord, demande, course,
                        revenus du jour, historique des courses,
@@ -88,7 +90,7 @@ feature.
 | [`frontend/architecture/search.md`](../frontend/architecture/search.md) | Recherche de destination |
 | [`frontend/architecture/booking.md`](../frontend/architecture/booking.md) | Itinéraire et estimation de prix |
 | [`frontend/architecture/ride.md`](../frontend/architecture/ride.md) | Course : commande, chauffeur, suivi jusqu'à la fin |
-| [`frontend/architecture/payment.md`](../frontend/architecture/payment.md) | Paiement : espèces et monnaie annoncée, portefeuille, Mobile Money (simulé) |
+| [`frontend/architecture/payment.md`](../frontend/architecture/payment.md) | Paiement à l'arrivée : espèces et monnaie, portefeuille et recharge, tunnel USSD Mobile Money (simulé) |
 | [`frontend/architecture/history.md`](../frontend/architecture/history.md) | Historique des courses et de leurs reçus |
 | [`frontend/architecture/safety.md`](../frontend/architecture/safety.md) | Sécurité : SOS, partage, signalement, contacts d'urgence |
 | [`frontend/architecture/support.md`](../frontend/architecture/support.md) | Assistance passager : contact du support, FAQ, litige sur une course |

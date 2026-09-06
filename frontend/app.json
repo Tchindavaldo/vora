@@ -13,7 +13,8 @@
       "bundleIdentifier": "com.rauval.krwego",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "VORA utilise votre position pour afficher les chauffeurs à proximité et calculer votre itinéraire.",
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "LSApplicationQueriesSchemes": ["whatsapp"]
       }
     },
     "android": {
@@ -28,7 +29,20 @@
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION"
       ],
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "queries": [
+        {
+          "package": "com.whatsapp"
+        },
+        {
+          "intent": {
+            "action": "android.intent.action.VIEW",
+            "data": {
+              "scheme": "whatsapp"
+            }
+          }
+        }
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
