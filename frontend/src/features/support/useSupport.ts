@@ -63,23 +63,33 @@ export function useSupport() {
   /**
    * Ouvre la conversation WhatsApp de l'assistance, message pre-rempli.
    *
-   * On passe par `wa.me` et non par le schema `whatsapp://` : le lien web
-   * bascule seul vers l'application quand elle est installee, et reste
-   * ouvrable dans le navigateur sinon. WhatsApp absent = message clair,
-   * jamais d'echec silencieux (R8).
+   * On tente D'ABORD le schema natif `whatsapp://send` : il ouvre directement
+   * l'application, sans passer par le navigateur ni par la page d'atterrissage
+   * de `wa.me` qui oblige a taper "Continuer vers la discussion".
+   *
+   * `wa.me` reste le repli quand l'application n'est pas installee : il ouvre
+   * WhatsApp Web. Si meme cela echoue, message clair (R8).
    */
-  const whatsappSupport = useCallback(() => {
-    const url = `https://wa.me/${SUPPORT_WHATSAPP}?text=${encodeURIComponent(
-      SUPPORT_WHATSAPP_MESSAGE,
-    )}`;
+  const whatsappSupport = useCallback(async () => {
+    const text = encodeURIComponent(SUPPORT_WHATSAPP_MESSAGE);
+    const appUrl = `whatsapp://send?phone=${SUPPORT_WHATSAPP}&text=${text}`;
+    const webUrl = `https://wa.me/${SUPPORT_WHATSAPP}?text=${text}`;
 
-    Linking.openURL(url).catch(() => {
-      console.warn('[support] whatsapp indisponible');
+    try {
+      // `canOpenURL` dit si un schema `whatsapp://` est gere par une app
+      // installee. Sur Android il exige la declaration du schema dans
+      // `app.json` (`android.queries`), sinon il renvoie toujours false —
+      // d'ou le repli web qui reste fonctionnel dans tous les cas.
+      const canOpenApp = await Linking.canOpenURL(appUrl);
+
+      await Linking.openURL(canOpenApp ? appUrl : webUrl);
+    } catch (cause) {
+      console.warn('[support] whatsapp indisponible', cause);
       Alert.alert(
         'WhatsApp indisponible',
         `Impossible d’ouvrir WhatsApp. Écrivez-nous au ${SUPPORT_PHONE}.`,
       );
-    });
+    }
   }, []);
 
   /** Ouvre le client mail, sujet pre-rempli. Echec signale, jamais silencieux (R8). */

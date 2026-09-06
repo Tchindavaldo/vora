@@ -1,6 +1,5 @@
 import React from 'react';
 import {
-  ActivityIndicator,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -33,6 +32,17 @@ import {
   type Payment,
   type PaymentMethod,
 } from '../../../services/payment';
+import { AnimatedBorderGlow } from './AnimatedBorderGlow';
+
+/**
+ * Hauteur de la capsule d'action.
+ *
+ * Plus haute qu'un bouton ordinaire : elle accueille aussi le message
+ * d'attente du paiement, sur deux lignes au besoin. Cette hauteur ne change
+ * jamais d'un etat a l'autre — sinon le panneau sauterait au moment de
+ * l'appui, et les modes affiches au-dessus se decaleraient.
+ */
+const CONFIRM_HEIGHT = 62;
 
 type Props = {
   destinationLabel: string;
@@ -163,36 +173,65 @@ export function PaymentSheet({
           Paiement simulé — aucun débit réel n’est effectué.
         </Text>
 
-        {/*
-          Retour et action principale sur la MEME ligne : le passager avance ou
-          recule d'un seul geste, sans chercher une croix en haut du panneau.
-        */}
-        <View style={styles.actions}>
-          <Pressable
-            style={styles.back}
-            onPress={onBack}
-            accessibilityRole="button"
-            accessibilityLabel="Revenir à l’estimation"
-          >
-            <Ionicons name="chevron-back" size={18} color={colors.text} />
-            <Text style={styles.backLabel}>Retour</Text>
-          </Pressable>
+      </ScrollView>
 
+      {/*
+        Retour et action principale sur la MEME ligne : le passager avance ou
+        recule d'un seul geste, sans chercher une croix en haut du panneau.
+
+        ANCREE HORS DU SCROLL : la capsule est haute et porte le message
+        d'attente. Laissee dans la zone defilante, elle repousserait la
+        destination et les modes hors de vue au moment ou le paiement se lance
+        — c'est-a-dire exactement quand le passager veut verifier ce qu'il
+        paie. Ici, le haut du panneau reste visible pendant toute l'operation.
+      */}
+      <View style={styles.actions}>
+        <Pressable
+          style={styles.back}
+          onPress={onBack}
+          accessibilityRole="button"
+          accessibilityLabel="Revenir à l’estimation"
+        >
+          <Ionicons name="chevron-back" size={18} color={colors.text} />
+          <Text style={styles.backLabel}>Retour</Text>
+        </Pressable>
+
+        {/*
+            La capsule d'action porte elle-meme l'etat du paiement pendant
+            l'attente : le message s'affiche DANS le bouton, entoure d'une
+            bordure lumineuse qui tourne. Le bouton garde sa place et sa
+            taille, donc rien ne bouge au-dessus — les modes, le montant et la
+            destination restent lisibles pendant toute l'operation.
+          */}
           <Pressable
-            style={[styles.confirm, isProcessing && styles.confirmDisabled]}
+            style={[styles.confirm, isProcessing && styles.confirmBusy]}
             disabled={isProcessing}
             onPress={isSettled ? onContinue : onNext}
             accessibilityRole="button"
             accessibilityLabel={
-              isSettled ? 'Commander la course' : 'Passer à l’étape suivante'
+              isProcessing
+                ? pendingLabel(selectedMethod)
+                : isSettled
+                  ? 'Commander la course'
+                  : 'Passer à l’étape suivante'
             }
           >
-            <Text style={styles.confirmLabel}>
-              {isSettled ? 'Commander' : hasFailed ? 'Réessayer' : 'Suivant'}
+            <AnimatedBorderGlow
+              active={isProcessing}
+              borderRadius={CONFIRM_HEIGHT / 2}
+            />
+
+            <Text style={styles.confirmLabel} numberOfLines={2}>
+              {isProcessing
+                ? pendingLabel(selectedMethod)
+                : isSettled
+                  ? 'Commander'
+                  : hasFailed
+                    ? 'Réessayer'
+                    : 'Suivant'}
             </Text>
-          </Pressable>
-        </View>
-      </ScrollView>
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -213,14 +252,11 @@ function PaymentState({
 }) {
   if (payment === null) return null;
 
-  if (isProcessing) {
-    return (
-      <View style={styles.state}>
-        <ActivityIndicator color={colors.primary} />
-        <Text style={styles.stateText}>{pendingLabel(selectedMethod)}</Text>
-      </View>
-    );
-  }
+  // Pendant l'attente, le message vit DANS la capsule d'action (bordure
+  // animee) : le repeter ici afficherait deux fois la meme phrase, et la
+  // hauteur de cette ligne ferait sauter la mise en page a chaque changement
+  // d'etat.
+  if (isProcessing) return null;
 
   const isFailure = payment.status === 'failed';
 
@@ -365,20 +401,26 @@ const styles = StyleSheet.create({
     ...typography.caption,
     marginTop: spacing.md,
   },
+  // Ancree sous le scroll : elle porte donc elle-meme sa marge laterale, que
+  // le contenu defilant recevait de `content`.
   actions: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    marginTop: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.md,
   },
   back: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
-    borderRadius: radius.pill,
     borderWidth: 1,
     borderColor: colors.border,
-    paddingVertical: spacing.lg,
+    // Meme hauteur que la capsule d'action : les deux boutons de la ligne
+    // doivent s'aligner, quelle que soit la hauteur retenue pour la capsule.
+    height: CONFIRM_HEIGHT,
+    borderRadius: CONFIRM_HEIGHT / 2,
     paddingHorizontal: spacing.lg,
   },
   backLabel: {
@@ -389,16 +431,24 @@ const styles = StyleSheet.create({
     // L'action principale prend toute la largeur restante : elle reste la
     // cible evidente a cote du retour.
     flex: 1,
+    // Hauteur FIXE plutot qu'un padding : la capsule accueille aussi le
+    // message d'attente, sur deux lignes au besoin. Sans hauteur fixe, elle
+    // grandirait a l'apparition du message et pousserait tout le panneau.
+    height: CONFIRM_HEIGHT,
     backgroundColor: colors.primary,
-    borderRadius: radius.pill,
-    paddingVertical: spacing.lg,
+    borderRadius: CONFIRM_HEIGHT / 2,
+    paddingHorizontal: spacing.lg,
     alignItems: 'center',
+    justifyContent: 'center',
   },
-  confirmDisabled: {
-    opacity: 0.6,
+  // Pendant l'attente, le fond s'assombrit legerement : la bordure lumineuse
+  // et le message doivent primer sur l'aplat d'accent.
+  confirmBusy: {
+    backgroundColor: colors.primaryPressed,
   },
   confirmLabel: {
     ...typography.subtitle,
     color: colors.surface,
+    textAlign: 'center',
   },
 });
