@@ -56,10 +56,13 @@ export function useHomeMarkers({
   const hasAssignedDriver = driverPosition !== null;
 
   return useMemo<MapMarker[]>(() => {
-    // Tant que les positions ne sont pas arretees, aucun vehicule : voir le
-    // commentaire sur `roadPoints` dans HomeScreen.
+    // Les vehicules alentour sont toujours affiches des qu'on a une position
+    // reelle. Tant que les rues ne sont pas connues, ils prennent leur offset
+    // de demonstration autour de l'utilisateur, puis se reposent sur la
+    // chaussee quand la carte a repondu. Les laisser absents jusque-la donnait
+    // un accueil vide, ou aucun chauffeur ne semblait disponible.
     const markers: MapMarker[] =
-      roadPoints === null || hasAssignedDriver
+      isFallbackLocation || hasAssignedDriver
         ? []
         : NEARBY_VEHICLES.flatMap((vehicle, index) => {
             // Filtre par categorie : on garde l'index d'origine, car `motions`
@@ -70,7 +73,7 @@ export function useHomeMarkers({
 
             // Position animee si elle existe, sinon la position posee sur la
             // route, sinon l'offset de demonstration (routes en echec, R8).
-            const onRoad = motions[index] ?? roadPoints[index];
+            const onRoad = motions[index] ?? roadPoints?.[index];
 
             return [
               {

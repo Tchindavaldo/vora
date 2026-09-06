@@ -16,6 +16,7 @@ type Props = {
   onToggleOnline: (value: boolean) => void;
   onOpenProfile: () => void;
   onOpenEarnings: () => void;
+  onOpenNotifications: () => void;
 };
 
 /**
@@ -33,6 +34,7 @@ export function DriverDashboardScreen({
   onToggleOnline,
   onOpenProfile,
   onOpenEarnings,
+  onOpenNotifications,
 }: Props) {
   const insets = useSafeAreaInsets();
 
@@ -57,6 +59,15 @@ export function DriverDashboardScreen({
               <Text style={styles.ratingText}>{DEMO_DRIVER.rating.toFixed(1)}</Text>
             </View>
           </View>
+        </Pressable>
+
+        <Pressable
+          onPress={onOpenNotifications}
+          style={styles.circleButton}
+          accessibilityRole="button"
+          accessibilityLabel="Notifications"
+        >
+          <Ionicons name="notifications-outline" size={22} color={colors.text} />
         </Pressable>
       </View>
 
@@ -94,8 +105,20 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.sm,
+  },
+  circleButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...shadows.floating,
   },
   identity: {
     flexDirection: 'row',

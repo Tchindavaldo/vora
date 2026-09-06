@@ -20,6 +20,7 @@ export type HomeRoute =
   | { name: 'profile' }
   | { name: 'contacts' }
   | { name: 'support' }
+  | { name: 'notifications' }
   | null;
 
 export function useHomeNavigation() {
@@ -33,6 +34,7 @@ export function useHomeNavigation() {
     openProfile: () => setRoute({ name: 'profile' }),
     openContacts: () => setRoute({ name: 'contacts' }),
     openSupport: () => setRoute({ name: 'support' }),
+    openNotifications: () => setRoute({ name: 'notifications' }),
     /** Revient a l'accueil. */
     close: () => setRoute(null),
   };

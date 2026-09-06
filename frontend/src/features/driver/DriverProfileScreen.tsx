@@ -10,6 +10,7 @@ import { formatXaf } from '../../services/pricing';
 import { useAuth } from '../../contexts/AuthContext';
 import { DEMO_DRIVER } from './useDriverSession';
 import { useDriverEmergencyContacts } from './useDriverEmergencyContacts';
+import { useNotificationPermission, openNotificationSettings } from '../../services/notifications';
 
 type Props = {
   earningsTodayXaf: number;
@@ -48,6 +49,7 @@ export function DriverProfileScreen({
   const contactCount = emergencyContacts.length;
   // Deconnexion lue dans le contexte (R6) : elle ne traverse plus DriverApp.
   const { signOut } = useAuth();
+  const { isGranted } = useNotificationPermission();
 
   return (
     <View style={styles.root}>
@@ -134,6 +136,13 @@ export function DriverProfileScreen({
           />
 
           <Text style={styles.section}>Compte</Text>
+
+          <Row
+            icon="notifications-outline"
+            label="Notifications"
+            hint={isGranted ? "Activées — modifiables dans les réglages" : "Désactivées — modifiables dans les réglages"}
+            onPress={openNotificationSettings}
+          />
 
           <Row
             icon="person-outline"
