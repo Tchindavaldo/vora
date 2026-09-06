@@ -16,18 +16,13 @@ import { DriverTripScreen } from './DriverTripScreen';
 import { DriverProfileScreen } from './DriverProfileScreen';
 import { DriverEarningsScreen } from './DriverEarningsScreen';
 
-type Props = {
-  /** Quitte le mode chauffeur et revient a l'accueil passager (R17 etape 9). */
-  onExitToHome: () => void;
-};
-
 /**
  * Racine du parcours chauffeur.
  *
  * Tableau de bord (statut, gains, vehicule) -> demande entrante en overlay
  * avec compte a rebours -> course en 4 etapes jusqu'a l'encaissement ->
  * retour au tableau de bord, gains mis a jour. Le profil chauffeur est le
- * seul endroit d'ou l'on revient au passager (R6 : pas de navigation par
+ * seul endroit d'ou l'on se deconnecte (R6 : pas de navigation par
  * bibliotheque, un etat local par ecran, comme `useHomeNavigation`).
  *
  * IMPORTANT — la carte est montee ICI, une seule fois, et non dans chaque
@@ -36,7 +31,7 @@ type Props = {
  * actuelle a l'acceptation, sans que la carte ne disparaisse et ne se
  * recharge entre les deux ecrans.
  */
-export function DriverApp({ onExitToHome }: Props) {
+export function DriverApp() {
   const session = useDriverSession();
   const insets = useSafeAreaInsets();
 
@@ -71,7 +66,6 @@ export function DriverApp({ onExitToHome }: Props) {
       <DriverProfileScreen
         earningsTodayXaf={session.earningsTodayXaf}
         ridesToday={session.ridesToday}
-        onExitToHome={onExitToHome}
         onClose={session.closeProfile}
         onOpenEarnings={() => session.openEarnings('profile')}
       />

@@ -284,6 +284,8 @@ vora/
     └── src/
         ├── config/env.ts        lecture des variables d'environnement
         ├── theme/               design system : couleurs, espacements, ombres
+        ├── contexts/
+        │   └── AuthContext.tsx  session, rôle, étape d'ouverture, déconnexion
         ├── features/
         │   ├── auth/            splash et connexion par numéro et code
         │   ├── onboarding/      trois écrans de première ouverture
@@ -328,8 +330,7 @@ Limites connues, énoncées franchement (brief §23) :
   connexion par numéro et code) et la session est persistée sur l'appareil,
   mais aucun SMS n'est envoyé : le code `1234` est vérifié côté client et le
   rôle est déduit du numéro (§14). La vérification, l'émission du token et
-  l'attribution du rôle devront passer côté serveur (§6). `AuthContext` reste
-  à faire : l'aiguillage vit pour l'instant dans `App.tsx`.
+  l'attribution du rôle devront passer côté serveur (§6).
 - **Tableau de bord administration non livré.** Le brief décrit trois systèmes ;
   nous avons livré le passager complet et le mode chauffeur plutôt que trois
   partiels (brief §27).

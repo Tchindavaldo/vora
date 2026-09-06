@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { HomeScreen } from './src/features/home/HomeScreen';
@@ -6,90 +6,44 @@ import { DriverApp } from './src/features/driver/DriverApp';
 import { SplashScreen } from './src/features/auth/SplashScreen';
 import { OnboardingScreen } from './src/features/onboarding/OnboardingScreen';
 import { LoginScreen } from './src/features/auth/LoginScreen';
-import {
-  getSession,
-  hasSeenOnboarding,
-  signOut,
-  type Session,
-  type UserRole,
-} from './src/services/session';
+import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 
 /**
  * Routage de haut niveau : splash → onboarding (une seule fois) → connexion →
  * application du role connecte.
  *
- * L'aiguillage tient dans un `useState` tant qu'il n'y a qu'un seul point de
- * decision. Il passera dans l'AuthContext (R6) le jour ou un ecran profond
- * devra deconnecter ou lire le role sans le recevoir en prop.
+ * Composant SEPARE de `App` : un composant ne peut pas lire le contexte qu'il
+ * fournit lui-meme. C'est `App` qui monte le Provider, et cet enfant qui le
+ * consomme.
  */
-type AppStage = 'splash' | 'onboarding' | 'login' | 'app';
-
-export default function App() {
-  const [stage, setStage] = useState<AppStage>('splash');
-  const [role, setRole] = useState<UserRole>('passenger');
-
-  // Fin du splash : une session ouverte court-circuite onboarding et connexion.
-  const onSplashDone = useCallback(() => {
-    const session = getSession();
-    if (session != null) {
-      setRole(session.role);
-      setStage('app');
-      return;
-    }
-    setStage(hasSeenOnboarding() ? 'login' : 'onboarding');
-  }, []);
-
-  const onAuthenticated = useCallback((session: Session) => {
-    setRole(session.role);
-    setStage('app');
-  }, []);
-
-  /**
-   * Changement de compte : c'est une DECONNEXION, pas une bascule d'affichage.
-   *
-   * Le role etant desormais porte par le compte (un numero = un role), passer
-   * de passager a chauffeur sans repasser par la connexion reviendrait a
-   * contourner le controle d'acces qu'on vient de mettre en place (R10).
-   */
-  const onSwitchAccount = useCallback(() => {
-    void signOut();
-    setStage('login');
-  }, []);
+function AppRouter() {
+  const { stage, role, completeSplash, completeOnboarding } = useAuth();
 
   if (stage === 'splash') {
-    return (
-      <SafeAreaProvider>
-        <SplashScreen onDone={onSplashDone} />
-      </SafeAreaProvider>
-    );
+    return <SplashScreen onDone={completeSplash} />;
   }
 
   if (stage === 'onboarding') {
-    return (
-      <SafeAreaProvider>
-        <OnboardingScreen onDone={() => setStage('login')} />
-      </SafeAreaProvider>
-    );
+    return <OnboardingScreen onDone={completeOnboarding} />;
   }
 
   if (stage === 'login') {
-    return (
-      <SafeAreaProvider>
-        <LoginScreen onAuthenticated={onAuthenticated} />
-      </SafeAreaProvider>
-    );
+    return <LoginScreen />;
   }
 
   // NOTE : `admin` n'a pas de branche — le dashboard administrateur est prevu
   // en web et n'existe pas encore. Un compte admin ouvre donc l'application
   // passager, plutot qu'un ecran vide.
+  // La deconnexion n'est plus relayee : chaque profil la lit dans le contexte.
+  return role === 'driver' ? <DriverApp /> : <HomeScreen />;
+}
+
+export default function App() {
   return (
     <SafeAreaProvider>
-      {role === 'driver' ? (
-        <DriverApp onExitToHome={onSwitchAccount} />
-      ) : (
-        <HomeScreen onSignOut={onSwitchAccount} />
-      )}
+      <AuthProvider>
+        <AppRouter />
+      </AuthProvider>
     </SafeAreaProvider>
   );
 }
