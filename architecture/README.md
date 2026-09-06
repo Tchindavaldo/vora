@@ -10,12 +10,14 @@
 itinéraire, estimation de prix, paiement simulé, commande, recherche de
 chauffeur, suivi de la course jusqu'à sa fin, évaluation du chauffeur,
 historique des courses et sécurité du passager (R17 étapes 2 à 8 et 10, la
-course étant simulée). Backend non démarré.
+course étant simulée). **Mode chauffeur** livré également : tableau de bord,
+demande entrante, course en quatre étapes jusqu'à l'encaissement (R17 étape 9,
+simulé). Backend non démarré.
 
 | Couche | Choix | Justification |
 |---|---|---|
 | Frontend passager | Expo SDK 54 + React Native + TypeScript | Un seul code Android/iOS, itération rapide sur 48 h |
-| Frontend chauffeur | _à définir_ (même base envisagée) | |
+| Frontend chauffeur | Même base Expo, feature `driver/` isolée | Un seul binaire pour la démo : on bascule de rôle depuis le profil, sans second projet à installer |
 | Dashboard admin | _à définir_ | |
 | Backend / API | _à définir_ | |
 | Base de données | _à définir_ | |
@@ -40,6 +42,7 @@ frontend/              application mobile passager (Expo, initialisé)
       booking/         estimation, confirmation — FAIT
       payment/         paiement (espèces + monnaie, portefeuille, MoMo) — FAIT, simulé
       ride/            course : chauffeur, suivi, évaluation — FAIT
+      driver/          mode chauffeur : tableau de bord, demande, course — FAIT, simulé
       history/         historique des courses et de leurs reçus — FAIT
       profile/         profil, paramètres, contacts d'urgence — FAIT
     services/          géocodage (MapTiler), routage (ORS), tarifs, paiement,
@@ -78,6 +81,7 @@ feature.
 | [`frontend/architecture/payment.md`](../frontend/architecture/payment.md) | Paiement : espèces et monnaie annoncée, portefeuille, Mobile Money (simulé) |
 | [`frontend/architecture/history.md`](../frontend/architecture/history.md) | Historique des courses et de leurs reçus |
 | [`frontend/architecture/safety.md`](../frontend/architecture/safety.md) | Sécurité : SOS, partage, signalement, contacts d'urgence |
+| [`frontend/architecture/driver.md`](../frontend/architecture/driver.md) | Parcours chauffeur : demande, course en 4 étapes, encaissement |
 
 ## 5. Flux principal (brief §13)
 
