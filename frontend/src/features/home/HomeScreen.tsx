@@ -41,7 +41,6 @@ import { useEmergencyContacts } from "../profile/useEmergencyContacts";
 import { NotificationsScreen } from "../notifications/NotificationsScreen";
 import { WalletScreen } from "../wallet/WalletScreen";
 import { useSettlement } from "../payment/useSettlement";
-import { SettlementScreen } from "../payment/SettlementScreen";
 import { useAuth } from "../../contexts/AuthContext";
 import { LocationNotice } from "./components/LocationNotice";
 import { LocationPlaceholder } from "./components/LocationPlaceholder";
@@ -327,19 +326,6 @@ export function HomeScreen() {
     rating.reset();
   };
 
-  // Reglement de la course : il passe AVANT l'evaluation, et avant tout le
-  // reste — la course est finie, seul le paiement compte a cet instant.
-  if (isSettling) {
-    return (
-      <SettlementScreen
-        settlement={settlement}
-        amountXaf={ride.ride?.amountXaf ?? 0}
-        onDone={handleSettled}
-        onFallbackToCash={handleFallbackToCash}
-      />
-    );
-  }
-
   // Commentaire : plein ecran pour que le clavier ne recouvre pas la saisie.
   const rated = ride.ride;
   if (isCommenting && rating.stars !== null && rated?.driver != null) {
@@ -502,11 +488,15 @@ export function HomeScreen() {
               safety={safety}
               emergencyContacts={emergencyContacts.items}
               shortcuts={SHORTCUTS}
+              settlement={settlement}
+              isSettling={isSettling}
               isRating={isRating}
               onSearchPress={() => nav.openSearch()}
               onShortcutPress={handleShortcutPress}
               onCancelRide={handleCancelRide}
               onRideDone={handleRideDone}
+              onSettled={handleSettled}
+              onFallbackToCash={handleFallbackToCash}
               onOpenComment={() => setIsCommenting(true)}
               onRatingClose={handleRatingClose}
             />

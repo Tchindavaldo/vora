@@ -24,7 +24,17 @@ import {
 } from '../../services/wallet';
 import { useWallet } from './useWallet';
 import { SimulatedPaymentBadge } from './components/SimulatedPaymentBadge';
-import { MomoStatusCard } from './components/MomoStatusCard';
+import { AnimatedBorderGlow } from '../payment/components/AnimatedBorderGlow';
+
+/**
+ * Hauteur de la capsule de recharge.
+ *
+ * Plus haute qu'un bouton ordinaire : elle porte aussi les messages du tunnel
+ * USSD, qui tiennent sur deux a trois lignes. Fixe, pour que la mise en page
+ * ne saute pas d'un etat a l'autre — les champs au-dessus doivent rester a
+ * leur place pendant que le passager compose son code.
+ */
+const SUBMIT_HEIGHT = 58;
 
 type Props = {
   onClose: () => void;
@@ -49,8 +59,42 @@ export function WalletScreen({ onClose }: Props) {
 
   // Le numero n'est pas verifie au caractere pres : les formats varient selon
   // l'operateur, et un controle trop strict bloquerait un numero valide (R8).
-  const canSubmit =
-    isAmountValid && wallet.phone.trim().length >= 9 && !wallet.isProcessing;
+  const canSubmit = isAmountValid && wallet.phone.trim().length >= 9;
+
+  const state = wallet.momo?.state ?? null;
+  const hasFailed = state === 'failed';
+  const hasSucceeded = state === 'success';
+
+  // Le bouton est bloque pendant l'attente de l'operateur (une seule demande en
+  // vol), et tant que la saisie n'est pas complete.
+  const isDisabled = wallet.isProcessing || (!hasSucceeded && !canSubmit);
+
+  /**
+   * Libelle de la capsule : c'est elle qui porte tout le tunnel.
+   *
+   * Pendant l'attente, elle affiche le message du service — dont la consigne
+   * USSD (« Composez *126# et validez… ») — au lieu du mot « Recharger ».
+   */
+  const submitLabel = wallet.isProcessing
+    ? (wallet.momo?.message ?? '')
+    : hasSucceeded
+      ? (wallet.momo?.message ?? 'Recharge confirmée')
+      : hasFailed
+        ? 'Réessayer'
+        : 'Recharger';
+
+  /**
+   * Un seul bouton pour les trois suites possibles : lancer la recharge,
+   * la rejouer apres un echec, ou refermer le tunnel une fois credite.
+   */
+  const handlePress = () => {
+    if (hasSucceeded) {
+      wallet.reset();
+      return;
+    }
+
+    wallet.topUp(amountXaf);
+  };
 
   return (
     <KeyboardAvoidingView
@@ -89,20 +133,7 @@ export function WalletScreen({ onClose }: Props) {
 
           <SimulatedPaymentBadge />
 
-          {/*
-            Tunnel en cours : la saisie disparait au profit du statut. Laisser
-            les champs actifs pendant que l'operateur repond inviterait a lancer
-            une seconde recharge par-dessus la premiere.
-          */}
-          {wallet.momo !== null ? (
-            <MomoStatusCard
-              momo={wallet.momo}
-              onRetry={() => wallet.topUp(amountXaf)}
-              onDone={wallet.reset}
-            />
-          ) : (
-            <>
-              <Text style={styles.sectionTitle}>Recharger</Text>
+          <Text style={styles.sectionTitle}>Recharger</Text>
 
               <View style={styles.operatorRow}>
                 {OPERATORS.map((operator) => {
@@ -172,26 +203,53 @@ export function WalletScreen({ onClose }: Props) {
                 accessibilityLabel="Numéro Mobile Money"
               />
 
-              {/*
-                Le montant saisi est invalide : on le dit AVANT l'appui, plutot
-                que de laisser le bouton echouer sans explication (R8).
-              */}
-              {wallet.amountInput.length > 0 && !isAmountValid && (
-                <Text style={styles.error}>
-                  Montant minimum : {formatXaf(MIN_TOPUP_XAF)}.
-                </Text>
-              )}
+          {/*
+            Le montant saisi est invalide : on le dit AVANT l'appui, plutot
+            que de laisser le bouton echouer sans explication (R8).
+          */}
+          {wallet.amountInput.length > 0 && !isAmountValid && (
+            <Text style={styles.error}>
+              Montant minimum : {formatXaf(MIN_TOPUP_XAF)}.
+            </Text>
+          )}
 
-              <Pressable
-                onPress={() => wallet.topUp(amountXaf)}
-                disabled={!canSubmit}
-                style={[styles.submit, !canSubmit && styles.submitDisabled]}
-                accessibilityRole="button"
-                accessibilityLabel="Lancer la recharge"
-              >
-                <Text style={styles.submitLabel}>Recharger</Text>
-              </Pressable>
-            </>
+          {/*
+            La capsule porte TOUT le tunnel : « Envoi de la demande… », la
+            consigne USSD (« Composez *126# … »), le verdict. Elle est entouree
+            d'une bordure lumineuse tant que l'operateur n'a pas repondu.
+
+            Les champs restent affiches au-dessus, jamais remplaces : pendant
+            qu'il compose son code, le passager doit pouvoir relire le montant
+            et le numero qu'il a saisis.
+          */}
+          <Pressable
+            onPress={handlePress}
+            disabled={isDisabled}
+            style={[
+              styles.submit,
+              isDisabled && styles.submitDisabled,
+              wallet.isProcessing && styles.submitBusy,
+              hasFailed && styles.submitFailed,
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel={submitLabel}
+          >
+            <AnimatedBorderGlow
+              active={wallet.isProcessing}
+              borderRadius={SUBMIT_HEIGHT / 2}
+            />
+
+            <Text style={styles.submitLabel} numberOfLines={3}>
+              {submitLabel}
+            </Text>
+          </Pressable>
+
+          {/*
+            Cause de l'echec sous la capsule : elle dit quoi faire, quand le
+            bouton ne porte que l'invitation a reessayer (R8).
+          */}
+          {wallet.momo?.error != null && (
+            <Text style={styles.error}>{wallet.momo.error}</Text>
           )}
 
           <Text style={styles.sectionTitle}>Mouvements</Text>
@@ -335,18 +393,39 @@ const styles = StyleSheet.create({
     color: colors.danger,
   },
   submit: {
+    // Hauteur MINIMALE et non fixe : la capsule doit pouvoir grandir pour un
+    // message USSD un peu long, sans jamais retrecir sous cette taille. Les
+    // champs de saisie etant AU-DESSUS, ils ne bougent pas quand elle grandit.
+    minHeight: SUBMIT_HEIGHT,
     backgroundColor: colors.primary,
-    borderRadius: radius.md,
+    borderRadius: SUBMIT_HEIGHT / 2,
     paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   submitDisabled: {
     opacity: 0.4,
   },
+  // Attente de l'operateur : fond assombri pour que la bordure lumineuse et le
+  // message priment sur l'aplat d'accent.
+  submitBusy: {
+    backgroundColor: colors.primaryPressed,
+    // La capsule est inactive pendant l'attente, mais son message doit rester
+    // parfaitement lisible : on annule l'attenuation du bouton desactive.
+    opacity: 1,
+  },
+  // Echec : la capsule devient une invitation a reessayer, sans l'aplat
+  // d'accent qui se lirait comme un succes.
+  submitFailed: {
+    backgroundColor: colors.text,
+  },
   submitLabel: {
-    ...typography.label,
+    ...typography.body,
     color: colors.surface,
     fontWeight: '600',
+    textAlign: 'center',
+    lineHeight: 20,
   },
   empty: {
     ...typography.caption,

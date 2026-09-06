@@ -9,6 +9,8 @@ import {
   type WalletOperator,
 } from '../../services/wallet';
 import { startMomo, type MomoTransaction } from '../../services/momo';
+import { notify } from '../../services/notifications';
+import { formatXaf } from '../../services/pricing';
 
 /**
  * Solde du portefeuille et recharge par Mobile Money (brief §8, R13).
@@ -75,7 +77,18 @@ export function useWallet(): WalletFlow {
 
         // Le solde ne bouge qu'au verdict positif : crediter plus tot
         // afficherait de l'argent qui n'est pas arrive.
-        if (next.state === 'success') credit(amountXaf, operator);
+        if (next.state === 'success') {
+          credit(amountXaf, operator);
+
+          // Notification locale : une recharge se lance puis se poursuit
+          // pendant que le passager compose son code ailleurs, ecran eteint ou
+          // application en arriere-plan. Sans elle, il devrait revenir verifier
+          // lui-meme si son solde a bouge.
+          notify(
+            'Recharge confirmée',
+            `${formatXaf(amountXaf)} ajoutés à votre portefeuille VORA.`,
+          );
+        }
       });
     },
     [operator, phone],

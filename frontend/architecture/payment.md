@@ -84,6 +84,37 @@ L'échec ouvre « Réessayer » et « Payer en espèces ».
 Chaque écran du tunnel porte le badge « Paiement simulé — démonstration. Aucun
 débit réel. » (`features/wallet/components/SimulatedPaymentBadge.tsx`, R13).
 
+### La capsule porte le tunnel (`payment/components/AnimatedBorderGlow.tsx`)
+
+Sur le portefeuille comme sur le panneau de paiement, **les messages du tunnel
+s'affichent DANS le bouton d'action**, entouré d'une bordure lumineuse qui
+tourne (segment SVG parcourant le contour, un quart du périmètre, tour de
+1,8 s). Pas de spinner, pas de carte de statut qui remplacerait le formulaire.
+
+Conséquence voulue : **rien de ce qui est au-dessus ne disparaît ni ne bouge**
+pendant l'opération — opérateur retenu, montant, numéro saisi, modes de
+paiement restent lisibles pendant que le passager compose son code USSD, et
+c'est justement le moment où il a besoin de les relire. La capsule a une
+hauteur minimale (58 px portefeuille, 62 px paiement) : elle peut grandir pour
+un message long, jamais rétrécir. Sur le panneau de paiement, la ligne
+d'action est de plus **ancrée hors du ScrollView**.
+
+Un seul bouton porte les trois suites : lancer, « Réessayer » après un échec
+(fond sombre, plus l'aplat d'accent qui se lirait comme un succès), ou fermer
+une fois le solde crédité.
+
+### Notification de recharge
+
+Une recharge créditée déclenche une **notification locale** (« Recharge
+confirmée — 5 000 F ajoutés à votre portefeuille VORA ») : le passager compose
+son code USSD dans une autre application, souvent écran éteint, et doit être
+prévenu sans revenir vérifier lui-même.
+
+L'événement est enregistré dans l'**historique des notifications** de l'app
+(écran Notifications) **même si la permission système a été refusée** :
+l'historique est le journal du compte, pas un doublon de la barre système —
+seul l'envoi à celle-ci exige la permission.
+
 ## Portefeuille et recharge (`src/features/wallet/`)
 
 Ouvert depuis Profil → Portefeuille. Trois blocs : le **solde**, la **recharge**
