@@ -15,6 +15,7 @@ type Props = {
   distanceTodayMeters: number;
   onToggleOnline: (value: boolean) => void;
   onOpenProfile: () => void;
+  onOpenEarnings: () => void;
 };
 
 /**
@@ -31,6 +32,7 @@ export function DriverDashboardScreen({
   distanceTodayMeters,
   onToggleOnline,
   onOpenProfile,
+  onOpenEarnings,
 }: Props) {
   const insets = useSafeAreaInsets();
 
@@ -69,6 +71,7 @@ export function DriverDashboardScreen({
           vehicleModel={DEMO_DRIVER.vehicleModel}
           vehiclePlate={DEMO_DRIVER.plate}
           onToggleOnline={onToggleOnline}
+          onOpenEarnings={onOpenEarnings}
         />
       </View>
     </View>
