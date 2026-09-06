@@ -135,7 +135,9 @@ src/
     safety.ts              alerte et signalement SIMULÉS, à remplacer par l'API
     roadsFromMap.ts        routes lues dans les tuiles déjà affichées — utilisé
     roads.ts               mêmes types + variante Overpass — non utilisée
-  contexts/                (vide) AuthContext, RideContext, LocationContext
+  contexts/
+    AuthContext.tsx        session, rôle, étape d'ouverture, déconnexion (R6)
+                           RideContext et LocationContext restent à faire
   components/              (vide) composants transverses
 ```
 

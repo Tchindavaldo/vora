@@ -6,13 +6,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors, radius, spacing, typography } from '../../theme';
 import { formatXaf } from '../../services/pricing';
+import { useAuth } from '../../contexts/AuthContext';
 import { DEMO_DRIVER } from './useDriverSession';
 
 type Props = {
   earningsTodayXaf: number;
   ridesToday: number;
-  /** Deconnecte et renvoie a l'ecran de connexion : le role vient du compte. */
-  onExitToHome: () => void;
   /** Revient au tableau de bord chauffeur, sans quitter le mode chauffeur. */
   onClose: () => void;
   /** Ouvre le detail des revenus du jour. */
@@ -25,18 +24,19 @@ type Props = {
  * prop `variant` ajoutee a l'ecran passager.
  *
  * Deux sorties distinctes, a ne pas confondre : la fleche de l'en-tete revient
- * au tableau de bord chauffeur, le bouton du bas quitte le mode chauffeur pour
- * l'accueil passager. Sans la premiere, ouvrir son profil obligeait a repasser
- * par le mode passager pour revenir a sa carte.
+ * au tableau de bord chauffeur, le bouton du bas DECONNECTE et renvoie a
+ * l'ecran de connexion. Sans la premiere, ouvrir son profil obligerait a se
+ * deconnecter pour revenir a sa carte.
  */
 export function DriverProfileScreen({
   earningsTodayXaf,
   ridesToday,
-  onExitToHome,
   onClose,
   onOpenEarnings,
 }: Props) {
   const insets = useSafeAreaInsets();
+  // Deconnexion lue dans le contexte (R6) : elle ne traverse plus DriverApp.
+  const { signOut } = useAuth();
 
   return (
     <View style={styles.root}>
@@ -104,7 +104,7 @@ export function DriverProfileScreen({
 
         <Pressable
           style={styles.exitButton}
-          onPress={onExitToHome}
+          onPress={signOut}
           accessibilityRole="button"
           accessibilityLabel="Se déconnecter et changer de compte"
         >

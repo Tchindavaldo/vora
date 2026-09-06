@@ -20,8 +20,19 @@ Le splash attend **les deux** : la relecture disque et sa durée minimale de
 rapide ; sortir au seul minuteur risquerait d'aiguiller avant de savoir s'il y a
 une session.
 
-L'aiguillage vit dans `App.tsx` (`AppStage`). Il passera dans l'`AuthContext`
-(R6) quand un écran profond devra déconnecter ou lire le rôle sans prop.
+L'état de session vit dans **`src/contexts/AuthContext.tsx`** (R6) : session,
+rôle, étape d'ouverture et déconnexion. `App.tsx` monte le Provider, et un
+composant enfant `AppRouter` le consomme — un composant ne peut pas lire le
+contexte qu'il fournit lui-même.
+
+**Partage des rôles** : le contexte porte ce qui est lu loin d'où il est écrit
+(qui est connecté, avec quel rôle). `useAuthFlow` reste monté par le seul
+`LoginScreen` : la saisie du numéro et du code est un état de formulaire, qui
+doit disparaître avec l'écran plutôt que vivre en global.
+
+`useAuth()` **lève une exception** hors Provider. Sans cela un composant mal
+monté recevrait `null` et planterait bien plus loin, dans un fichier sans
+rapport avec la cause.
 
 ## Comptes de démonstration
 
@@ -46,6 +57,7 @@ démonstration, pas un mécanisme d'autorisation.
 
 | Fichier | Rôle |
 |---|---|
+| `src/contexts/AuthContext.tsx` | Session, rôle, étape d'ouverture, déconnexion — lu par `useAuth()` |
 | `src/services/session.ts` | Session persistée (AsyncStorage), comptes de démo, validation et formatage du numéro, vérification du code — **simulé** |
 | `src/features/auth/SplashScreen.tsx` | Logo sur fond de marque, 1,5 s, couvre la vérification de session |
 | `src/features/onboarding/OnboardingScreen.tsx` | 3 écrans balayables, bouton « Passer », vu une seule fois |
@@ -90,6 +102,6 @@ démonstration, pas un mécanisme d'autorisation.
   `POST /auth/verify` (R12), avec le token en stockage sécurisé.
 - **Dashboard administrateur non livré** : le rôle `admin` existe dans le type
   mais n'a pas de branche dans `App.tsx`.
-- **Pas encore d'`AuthContext`** : l'aiguillage et la déconnexion vivent dans
-  `App.tsx`, transmis en prop. Suffisant tant qu'il n'y a qu'un point de
-  décision (R6).
+- **Pas de `RideContext` ni de `LocationContext`** : `AuthContext` est le
+  premier des quatre contextes prévus (R6). Les autres suivront si la course
+  et la géolocalisation doivent être lues hors de leur écran.

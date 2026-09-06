@@ -65,12 +65,7 @@ const AMBIENT_VEHICLES_MOVE = false;
  * le header comme sous le bottom sheet. Aucune bande blanche, aucune carte
  * encadree — c'est ce qui separe une app de mobilite credible d'une maquette.
  */
-type Props = {
-  /** Bascule vers l'ecran chauffeur, pour la demonstration (R17 etape 9). */
-  onSignOut: () => void;
-};
-
-export function HomeScreen({ onSignOut }: Props) {
+export function HomeScreen() {
   const location = useUserLocation();
   const insets = useSafeAreaInsets();
 
@@ -320,7 +315,6 @@ export function HomeScreen({ onSignOut }: Props) {
         onOpenEmergencyContacts={nav.openContacts}
         onOpenHistory={nav.openHistory}
         onClose={nav.close}
-        onSignOut={onSignOut}
       />
     );
   }

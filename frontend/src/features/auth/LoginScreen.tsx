@@ -12,23 +12,23 @@ import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors, spacing } from '../../theme';
-import type { Session } from '../../services/session';
+import { useAuth } from '../../contexts/AuthContext';
 import { useAuthFlow } from './useAuthFlow';
 import { PhoneStep } from './components/PhoneStep';
 import { CodeStep } from './components/CodeStep';
 
-type Props = {
-  /** Session ouverte : l'appelant route vers l'app passager ou chauffeur. */
-  onAuthenticated: (session: Session) => void;
-};
-
 /**
  * Connexion en deux etapes. L'ecran n'orchestre que la mise en page et le
- * clavier : la logique du parcours vit dans `useAuthFlow` (R12).
+ * clavier : la logique du parcours vit dans `useAuthFlow` (R12), et la session
+ * ouverte est publiee dans l'AuthContext (R6).
+ *
+ * `useAuthFlow` reste monte ICI, et non dans le contexte : la saisie du numero
+ * et du code est un etat de formulaire, qui doit disparaitre avec l'ecran.
  */
-export function LoginScreen({ onAuthenticated }: Props) {
+export function LoginScreen() {
   const insets = useSafeAreaInsets();
-  const auth = useAuthFlow(onAuthenticated);
+  const { authenticate } = useAuth();
+  const auth = useAuthFlow(authenticate);
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>

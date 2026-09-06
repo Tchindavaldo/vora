@@ -51,7 +51,8 @@ frontend/              application mobile passager (Expo, initialisé)
     services/          géocodage (MapTiler), routage (ORS), tarifs, paiement,
                        évaluations, transactions, sécurité et session
                        (persistée, comptes de démo) — simulés
-    contexts/          (vide) Auth, Ride, Location
+    contexts/          AuthContext (session, rôle, étape d'ouverture) — FAIT ;
+                       Ride et Location restent à faire
   architecture/        doc du frontend
 backend/               (non initialisé)
   architecture/        doc du backend, contrat d'API attendu

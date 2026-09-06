@@ -6,6 +6,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors, radius, spacing, typography } from '../../theme';
 import { SUPPORT_PHONE } from '../../services/safety';
+import { COUNTRY_CODE, formatPhone } from '../../services/session';
+import { useAuth } from '../../contexts/AuthContext';
 import { useEmergencyContacts } from './useEmergencyContacts';
 
 type Props = {
@@ -14,8 +16,6 @@ type Props = {
   onOpenEmergencyContacts: () => void;
   onOpenHistory: () => void;
   onClose: () => void;
-  /** Déconnecte et renvoie à l'écran de connexion : le rôle vient du compte. */
-  onSignOut: () => void;
 };
 
 /**
@@ -36,10 +36,12 @@ export function ProfileScreen({
   onOpenEmergencyContacts,
   onOpenHistory,
   onClose,
-  onSignOut,
 }: Props) {
   const insets = useSafeAreaInsets();
   const { items } = useEmergencyContacts();
+  // La deconnexion et le numero connecte viennent du contexte (R6) : ils
+  // n'ont pas a traverser l'accueil pour arriver jusqu'ici.
+  const { session, signOut } = useAuth();
 
   return (
     <View style={styles.root}>
@@ -73,7 +75,11 @@ export function ProfileScreen({
           </View>
           <View style={styles.identityBody}>
             <Text style={styles.name}>{userName}</Text>
-            <Text style={styles.role}>Passager</Text>
+            <Text style={styles.role}>
+              {session != null
+                ? `Passager · ${COUNTRY_CODE} ${formatPhone(session.phone)}`
+                : 'Passager'}
+            </Text>
           </View>
         </View>
 
@@ -143,7 +149,7 @@ export function ProfileScreen({
           icon="log-out-outline"
           label="Changer de compte"
           hint="Déconnexion, puis retour à l’écran de connexion"
-          onPress={onSignOut}
+          onPress={signOut}
         />
 
         <Text style={styles.notice}>
