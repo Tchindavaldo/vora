@@ -6,7 +6,8 @@
 
 ## 1. État du projet
 
-**Phase actuelle** : frontend initialisé — accueil, recherche de destination,
+**Phase actuelle** : frontend initialisé — ouverture (splash, onboarding,
+connexion par numéro et code, simulée — R17 étape 1), accueil, recherche de destination,
 itinéraire, estimation de prix, paiement simulé, commande, recherche de
 chauffeur, suivi de la course jusqu'à sa fin, évaluation du chauffeur,
 historique des courses et sécurité du passager (R17 étapes 2 à 8 et 10, la
@@ -36,6 +37,8 @@ frontend/              application mobile passager (Expo, initialisé)
     config/            variables d'environnement (R9)
     theme/             design system
     features/
+      auth/            splash, connexion par numero et code — FAIT, simulé
+      onboarding/      3 écrans de première ouverture — FAIT
       map/             encapsulation MapLibre (R11)
       home/            écran d'accueil — FAIT
       search/          recherche de destination — FAIT
@@ -74,6 +77,7 @@ feature.
 
 | Doc | Feature |
 |---|---|
+| [`frontend/architecture/auth.md`](../frontend/architecture/auth.md) | Ouverture : splash, onboarding, connexion par numéro et code |
 | [`frontend/architecture/home.md`](../frontend/architecture/home.md) | Écran d'accueil passager |
 | [`frontend/architecture/search.md`](../frontend/architecture/search.md) | Recherche de destination |
 | [`frontend/architecture/booking.md`](../frontend/architecture/booking.md) | Itinéraire et estimation de prix |
