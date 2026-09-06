@@ -151,8 +151,21 @@ export function useDriverSession() {
   const openProfile = useCallback(() => setRoute('profile'), []);
   const closeProfile = useCallback(() => setRoute('dashboard'), []);
 
-  const openEarnings = useCallback(() => setRoute('earnings'), []);
-  const closeEarnings = useCallback(() => setRoute('dashboard'), []);
+  /**
+   * Ecran d'ou les revenus ont ete ouverts : la fermeture y revient. Sans
+   * cela, un chauffeur parti de son profil se retrouvait sur le tableau de
+   * bord, avec l'impression d'avoir quitte son profil sans le demander.
+   */
+  const earningsOriginRef = useRef<DriverRoute>('dashboard');
+
+  const openEarnings = useCallback((from: DriverRoute = 'dashboard') => {
+    earningsOriginRef.current = from;
+    setRoute('earnings');
+  }, []);
+
+  const closeEarnings = useCallback(() => {
+    setRoute(earningsOriginRef.current);
+  }, []);
 
   return {
     route,

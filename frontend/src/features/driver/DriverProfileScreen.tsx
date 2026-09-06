@@ -13,6 +13,10 @@ type Props = {
   ridesToday: number;
   /** Ferme le mode chauffeur et revient a l'accueil passager, avec ses mises a jour. */
   onExitToHome: () => void;
+  /** Revient au tableau de bord chauffeur, sans quitter le mode chauffeur. */
+  onClose: () => void;
+  /** Ouvre le detail des revenus du jour. */
+  onOpenEarnings: () => void;
 };
 
 /**
@@ -20,11 +24,18 @@ type Props = {
  * au role chauffeur (vehicule, gains, retour vers le passager), jamais une
  * prop `variant` ajoutee a l'ecran passager.
  *
- * Le bouton de retour ne revient pas au tableau de bord chauffeur : il quitte
- * le mode chauffeur et renvoie sur l'accueil passager, gains et courses du
- * jour deja pris en compte cote tableau de bord.
+ * Deux sorties distinctes, a ne pas confondre : la fleche de l'en-tete revient
+ * au tableau de bord chauffeur, le bouton du bas quitte le mode chauffeur pour
+ * l'accueil passager. Sans la premiere, ouvrir son profil obligeait a repasser
+ * par le mode passager pour revenir a sa carte.
  */
-export function DriverProfileScreen({ earningsTodayXaf, ridesToday, onExitToHome }: Props) {
+export function DriverProfileScreen({
+  earningsTodayXaf,
+  ridesToday,
+  onExitToHome,
+  onClose,
+  onOpenEarnings,
+}: Props) {
   const insets = useSafeAreaInsets();
 
   return (
@@ -32,6 +43,16 @@ export function DriverProfileScreen({ earningsTodayXaf, ridesToday, onExitToHome
       <StatusBar style="dark" />
 
       <View style={[styles.header, { paddingTop: insets.top + spacing.md }]}>
+        <Pressable
+          onPress={onClose}
+          hitSlop={10}
+          style={styles.back}
+          accessibilityRole="button"
+          accessibilityLabel="Retour au tableau de bord"
+        >
+          <Ionicons name="arrow-back" size={22} color={colors.text} />
+        </Pressable>
+
         <Text style={styles.title}>Profil chauffeur</Text>
       </View>
 
@@ -52,7 +73,14 @@ export function DriverProfileScreen({ earningsTodayXaf, ridesToday, onExitToHome
 
         <Text style={styles.section}>Aujourd’hui</Text>
 
-        <Row icon="cash-outline" label="Gains" hint={formatXaf(earningsTodayXaf)} />
+        {/* Second acces aux revenus, apres la card du tableau de bord : le
+            chauffeur qui vient consulter son profil cherche le meme detail. */}
+        <Row
+          icon="cash-outline"
+          label="Gains"
+          hint={formatXaf(earningsTodayXaf)}
+          onPress={onOpenEarnings}
+        />
         <Row icon="car-sport-outline" label="Courses" hint={String(ridesToday)} />
 
         <Text style={styles.section}>Véhicule</Text>
@@ -93,11 +121,13 @@ type RowProps = {
   label: string;
   hint: string;
   disabled?: boolean;
+  /** Rend la ligne cliquable et affiche le chevron. Absent = ligne de lecture. */
+  onPress?: () => void;
 };
 
-function Row({ icon, label, hint, disabled = false }: RowProps) {
-  return (
-    <View style={[styles.row, disabled && styles.rowDisabled]}>
+function Row({ icon, label, hint, disabled = false, onPress }: RowProps) {
+  const body = (
+    <>
       <Ionicons name={icon} size={20} color={colors.text} />
       <View style={styles.rowBody}>
         <Text style={styles.rowLabel}>{label}</Text>
@@ -105,7 +135,25 @@ function Row({ icon, label, hint, disabled = false }: RowProps) {
           {hint}
         </Text>
       </View>
-    </View>
+      {onPress !== undefined && (
+        <Ionicons name="chevron-forward" size={16} color={colors.textFaint} />
+      )}
+    </>
+  );
+
+  if (onPress === undefined) {
+    return <View style={[styles.row, disabled && styles.rowDisabled]}>{body}</View>;
+  }
+
+  return (
+    <Pressable
+      style={[styles.row, disabled && styles.rowDisabled]}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+    >
+      {body}
+    </Pressable>
   );
 }
 
@@ -117,12 +165,24 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.md,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  title: typography.subtitle,
+  back: {
+    width: 32,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  title: {
+    ...typography.subtitle,
+    flex: 1,
+  },
   scroll: {
     flex: 1,
   },

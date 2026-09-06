@@ -17,7 +17,12 @@ COURSE : to_pickup -> arrived -> in_progress -> completed -> DASHBOARD
 Depuis le tableau de bord, la card **Gains** ouvre l'ecran des revenus du jour
 (`DriverEarningsScreen`) : total encaisse en tete, puis la liste des courses qui
 le composent. Ecran plein comme le profil — une liste se parcourt, elle n'a pas
-a partager la hauteur avec la carte. Chaque course encaissee y est ajoutee par
+a partager la hauteur avec la carte. La ligne « Gains » du profil ouvre le meme ecran ; la fermeture revient a
+l'ecran d'ou l'ouverture est partie (`openEarnings('dashboard' | 'profile')`).
+Le profil porte en plus une fleche de retour au tableau de bord dans son
+en-tete, distincte du bouton du bas qui, lui, quitte le mode chauffeur.
+
+Chaque course encaissee est ajoutee par
 `finishTrip` via `recordDriverEarning` (`services/driverEarnings.ts`, simule et
 en memoire, sur le meme modele que `transactions.ts` cote passager).
 
