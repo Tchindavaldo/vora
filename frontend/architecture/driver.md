@@ -133,6 +133,13 @@ Trois actions, dupliquees du cote passager (R16) et jamais partagees avec lui :
   autre) + commentaire facultatif. Exiger le commentaire dissuaderait de
   signaler.
 
+**Contacts d'urgence** : registre SEPARE de celui du passager
+(`useDriverEmergencyContacts`, copie de `useEmergencyContacts` — R16), edite
+depuis la section Securite du profil chauffeur
+(`DriverEmergencyContactsScreen`). Le meme telephone peut servir aux deux roles
+en demonstration : les deux listes ne doivent pas se melanger. Sans contact
+enregistre, le bouton d'alerte est desactive et le panneau le dit (R8).
+
 Le hook est monte dans `DriverApp`, pas dans l'ecran de course : c'est ce qui
 permet au SOS de rester joignable sur le tableau de bord. Entrees : pastilles
 "Signaler" et "SOS" dans l'en-tete de `DriverTripSheet` pendant la course, et
@@ -145,6 +152,8 @@ bouton SOS flottant en haut de la carte hors course.
 - `driverSafety.ts` : `sendDriverAlert` -> `POST /driver/rides/:id/alert`,
   `submitDriverReport` -> `POST /driver/rides/:id/report`, et les contacts
   d'urgence viendront du compte chauffeur.
+- `useDriverEmergencyContacts` : liste en memoire -> `GET/POST
+  /driver/me/emergency-contacts` (R12).
 - `driverRequests.ts` : demandes de demonstration -> abonnement socket (R6).
 - `driverEarnings.ts` : `listDriverEarnings` -> `GET /driver/rides?day=today`,
   et `recordDriverEarning` disparait (c'est le backend qui archive la course).

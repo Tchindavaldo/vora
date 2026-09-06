@@ -18,7 +18,8 @@ import { DriverEarningsScreen } from './DriverEarningsScreen';
 import { DriverEmergencySheet } from './DriverEmergencySheet';
 import { DriverReportSheet } from './DriverReportSheet';
 import { useDriverSafety } from './useDriverSafety';
-import { DEMO_DRIVER_EMERGENCY_CONTACTS } from '../../services/driverSafety';
+import { DriverEmergencyContactsScreen } from './DriverEmergencyContactsScreen';
+import { useDriverEmergencyContacts } from './useDriverEmergencyContacts';
 
 /**
  * Racine du parcours chauffeur.
@@ -67,10 +68,20 @@ export function DriverApp() {
     longitude: vehiclePosition.longitude,
   });
 
+  // Contacts definis dans le profil chauffeur : le panneau d'urgence affiche la
+  // liste vivante, pas la liste de demonstration.
+  const { items: emergencyContacts } = useDriverEmergencyContacts();
+
   // Revenus du jour : ecran plein, comme le profil. La carte est demontee le
   // temps de la consultation — le chauffeur lit une liste, pas un plan.
   if (session.route === 'earnings') {
     return <DriverEarningsScreen onClose={session.closeEarnings} />;
+  }
+
+  if (session.route === 'emergency_contacts') {
+    return (
+      <DriverEmergencyContactsScreen onClose={session.closeEmergencyContacts} />
+    );
   }
 
   if (session.route === 'profile') {
@@ -80,6 +91,7 @@ export function DriverApp() {
         ridesToday={session.ridesToday}
         onClose={session.closeProfile}
         onOpenEarnings={() => session.openEarnings('profile')}
+        onOpenEmergencyContacts={session.openEmergencyContacts}
       />
     );
   }
@@ -135,7 +147,7 @@ export function DriverApp() {
       {safety.panel === 'sos' ? (
         <View style={styles.sheetStack} pointerEvents="box-none">
           <DriverEmergencySheet
-            contacts={DEMO_DRIVER_EMERGENCY_CONTACTS}
+            contacts={emergencyContacts}
             step={safety.alertStep}
             error={safety.alertError}
             onTriggerAlert={safety.triggerAlert}

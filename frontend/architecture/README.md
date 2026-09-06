@@ -113,6 +113,8 @@ src/
       useDriverTripRoutes.ts    les deux itinéraires ORS de la course
       useDriverVehicleMotion.ts position animée du véhicule du chauffeur
       useDriverSafety.ts   alerte, assistance, signalement passager (R10, R16)
+      useDriverEmergencyContacts.ts  registre séparé des contacts du chauffeur
+      DriverEmergencyContactsScreen.tsx  ajout et suppression, depuis le profil
       DriverEmergencySheet.tsx, DriverReportSheet.tsx  copies de la feature ride
       DriverMapCanvas.tsx  carte partagée dashboard/course (copie, R16)
       DriverVehicleMarker.tsx, DriverRouteLine.tsx, DriverMapControls.tsx

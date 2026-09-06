@@ -22,7 +22,8 @@ export type DriverRoute =
   | 'incoming_request'
   | 'trip'
   | 'profile'
-  | 'earnings';
+  | 'earnings'
+  | 'emergency_contacts';
 
 /** Chauffeur de demonstration : identite affichee sur le tableau de bord et le profil. */
 export const DEMO_DRIVER = {
@@ -167,6 +168,11 @@ export function useDriverSession() {
     setRoute(earningsOriginRef.current);
   }, []);
 
+  // Les contacts d'urgence ne s'ouvrent que depuis le profil : leur fermeture y
+  // revient, sans avoir a memoriser d'ou l'on vient.
+  const openEmergencyContacts = useCallback(() => setRoute('emergency_contacts'), []);
+  const closeEmergencyContacts = useCallback(() => setRoute('profile'), []);
+
   return {
     route,
     isOnline,
@@ -186,6 +192,8 @@ export function useDriverSession() {
     closeProfile,
     openEarnings,
     closeEarnings,
+    openEmergencyContacts,
+    closeEmergencyContacts,
   };
 }
 

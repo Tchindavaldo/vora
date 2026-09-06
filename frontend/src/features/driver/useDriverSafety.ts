@@ -3,13 +3,13 @@ import { Alert, Linking } from 'react-native';
 
 import {
   buildDriverReport,
-  DEMO_DRIVER_EMERGENCY_CONTACTS,
   driverAlertMessage,
   DRIVER_SUPPORT_PHONE,
   sendDriverAlert,
   submitDriverReport,
   type DriverReportReason,
 } from '../../services/driverSafety';
+import { getDriverEmergencyContacts } from './useDriverEmergencyContacts';
 import type { DriverRideRequest } from './driverRequests';
 import type { RoutePoint } from '../../services/routing';
 
@@ -128,7 +128,9 @@ export function useDriverSafety(
       await sendDriverAlert({
         rideId: request?.id ?? null,
         coords,
-        contactIds: DEMO_DRIVER_EMERGENCY_CONTACTS.map((contact) => contact.id),
+        // Les contacts definis dans le profil chauffeur, pas une liste figee :
+        // c'est le meme registre des deux cotes.
+        contactIds: getDriverEmergencyContacts().map((contact) => contact.id),
       });
       console.log(
         '[driver-safety] message qui serait envoye',

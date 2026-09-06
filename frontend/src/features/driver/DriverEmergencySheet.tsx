@@ -80,8 +80,11 @@ export function DriverEmergencySheet({
         ) : (
           <Pressable
             onPress={onTriggerAlert}
-            disabled={step === 'sending'}
-            style={[styles.alert, step === 'sending' && styles.alertDisabled]}
+            disabled={step === 'sending' || contacts.length === 0}
+            style={[
+              styles.alert,
+              (step === 'sending' || contacts.length === 0) && styles.alertDisabled,
+            ]}
             accessibilityRole="button"
             accessibilityLabel="Prévenir mes contacts d’urgence"
           >
@@ -101,6 +104,14 @@ export function DriverEmergencySheet({
         {/* L'appel direct reste toujours accessible : c'est la voie qui ne
             depend d'aucun serveur. */}
         <Text style={styles.section}>Appeler</Text>
+
+        {/* Sans contact enregistre, l'alerte n'a personne a joindre : le dire
+            ici plutot que de laisser un vide inexplique (R8). */}
+        {contacts.length === 0 && (
+          <Text style={styles.rowMeta}>
+            Aucun contact enregistré. Ajoutez-en depuis votre profil.
+          </Text>
+        )}
 
         {contacts.map((contact) => (
           <Pressable
