@@ -113,7 +113,7 @@ export function EmergencyContactsScreen({ onClose }: Props) {
                 accessibilityRole="button"
                 accessibilityLabel={`Retirer ${contact.name}`}
               >
-                <Ionicons name="trash-outline" size={18} color={colors.textMuted} />
+                <Ionicons name="trash-outline" size={18} color={colors.danger} />
               </Pressable>
             </View>
           ))
