@@ -112,6 +112,8 @@ src/
       useDriverTripGeometry.ts  position, points, tracés et véhicule animé
       useDriverTripRoutes.ts    les deux itinéraires ORS de la course
       useDriverVehicleMotion.ts position animée du véhicule du chauffeur
+      useDriverSafety.ts   alerte, assistance, signalement passager (R10, R16)
+      DriverEmergencySheet.tsx, DriverReportSheet.tsx  copies de la feature ride
       DriverMapCanvas.tsx  carte partagée dashboard/course (copie, R16)
       DriverVehicleMarker.tsx, DriverRouteLine.tsx, DriverMapControls.tsx
       DriverDashboardScreen, DriverTripScreen/Sheet, DriverStatusSheet,
@@ -132,7 +134,8 @@ src/
     payment.ts             verdicts de paiement SIMULÉS, à remplacer par l'API
     ratings.ts             envoi de l'évaluation SIMULÉ, à remplacer par l'API
     transactions.ts        historique SIMULÉ en mémoire, à remplacer par l'API
-    safety.ts              alerte et signalement SIMULÉS, à remplacer par l'API
+    safety.ts              alerte et signalement passager SIMULÉS, à remplacer
+    driverSafety.ts        alerte et signalement chauffeur SIMULÉS (copie, R16)
     roadsFromMap.ts        routes lues dans les tuiles déjà affichées — utilisé
     roads.ts               mêmes types + variante Overpass — non utilisée
   contexts/

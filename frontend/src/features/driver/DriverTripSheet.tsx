@@ -22,6 +22,10 @@ type Props = {
   isRouteLoading?: boolean;
   onAdvance: () => void;
   onFinish: () => void;
+  /** Ouvre l'urgence chauffeur (brief §10.3). */
+  onSos: () => void;
+  /** Ouvre le signalement du passager. */
+  onReport: () => void;
 };
 
 const STAGE_TITLE: Record<DriverTripStage, string> = {
@@ -50,6 +54,8 @@ export function DriverTripSheet({
   isRouteLoading = false,
   onAdvance,
   onFinish,
+  onSos,
+  onReport,
 }: Props) {
   const insets = useSafeAreaInsets();
   const isCompleted = stage === 'completed';
@@ -81,7 +87,40 @@ export function DriverTripSheet({
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.status}>{STAGE_TITLE[stage]}</Text>
+        <View style={styles.headerRow}>
+          <Text style={styles.status}>{STAGE_TITLE[stage]}</Text>
+
+          {/*
+            Signalement en pastille discrete, comme cote passager : il reste
+            accessible APRES la descente — c'est souvent une fois le passager
+            parti que le chauffeur ose signaler.
+          */}
+          <Pressable
+            onPress={onReport}
+            style={styles.report}
+            hitSlop={6}
+            accessibilityRole="button"
+            accessibilityLabel="Signaler ce passager"
+          >
+            <Ionicons name="flag-outline" size={12} color={colors.textMuted} />
+            <Text style={styles.reportLabel}>Signaler</Text>
+          </Pressable>
+
+          {/*
+            L'urgence, elle, doit se voir : pastille rouge, atteignable sans
+            faire defiler le panneau (brief §10.3).
+          */}
+          <Pressable
+            onPress={onSos}
+            style={styles.sos}
+            hitSlop={6}
+            accessibilityRole="button"
+            accessibilityLabel="Ouvrir l’urgence"
+          >
+            <Ionicons name="warning" size={12} color={colors.surface} />
+            <Text style={styles.sosLabel}>SOS</Text>
+          </Pressable>
+        </View>
 
         <View style={styles.routeRow}>
           <View style={styles.routeIcons}>
@@ -196,7 +235,39 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.lg,
     gap: spacing.md,
   },
-  status: typography.subtitle,
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  status: {
+    ...typography.subtitle,
+    flex: 1,
+  },
+  report: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
+  },
+  reportLabel: typography.caption,
+  sos: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    borderRadius: radius.pill,
+    backgroundColor: colors.danger,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
+  },
+  sosLabel: {
+    ...typography.caption,
+    color: colors.surface,
+  },
   routeRow: {
     flexDirection: 'row',
     gap: spacing.md,

@@ -11,6 +11,10 @@ type Props = {
   isRouteLoading: boolean;
   onAdvance: () => void;
   onFinish: () => void;
+  /** Ouvre l'urgence chauffeur (brief §10.3). */
+  onSos: () => void;
+  /** Ouvre le signalement du passager. */
+  onReport: () => void;
 };
 
 /**
@@ -27,6 +31,8 @@ export function DriverTripScreen({
   isRouteLoading,
   onAdvance,
   onFinish,
+  onSos,
+  onReport,
 }: Props) {
   return (
     <View style={styles.sheetStack} pointerEvents="box-none">
@@ -36,6 +42,8 @@ export function DriverTripScreen({
         isRouteLoading={isRouteLoading}
         onAdvance={onAdvance}
         onFinish={onFinish}
+        onSos={onSos}
+        onReport={onReport}
       />
     </View>
   );

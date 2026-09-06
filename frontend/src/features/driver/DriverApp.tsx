@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { colors, SHEET_HEIGHT, spacing } from '../../theme';
+import { colors, radius, shadows, SHEET_HEIGHT, spacing, typography } from '../../theme';
 import { DEFAULT_REGION } from '../../config/env';
 import { useDriverSession, DEMO_DRIVER } from './useDriverSession';
 import { useDriverTripGeometry } from './useDriverTripGeometry';
@@ -15,6 +15,10 @@ import { IncomingRequestOverlay } from './IncomingRequestOverlay';
 import { DriverTripScreen } from './DriverTripScreen';
 import { DriverProfileScreen } from './DriverProfileScreen';
 import { DriverEarningsScreen } from './DriverEarningsScreen';
+import { DriverEmergencySheet } from './DriverEmergencySheet';
+import { DriverReportSheet } from './DriverReportSheet';
+import { useDriverSafety } from './useDriverSafety';
+import { DEMO_DRIVER_EMERGENCY_CONTACTS } from '../../services/driverSafety';
 
 /**
  * Racine du parcours chauffeur.
@@ -54,6 +58,14 @@ export function DriverApp() {
 
   // Recentrage sur le vehicule, a la demande du chauffeur.
   const [recenterToken, setRecenterToken] = useState(0);
+
+  // Assistance chauffeur (brief §10.3). Montee ICI et non dans l'ecran de
+  // course : l'urgence doit rester joignable hors course, un chauffeur pouvant
+  // etre en danger a l'arret. La position transmise est celle du vehicule.
+  const safety = useDriverSafety(session.request, {
+    latitude: vehiclePosition.latitude,
+    longitude: vehiclePosition.longitude,
+  });
 
   // Revenus du jour : ecran plein, comme le profil. La carte est demontee le
   // temps de la consultation — le chauffeur lit une liste, pas un plan.
@@ -116,13 +128,44 @@ export function DriverApp() {
         bottomPadding={SHEET_HEIGHT + insets.bottom}
       />
 
-      {hasTrip && session.request !== null ? (
+      {/*
+        Urgence et signalement passent DEVANT tout le reste : ouverts, ils sont
+        ce que le chauffeur regarde. Ils se referment sur l'ecran reste en place.
+      */}
+      {safety.panel === 'sos' ? (
+        <View style={styles.sheetStack} pointerEvents="box-none">
+          <DriverEmergencySheet
+            contacts={DEMO_DRIVER_EMERGENCY_CONTACTS}
+            step={safety.alertStep}
+            error={safety.alertError}
+            onTriggerAlert={safety.triggerAlert}
+            onCallContact={safety.callContact}
+            onCallSupport={safety.callSupport}
+            onClose={safety.close}
+          />
+        </View>
+      ) : safety.panel === 'report' ? (
+        <View style={styles.sheetStack} pointerEvents="box-none">
+          <DriverReportSheet
+            reason={safety.reportReason}
+            onSelectReason={safety.setReportReason}
+            details={safety.reportDetails}
+            onChangeDetails={safety.setReportDetails}
+            step={safety.reportStep}
+            error={safety.reportError}
+            onSubmit={safety.sendReport}
+            onClose={safety.close}
+          />
+        </View>
+      ) : hasTrip && session.request !== null ? (
         <DriverTripScreen
           request={session.request}
           stage={session.stage}
           isRouteLoading={routes.isLoading}
           onAdvance={session.advanceStage}
           onFinish={session.finishTrip}
+          onSos={safety.openSos}
+          onReport={safety.openReport}
         />
       ) : (
         <DriverDashboardScreen
@@ -141,17 +184,36 @@ export function DriverApp() {
         au-dessus d'eux, et valables sur les DEUX : la carte etant partagee,
         les commandes de cadrage le sont aussi.
       */}
-      <View
-        style={[styles.controls, { bottom: SHEET_HEIGHT + insets.bottom + spacing.md }]}
-        pointerEvents="box-none"
-      >
-        <DriverMapControls
-          onFitRoute={
-            hasTrip && hasRoutes ? () => setFitToken((token) => token + 1) : undefined
-          }
-          onRecenter={() => setRecenterToken((token) => token + 1)}
-        />
-      </View>
+      {safety.panel === null && (
+        <View
+          style={[styles.controls, { bottom: SHEET_HEIGHT + insets.bottom + spacing.md }]}
+          pointerEvents="box-none"
+        >
+          <DriverMapControls
+            onFitRoute={
+              hasTrip && hasRoutes ? () => setFitToken((token) => token + 1) : undefined
+            }
+            onRecenter={() => setRecenterToken((token) => token + 1)}
+          />
+        </View>
+      )}
+
+      {/*
+        Hors course, le panneau du tableau de bord n'a pas d'en-tete ou loger le
+        SOS : il prend sa place en haut de la carte, atteignable sans rien faire
+        defiler (brief §10.3).
+      */}
+      {safety.panel === null && !hasTrip && (
+        <Pressable
+          onPress={safety.openSos}
+          style={[styles.sosFloating, { top: insets.top + spacing.md }]}
+          accessibilityRole="button"
+          accessibilityLabel="Ouvrir l’urgence"
+        >
+          <Ionicons name="warning" size={14} color={colors.surface} />
+          <Text style={styles.sosFloatingLabel}>SOS</Text>
+        </Pressable>
+      )}
 
       {session.route === 'incoming_request' && session.request !== null && (
         <IncomingRequestOverlay
@@ -174,5 +236,27 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     right: 0,
+  },
+  sheetStack: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  sosFloating: {
+    position: 'absolute',
+    right: spacing.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    borderRadius: radius.pill,
+    backgroundColor: colors.danger,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    ...shadows.sheet,
+  },
+  sosFloatingLabel: {
+    ...typography.label,
+    color: colors.surface,
   },
 });

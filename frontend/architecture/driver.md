@@ -114,8 +114,37 @@ trace (R8).
 (`colors.driverHalo`), la ou le passager voit un halo BLEU sous son point
 (`colors.userHalo`). Les deux ne doivent jamais se confondre.
 
+## Assistance chauffeur (brief §10.3)
+
+Trois actions, dupliquees du cote passager (R16) et jamais partagees avec lui :
+`services/driverSafety.ts` (copie de `safety.ts`), `useDriverSafety`
+(copie de `useRideSafety`), `DriverEmergencySheet` et `DriverReportSheet`
+(copies de `EmergencySheet` et `ReportSheet`).
+
+- **Alerte d'urgence** : previent les contacts d'urgence du chauffeur avec sa
+  position et la course en cours. Disponible AUSSI hors course — un chauffeur
+  peut etre en danger a l'arret, entre deux courses. Si l'envoi echoue, l'appel
+  direct reste affiche sous le message (R8).
+- **Contact assistance** : file chauffeur (`DRIVER_SUPPORT_PHONE`), distincte de
+  l'assistance passager. Le numero est pre-rempli dans le composeur, jamais
+  compose automatiquement.
+- **Signalement d'un passager** : liste fermee de motifs propres au chauffeur
+  (comportement agressif, refus de paiement, degradation, passager absent,
+  autre) + commentaire facultatif. Exiger le commentaire dissuaderait de
+  signaler.
+
+Le hook est monte dans `DriverApp`, pas dans l'ecran de course : c'est ce qui
+permet au SOS de rester joignable sur le tableau de bord. Entrees : pastilles
+"Signaler" et "SOS" dans l'en-tete de `DriverTripSheet` pendant la course, et
+bouton SOS flottant en haut de la carte hors course.
+
+⚠️ Alerte et signalement SIMULES : les deux panneaux le disent (brief §23).
+
 ## Simulations a remplacer
 
+- `driverSafety.ts` : `sendDriverAlert` -> `POST /driver/rides/:id/alert`,
+  `submitDriverReport` -> `POST /driver/rides/:id/report`, et les contacts
+  d'urgence viendront du compte chauffeur.
 - `driverRequests.ts` : demandes de demonstration -> abonnement socket (R6).
 - `driverEarnings.ts` : `listDriverEarnings` -> `GET /driver/rides?day=today`,
   et `recordDriverEarning` disparait (c'est le backend qui archive la course).
