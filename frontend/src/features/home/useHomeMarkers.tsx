@@ -23,6 +23,13 @@ type Params = {
   destination: RoutePoint | null;
   driverPosition: DriverPosition;
   driverKind: VehicleKind;
+  /**
+   * Categorie retenue dans le panneau d'estimation. Quand elle est fournie, la
+   * carte ne montre que les vehicules de cette categorie : l'utilisateur voit
+   * immediatement l'offre reelle derriere le prix qu'il compare.
+   * `null` = accueil, toutes categories confondues.
+   */
+  vehicleFilter: VehicleKind | null;
 };
 
 /**
@@ -41,6 +48,7 @@ export function useHomeMarkers({
   destination,
   driverPosition,
   driverKind,
+  vehicleFilter,
 }: Params): MapMarker[] {
   // Une fois un chauffeur assigne, la carte ne montre plus QUE le sien : les
   // vehicules disponibles alentour n'ont plus rien a dire, et les laisser
@@ -53,22 +61,32 @@ export function useHomeMarkers({
     const markers: MapMarker[] =
       roadPoints === null || hasAssignedDriver
         ? []
-        : NEARBY_VEHICLES.map((vehicle, index) => {
+        : NEARBY_VEHICLES.flatMap((vehicle, index) => {
+            // Filtre par categorie : on garde l'index d'origine, car `motions`
+            // et `roadPoints` sont alignes sur NEARBY_VEHICLES.
+            if (vehicleFilter !== null && vehicle.kind !== vehicleFilter) {
+              return [];
+            }
+
             // Position animee si elle existe, sinon la position posee sur la
             // route, sinon l'offset de demonstration (routes en echec, R8).
             const onRoad = motions[index] ?? roadPoints[index];
 
-            return {
-              id: vehicle.id,
-              longitude: onRoad?.longitude ?? coords.longitude + vehicle.offsetLng,
-              latitude: onRoad?.latitude ?? coords.latitude + vehicle.offsetLat,
-              render: () => (
-                <VehicleMarker
-                  kind={vehicle.kind}
-                  bearing={onRoad?.bearing ?? vehicle.bearing}
-                />
-              ),
-            };
+            return [
+              {
+                id: vehicle.id,
+                longitude:
+                  onRoad?.longitude ?? coords.longitude + vehicle.offsetLng,
+                latitude:
+                  onRoad?.latitude ?? coords.latitude + vehicle.offsetLat,
+                render: () => (
+                  <VehicleMarker
+                    kind={vehicle.kind}
+                    bearing={onRoad?.bearing ?? vehicle.bearing}
+                  />
+                ),
+              },
+            ];
           });
 
     // La position utilisateur n'est affichee que si elle est reelle : montrer
@@ -115,5 +133,6 @@ export function useHomeMarkers({
     hasAssignedDriver,
     driverPosition,
     driverKind,
+    vehicleFilter,
   ]);
 }

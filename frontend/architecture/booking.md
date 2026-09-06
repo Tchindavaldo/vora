@@ -36,7 +36,11 @@ HomeScreen (course en préparation)
    sur ses extrémités, avec une marge basse large pour le panneau.
 4. `estimateAllFares` calcule les trois paliers à partir de la distance et de la
    durée renvoyées.
-5. « Commander » reste un `TODO` (étapes 6-7 : création de la course, recherche
+5. Le clic sur une carte (Moto / Eco / Confort) fixe `selectedTier` : la carte
+   ne garde alors que les véhicules alentour de cette catégorie
+   (`useHomeMarkers`, paramètre `vehicleFilter`). Sur l'accueil, aucune
+   catégorie n'étant choisie, toute l'offre reste affichée.
+6. « Commander » reste un `TODO` (étapes 6-7 : création de la course, recherche
    d'un chauffeur).
 
 ## Bottom sheets : hauteur commune

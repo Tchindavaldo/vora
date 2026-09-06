@@ -199,6 +199,9 @@ export function HomeScreen({ onSwitchToDriver }: Props) {
           },
     driverPosition,
     driverKind: ride.ride?.tier ?? "eco",
+    // Le filtre ne vaut que pendant l'estimation : sur l'accueil, aucune
+    // categorie n'est encore choisie, on montre toute l'offre alentour.
+    vehicleFilter: booking.choice === null ? null : booking.selectedTier,
   });
 
   const rideStatus = ride.ride?.status ?? null;
