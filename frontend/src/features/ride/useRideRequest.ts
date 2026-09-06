@@ -7,6 +7,7 @@ import {
   type CreateRideInput,
   type Ride,
 } from '../../services/rides';
+import { notify } from '../../services/notifications';
 
 /**
  * Demande de course : creation, attente d'un chauffeur, annulation
@@ -62,8 +63,22 @@ export function useRideRequest(): RideRequest {
 
         // Les changements de statut arrivent de facon asynchrone, comme le
         // feront les evenements socket du backend.
+        let prevStatus = created.status;
+        
         unsubscribeRef.current = subscribeToRideStatus(created, (updated) => {
           if (!isActiveRef.current) return;
+          
+          if (prevStatus !== updated.status) {
+            if (updated.status === 'accepted') {
+              notify('Chauffeur en route', 'Votre chauffeur a accepté la course et se dirige vers vous.');
+            } else if (updated.status === 'arrived') {
+              notify('Chauffeur arrivé', 'Votre chauffeur vous attend au point de départ.');
+            } else if (updated.status === 'completed') {
+              notify('Course terminée', 'Merci d\'avoir voyagé avec VORA.');
+            }
+            prevStatus = updated.status;
+          }
+          
           setRide(updated);
         });
       })

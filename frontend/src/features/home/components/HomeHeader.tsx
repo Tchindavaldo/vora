@@ -16,6 +16,7 @@ type Props = {
   /** Ouvre l'historique des courses et de leurs paiements. */
   onMenuPress: () => void;
   onProfilePress: () => void;
+  onNotificationsPress: () => void;
 };
 
 /**
@@ -29,6 +30,7 @@ export function HomeHeader({
   userInitial,
   onMenuPress,
   onProfilePress,
+  onNotificationsPress,
 }: Props) {
   const insets = useSafeAreaInsets();
 
@@ -54,6 +56,15 @@ export function HomeHeader({
         accessibilityLabel="Voir mes courses"
       >
         <Ionicons name="receipt-outline" size={22} color={colors.text} />
+      </Pressable>
+
+      <Pressable
+        onPress={onNotificationsPress}
+        style={styles.circleButton}
+        accessibilityRole="button"
+        accessibilityLabel="Notifications"
+      >
+        <Ionicons name="notifications-outline" size={22} color={colors.text} />
       </Pressable>
 
       {/* Le badge ne s'etire pas : il se dimensionne sur son texte et reste

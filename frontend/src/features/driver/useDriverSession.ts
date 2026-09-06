@@ -17,6 +17,7 @@ import {
 } from './driverRequests';
 import { recordDriverEarning } from '../../services/driverEarnings';
 import { recordDriverRide } from '../../services/driverRides';
+import { notify } from '../../services/notifications';
 
 export type DriverRoute =
   | 'dashboard'
@@ -25,7 +26,8 @@ export type DriverRoute =
   | 'profile'
   | 'earnings'
   | 'ride_history'
-  | 'emergency_contacts';
+  | 'emergency_contacts'
+  | 'notifications';
 
 /** Chauffeur de demonstration : identite affichee sur le tableau de bord et le profil. */
 export const DEMO_DRIVER = {
@@ -81,6 +83,7 @@ export function useDriverSession() {
       setRequest(createDemoRequest());
       setSecondsLeft(REQUEST_TIMEOUT_SECONDS);
       setRoute('incoming_request');
+      notify('Nouvelle course', 'Une course est disponible près de vous.');
     }, 2500);
 
     return () => clearTimeout(delay);
@@ -206,6 +209,9 @@ export function useDriverSession() {
   const openEmergencyContacts = useCallback(() => setRoute('emergency_contacts'), []);
   const closeEmergencyContacts = useCallback(() => setRoute('profile'), []);
 
+  const openNotifications = useCallback(() => setRoute('notifications'), []);
+  const closeNotifications = useCallback(() => setRoute('dashboard'), []);
+
   return {
     route,
     isOnline,
@@ -229,6 +235,8 @@ export function useDriverSession() {
     closeRideHistory,
     openEmergencyContacts,
     closeEmergencyContacts,
+    openNotifications,
+    closeNotifications,
   };
 }
 

@@ -13,6 +13,7 @@ import { useMemo, useState } from 'react';
 
 import { computeCashOffer } from '../../services/payment';
 import { recordTransaction } from '../../services/transactions';
+import { requestNotificationPermission } from '../../services/notifications';
 import type { RoutePoint } from '../../services/routing';
 import type { useBookingFlow } from '../booking/useBookingFlow';
 import type { usePayment } from '../payment/usePayment';
@@ -69,9 +70,11 @@ export function useRideOrder({ origin, booking, payment, ride }: Args) {
    * backend a l'arrivee de l'API : un prix venu du telephone ne fait pas foi
    * (R13).
    */
-  const order = () => {
+  const order = async () => {
     const choice = booking.choice;
     if (choice === null || selectedFare === undefined) return;
+
+    await requestNotificationPermission();
 
     setIsPaying(false);
 
@@ -111,10 +114,10 @@ export function useRideOrder({ origin, booking, payment, ride }: Args) {
    * Le verdict `due` est enregistre au passage — c'est lui qui porte la monnaie
    * dans l'historique du paiement.
    */
-  const orderWithCash = () => {
+  const orderWithCash = async () => {
     if (selectedFare === undefined) return;
     payment.confirm(selectedFare.amountXaf, cashOffer);
-    order();
+    await order();
   };
 
   /**

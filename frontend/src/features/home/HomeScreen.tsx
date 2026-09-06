@@ -38,6 +38,7 @@ import { ProfileScreen } from "../profile/ProfileScreen";
 import { SupportScreen } from "../support/SupportScreen";
 import { EmergencyContactsScreen } from "../profile/EmergencyContactsScreen";
 import { useEmergencyContacts } from "../profile/useEmergencyContacts";
+import { NotificationsScreen } from "../notifications/NotificationsScreen";
 import { LocationNotice } from "./components/LocationNotice";
 import { useHomeMarkers } from "./useHomeMarkers";
 import {
@@ -330,6 +331,10 @@ export function HomeScreen() {
     return <TransactionHistoryScreen onClose={nav.close} />;
   }
 
+  if (nav.route?.name === "notifications") {
+    return <NotificationsScreen onClose={nav.close} />;
+  }
+
   if (nav.route?.name === "search") {
     return (
       <DestinationSearchScreen
@@ -371,6 +376,7 @@ export function HomeScreen() {
         userInitial={DEMO_USER_INITIAL}
         onMenuPress={nav.openHistory}
         onProfilePress={nav.openProfile}
+        onNotificationsPress={nav.openNotifications}
       />
 
       <View style={styles.bottomStack} pointerEvents="box-none">

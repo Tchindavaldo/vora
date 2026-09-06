@@ -21,6 +21,7 @@ import { DriverReportSheet } from './DriverReportSheet';
 import { useDriverSafety } from './useDriverSafety';
 import { DriverEmergencyContactsScreen } from './DriverEmergencyContactsScreen';
 import { useDriverEmergencyContacts } from './useDriverEmergencyContacts';
+import { NotificationsScreen } from '../notifications/NotificationsScreen';
 
 /**
  * Racine du parcours chauffeur.
@@ -93,6 +94,10 @@ export function DriverApp() {
     return (
       <DriverEmergencyContactsScreen onClose={session.closeEmergencyContacts} />
     );
+  }
+
+  if (session.route === 'notifications') {
+    return <NotificationsScreen onClose={session.closeNotifications} />;
   }
 
   if (session.route === 'profile') {
@@ -200,6 +205,7 @@ export function DriverApp() {
           onToggleOnline={(value) => (value ? session.goOnline() : session.goOffline())}
           onOpenProfile={session.openProfile}
           onOpenEarnings={() => session.openEarnings('dashboard')}
+          onOpenNotifications={session.openNotifications}
         />
       )}
 

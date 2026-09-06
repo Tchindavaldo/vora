@@ -9,6 +9,7 @@ import { SafeBottomArea } from '../../components/SafeBottomArea';
 import { COUNTRY_CODE, formatPhone } from '../../services/session';
 import { useAuth } from '../../contexts/AuthContext';
 import { useEmergencyContacts } from './useEmergencyContacts';
+import { useNotificationPermission, openNotificationSettings } from '../../services/notifications';
 
 type Props = {
   userName: string;
@@ -45,6 +46,7 @@ export function ProfileScreen({
   // La deconnexion et le numero connecte viennent du contexte (R6) : ils
   // n'ont pas a traverser l'accueil pour arriver jusqu'ici.
   const { session, signOut } = useAuth();
+  const { isGranted } = useNotificationPermission();
 
   return (
     <View style={styles.root}>
@@ -137,6 +139,13 @@ export function ProfileScreen({
           />
 
           <Text style={styles.section}>Compte</Text>
+
+          <Row
+            icon="notifications-outline"
+            label="Notifications"
+            hint={isGranted ? "Activées — modifiables dans les réglages" : "Désactivées — modifiables dans les réglages"}
+            onPress={openNotificationSettings}
+          />
 
           <Row
             icon="person-outline"
