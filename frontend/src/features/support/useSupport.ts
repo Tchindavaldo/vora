@@ -18,6 +18,8 @@ import {
   submitDispute,
   SUPPORT_EMAIL,
   SUPPORT_PHONE,
+  SUPPORT_WHATSAPP,
+  SUPPORT_WHATSAPP_MESSAGE,
   type DisputeReason,
 } from '../../services/support';
 
@@ -57,6 +59,28 @@ export function useSupport() {
   }, []);
 
   const callSupport = useCallback(() => dial(SUPPORT_PHONE), [dial]);
+
+  /**
+   * Ouvre la conversation WhatsApp de l'assistance, message pre-rempli.
+   *
+   * On passe par `wa.me` et non par le schema `whatsapp://` : le lien web
+   * bascule seul vers l'application quand elle est installee, et reste
+   * ouvrable dans le navigateur sinon. WhatsApp absent = message clair,
+   * jamais d'echec silencieux (R8).
+   */
+  const whatsappSupport = useCallback(() => {
+    const url = `https://wa.me/${SUPPORT_WHATSAPP}?text=${encodeURIComponent(
+      SUPPORT_WHATSAPP_MESSAGE,
+    )}`;
+
+    Linking.openURL(url).catch(() => {
+      console.warn('[support] whatsapp indisponible');
+      Alert.alert(
+        'WhatsApp indisponible',
+        `Impossible d’ouvrir WhatsApp. Écrivez-nous au ${SUPPORT_PHONE}.`,
+      );
+    });
+  }, []);
 
   /** Ouvre le client mail, sujet pre-rempli. Echec signale, jamais silencieux (R8). */
   const emailSupport = useCallback(() => {
@@ -113,6 +137,7 @@ export function useSupport() {
     openFaqId,
     toggleFaq,
     callSupport,
+    whatsappSupport,
     emailSupport,
     disputeRideId,
     disputeReason,

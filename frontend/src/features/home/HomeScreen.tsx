@@ -39,6 +39,10 @@ import { SupportScreen } from "../support/SupportScreen";
 import { EmergencyContactsScreen } from "../profile/EmergencyContactsScreen";
 import { useEmergencyContacts } from "../profile/useEmergencyContacts";
 import { NotificationsScreen } from "../notifications/NotificationsScreen";
+import { WalletScreen } from "../wallet/WalletScreen";
+import { useSettlement } from "../payment/useSettlement";
+import { SettlementScreen } from "../payment/SettlementScreen";
+import { useAuth } from "../../contexts/AuthContext";
 import { LocationNotice } from "./components/LocationNotice";
 import { LocationPlaceholder } from "./components/LocationPlaceholder";
 import { useHomeMarkers } from "./useHomeMarkers";
@@ -71,6 +75,9 @@ const AMBIENT_VEHICLES_MOVE = false;
 export function HomeScreen() {
   const location = useUserLocation();
   const insets = useSafeAreaInsets();
+
+  // Le numero connecte sert de numero de paiement Mobile Money par defaut.
+  const { session } = useAuth();
 
   // Seule une position reelle autorise les commandes de course : ailleurs,
   // `coords` est le repli sur la ville par defaut.
@@ -264,6 +271,11 @@ export function HomeScreen() {
    */
   const [isRating, setIsRating] = useState(false);
 
+  /** Reglement de la course en cours, entre la fin du suivi et l'evaluation. */
+  const [isSettling, setIsSettling] = useState(false);
+
+  const settlement = useSettlement();
+
   /**
    * Commentaire ouvert : deuxieme temps de l'evaluation, en plein ecran.
    *
@@ -272,7 +284,32 @@ export function HomeScreen() {
    */
   const [isCommenting, setIsCommenting] = useState(false);
 
-  const handleRideDone = () => setIsRating(true);
+  /**
+   * "Terminer" sur le suivi : le mode de paiement choisi a la commande
+   * s'execute MAINTENANT (brief §8) — especes remises au chauffeur,
+   * portefeuille debite, ou tunnel Mobile Money. L'evaluation ne vient
+   * qu'apres, une fois la course reglee.
+   */
+  const handleRideDone = () => {
+    const amountXaf = ride.ride?.amountXaf ?? 0;
+    settlement.start(payment.method, amountXaf, session?.phone ?? '');
+    setIsSettling(true);
+  };
+
+  /** Course reglee : on passe a l'evaluation du chauffeur. */
+  const handleSettled = () => {
+    setIsSettling(false);
+    setIsRating(true);
+  };
+
+  /**
+   * Portefeuille ou Mobile Money en echec : on bascule sur les especes plutot
+   * que de laisser le passager coince a l'arrivee (R8).
+   */
+  const handleFallbackToCash = () => {
+    payment.selectMethod('cash');
+    settlement.start('cash', ride.ride?.amountXaf ?? 0, '');
+  };
 
   /**
    * Evaluation envoyee ou passee : la course rejoint l'historique avec la note
@@ -281,9 +318,27 @@ export function HomeScreen() {
   const handleRatingClose = () => {
     setIsRating(false);
     setIsCommenting(false);
-    order.reset(rating.stars);
+    // Le recu porte le verdict REEL du reglement : especes remises au
+    // chauffeur (`due`) ou paiement debite (`succeeded`). Sans cela,
+    // l'historique afficherait le mode retenu a la commande, pas ce qui s'est
+    // passe a l'arrivee.
+    order.reset(rating.stars, settlement.state === 'settled' ? 'succeeded' : 'due');
+    settlement.reset();
     rating.reset();
   };
+
+  // Reglement de la course : il passe AVANT l'evaluation, et avant tout le
+  // reste — la course est finie, seul le paiement compte a cet instant.
+  if (isSettling) {
+    return (
+      <SettlementScreen
+        settlement={settlement}
+        amountXaf={ride.ride?.amountXaf ?? 0}
+        onDone={handleSettled}
+        onFallbackToCash={handleFallbackToCash}
+      />
+    );
+  }
 
   // Commentaire : plein ecran pour que le clavier ne recouvre pas la saisie.
   const rated = ride.ride;
@@ -323,9 +378,15 @@ export function HomeScreen() {
         onOpenEmergencyContacts={nav.openContacts}
         onOpenSupport={nav.openSupport}
         onOpenHistory={nav.openHistory}
+        onOpenWallet={nav.openWallet}
         onClose={nav.close}
       />
     );
+  }
+
+  // Le portefeuille se ferme vers le profil, seule porte d'entree.
+  if (nav.route?.name === "wallet") {
+    return <WalletScreen onClose={nav.openProfile} />;
   }
 
   if (nav.route?.name === "history") {

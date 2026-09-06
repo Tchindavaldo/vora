@@ -61,9 +61,7 @@ export function EmergencyContactsScreen({ onClose }: Props) {
       <StatusBar style="dark" />
 
       <View style={[styles.header, { paddingTop: insets.top + spacing.md }]}>
-        <Text style={styles.title}>Contacts d’urgence</Text>
-
-        {/* Retour a DROITE, comme sur les ecrans de profil. */}
+        {/* Retour a GAUCHE du titre : convention de navigation universelle. */}
         <Pressable
           onPress={onClose}
           hitSlop={10}
@@ -73,6 +71,8 @@ export function EmergencyContactsScreen({ onClose }: Props) {
         >
           <Ionicons name="arrow-back" size={22} color={colors.text} />
         </Pressable>
+
+        <Text style={styles.title}>Contacts d’urgence</Text>
       </View>
 
       <SafeBottomArea>

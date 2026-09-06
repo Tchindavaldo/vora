@@ -55,11 +55,9 @@ export function SupportScreen({ onClose }: Props) {
     <View style={styles.root}>
       <StatusBar style="dark" />
 
-      {/* Retour a DROITE, comme sur les ecrans de profil : le pouce l'atteint
-          sans changer de main sur un grand telephone. */}
+      {/* Retour a GAUCHE du titre : convention de navigation universelle
+          (Android comme iOS), le geste de retour part du bord gauche. */}
       <View style={[styles.header, { paddingTop: insets.top + spacing.md }]}>
-        <Text style={styles.title}>Assistance</Text>
-
         <Pressable
           onPress={onClose}
           hitSlop={10}
@@ -69,6 +67,8 @@ export function SupportScreen({ onClose }: Props) {
         >
           <Ionicons name="arrow-back" size={22} color={colors.text} />
         </Pressable>
+
+        <Text style={styles.title}>Assistance</Text>
       </View>
 
       <SafeBottomArea>
@@ -92,6 +92,26 @@ export function SupportScreen({ onClose }: Props) {
               <Text style={styles.contactLabel}>Appeler l’assistance</Text>
               <Text style={styles.contactHint}>
                 {SUPPORT_PHONE} · {SUPPORT_HOURS}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={colors.textFaint} />
+          </Pressable>
+
+          {/* WhatsApp avant l'e-mail : au Cameroun c'est le canal ecrit
+              reellement utilise, et il coute moins cher qu'un appel. */}
+          <Pressable
+            style={styles.contact}
+            onPress={support.whatsappSupport}
+            accessibilityRole="button"
+            accessibilityLabel="Écrire à l’assistance sur WhatsApp"
+          >
+            <View style={styles.contactIcon}>
+              <Ionicons name="logo-whatsapp" size={20} color={colors.text} />
+            </View>
+            <View style={styles.contactBody}>
+              <Text style={styles.contactLabel}>Écrire sur WhatsApp</Text>
+              <Text style={styles.contactHint}>
+                Message pré-rempli · réponse rapide
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={16} color={colors.textFaint} />

@@ -129,7 +129,16 @@ export function useRideOrder({ origin, booking, payment, ride }: Args) {
    * ignore les courses non terminees et les doublons — un abandon en cours de
    * route ne laisse donc aucune trace dans l'historique.
    */
-  const reset = (stars: number | null = null) => {
+  const reset = (
+    stars: number | null = null,
+    /**
+     * Verdict du reglement joue a l'arrivee : `succeeded` si la somme a ete
+     * debitee (portefeuille, Mobile Money), `due` si elle a ete remise au
+     * chauffeur en especes. Sans lui, le recu porterait l'etat de la commande
+     * et non celui du paiement reel.
+     */
+    settledStatus: 'succeeded' | 'due' = 'due',
+  ) => {
     const settled = payment.payment;
     if (
       ride.ride !== null &&
@@ -139,7 +148,7 @@ export function useRideOrder({ origin, booking, payment, ride }: Args) {
       recordTransaction({
         ride: ride.ride,
         method: settled.method,
-        status: settled.status,
+        status: settledStatus,
         cash: settled.cash,
         stars,
       });

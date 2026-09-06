@@ -1,10 +1,14 @@
 import React from 'react';
 import {
+  Keyboard,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -64,6 +68,36 @@ export function DisputeSheet({
   onClose,
 }: Props) {
   const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
+
+  /**
+   * Hauteur de la sheet quand le clavier est ouvert.
+   *
+   * `SHEET_HEIGHT` est calibree pour un panneau au repos ; clavier ouvert, le
+   * champ de saisie tombait derriere les touches. On laisse alors la sheet
+   * monter jusqu'a 88 % de l'ecran : le `KeyboardAvoidingView` la remonte, et
+   * la place gagnee garde l'input ET le bouton Envoyer visibles.
+   */
+  const [isKeyboardOpen, setIsKeyboardOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    // `Will*` sur iOS (anime avec le clavier), `Did*` sur Android ou les
+    // evenements "will" ne sont pas emis.
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const show = Keyboard.addListener(showEvent, () => setIsKeyboardOpen(true));
+    const hide = Keyboard.addListener(hideEvent, () => setIsKeyboardOpen(false));
+
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
+
+  const sheetHeight = isKeyboardOpen
+    ? Math.max(SHEET_HEIGHT, windowHeight * 0.88)
+    : SHEET_HEIGHT + insets.bottom;
 
   if (step === 'sent') {
     return (
@@ -96,10 +130,11 @@ export function DisputeSheet({
   const isSending = step === 'sending';
 
   return (
-    <View
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={[
         styles.sheet,
-        { height: SHEET_HEIGHT + insets.bottom, paddingBottom: insets.bottom },
+        { height: sheetHeight, paddingBottom: isKeyboardOpen ? 0 : insets.bottom },
       ]}
     >
       <ScrollView
@@ -168,7 +203,12 @@ export function DisputeSheet({
         {error !== null && <Text style={styles.error}>{error}</Text>}
 
         <Pressable
-          onPress={onSubmit}
+          onPress={() => {
+            // On referme le clavier AVANT d'envoyer : sinon la sheet reste en
+            // position haute pendant l'envoi puis saute a l'ecran "transmis".
+            Keyboard.dismiss();
+            onSubmit();
+          }}
           disabled={reason === null || isSending}
           style={[
             styles.submit,
@@ -188,7 +228,7 @@ export function DisputeSheet({
           Litige simulé — aucune demande n’est réellement transmise.
         </Text>
       </ScrollView>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

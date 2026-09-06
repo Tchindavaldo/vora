@@ -18,6 +18,8 @@ type Props = {
   /** Ouvre l'assistance : contact du support, FAQ, litige (brief §14). */
   onOpenSupport: () => void;
   onOpenHistory: () => void;
+  /** Ouvre le portefeuille : solde, recharge et mouvements (brief §8). */
+  onOpenWallet: () => void;
   onClose: () => void;
 };
 
@@ -39,6 +41,7 @@ export function ProfileScreen({
   onOpenEmergencyContacts,
   onOpenSupport,
   onOpenHistory,
+  onOpenWallet,
   onClose,
 }: Props) {
   const insets = useSafeAreaInsets();
@@ -73,16 +76,19 @@ export function ProfileScreen({
           </View>
         </View>
 
-        {/* Retour a DROITE : le pouce l'atteint sans changer de main sur un
-            grand telephone, et il ne se confond plus avec l'avatar. */}
+        {/* PILULE plutot qu'une simple fleche : le profil n'est pas une page
+            de la pile de navigation, c'est un detour. La pilule "Accueil"
+            nomme la destination au lieu de la laisser deviner, et son icone
+            maison la distingue des retours d'ecran a ecran des sous-pages. */}
         <Pressable
           onPress={onClose}
           hitSlop={10}
-          style={styles.back}
+          style={styles.homeChip}
           accessibilityRole="button"
           accessibilityLabel="Retour à l’accueil"
         >
-          <Ionicons name="arrow-back" size={22} color={colors.text} />
+          <Ionicons name="home-outline" size={16} color={colors.text} />
+          <Text style={styles.homeChipLabel}>Accueil</Text>
         </Pressable>
       </View>
 
@@ -134,8 +140,8 @@ export function ProfileScreen({
           <Row
             icon="wallet-outline"
             label="Portefeuille"
-            hint="Bientôt : solde et recharge"
-            disabled
+            hint="Solde, recharge Mobile Money et mouvements"
+            onPress={onOpenWallet}
           />
 
           <Text style={styles.section}>Compte</Text>
@@ -237,11 +243,21 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  back: {
-    width: 32,
-    height: 32,
+  homeChip: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surfaceAlt,
+  },
+  homeChipLabel: {
+    ...typography.caption,
+    color: colors.text,
+    fontWeight: '600',
   },
   scroll: {
     flex: 1,

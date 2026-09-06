@@ -25,6 +25,24 @@
  */
 export const SUPPORT_PHONE = '+237690000000';
 
+/**
+ * Numero WhatsApp de l'assistance.
+ *
+ * Redefini a cote de `SUPPORT_PHONE` plutot que reutilise : le numero WhatsApp
+ * d'un service client n'est presque jamais celui de la ligne vocale, et
+ * WhatsApp coute moins cher au passager qu'un appel (contexte camerounais :
+ * le credit telephonique compte). Format international SANS le "+", comme
+ * l'exige `wa.me`.
+ */
+export const SUPPORT_WHATSAPP = '237690000000';
+
+/**
+ * Message pre-rempli de la conversation WhatsApp : le passager n'a plus qu'a
+ * decrire son probleme, et le support sait d'ou vient le contact.
+ */
+export const SUPPORT_WHATSAPP_MESSAGE =
+  'Bonjour VORA, j’ai besoin d’aide concernant ma course.';
+
 /** Adresse de l'assistance, pour les demandes qui ne pressent pas. */
 export const SUPPORT_EMAIL = 'support@vora.cm';
 
