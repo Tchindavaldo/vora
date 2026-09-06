@@ -8,6 +8,7 @@ import { colors, radius, spacing, typography } from '../../theme';
 import { formatXaf } from '../../services/pricing';
 import { useAuth } from '../../contexts/AuthContext';
 import { DEMO_DRIVER } from './useDriverSession';
+import { useDriverEmergencyContacts } from './useDriverEmergencyContacts';
 
 type Props = {
   earningsTodayXaf: number;
@@ -16,6 +17,8 @@ type Props = {
   onClose: () => void;
   /** Ouvre le detail des revenus du jour. */
   onOpenEarnings: () => void;
+  /** Ouvre la gestion des contacts d'urgence du chauffeur (R10). */
+  onOpenEmergencyContacts: () => void;
 };
 
 /**
@@ -33,8 +36,12 @@ export function DriverProfileScreen({
   ridesToday,
   onClose,
   onOpenEarnings,
+  onOpenEmergencyContacts,
 }: Props) {
   const insets = useSafeAreaInsets();
+  // Le compte suit les ajouts et suppressions faits dans l'ecran dedie.
+  const { items: emergencyContacts } = useDriverEmergencyContacts();
+  const contactCount = emergencyContacts.length;
   // Deconnexion lue dans le contexte (R6) : elle ne traverse plus DriverApp.
   const { signOut } = useAuth();
 
@@ -87,6 +94,19 @@ export function DriverProfileScreen({
 
         <Row icon="car-outline" label={DEMO_DRIVER.vehicleModel} hint={DEMO_DRIVER.plate} />
         <Row icon="call-outline" label="Téléphone" hint={DEMO_DRIVER.phone} />
+
+        <Text style={styles.section}>Sécurité</Text>
+
+        <Row
+          icon="shield-checkmark-outline"
+          label="Contacts d’urgence"
+          hint={
+            contactCount === 0
+              ? 'Aucun — le SOS n’aurait personne à prévenir'
+              : `${contactCount} contact${contactCount > 1 ? 's' : ''}`
+          }
+          onPress={onOpenEmergencyContacts}
+        />
 
         <Text style={styles.section}>Compte</Text>
 

@@ -45,7 +45,8 @@ frontend/              application mobile passager (Expo, initialisé)
       booking/         estimation, confirmation — FAIT
       payment/         paiement (espèces + monnaie, portefeuille, MoMo) — FAIT, simulé
       ride/            course : chauffeur, suivi, évaluation — FAIT
-      driver/          mode chauffeur : tableau de bord, demande, course — FAIT, simulé
+      driver/          mode chauffeur : tableau de bord, demande, course,
+                       assistance (urgence, support, signalement) — FAIT, simulé
       history/         historique des courses et de leurs reçus — FAIT
       profile/         profil, paramètres, contacts d'urgence — FAIT
     services/          géocodage (MapTiler), routage (ORS), tarifs, paiement,

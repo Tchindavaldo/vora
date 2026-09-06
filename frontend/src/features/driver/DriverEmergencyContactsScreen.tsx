@@ -15,33 +15,34 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors, radius, spacing, typography } from '../../theme';
 import {
-  useEmergencyContacts,
-  validateContact,
-  type ContactDraft,
-} from './useEmergencyContacts';
+  useDriverEmergencyContacts,
+  validateDriverContact,
+  type DriverContactDraft,
+} from './useDriverEmergencyContacts';
 
 type Props = {
   onClose: () => void;
 };
 
-const EMPTY_DRAFT: ContactDraft = { name: '', relation: '', phone: '' };
+const EMPTY_DRAFT: DriverContactDraft = { name: '', relation: '', phone: '' };
 
 /**
- * Contacts prevenus en cas d'alerte pendant une course (R10, brief §10).
+ * Contacts prevenus quand le CHAUFFEUR declenche son alerte (R10, brief §10.3).
  *
- * Ce sont EUX que le bouton SOS alerte : sans contact enregistre, l'alerte n'a
- * personne a joindre. L'ecran le dit plutot que de laisser le passager le
- * decouvrir en urgence.
+ * Copie dediee de `EmergencyContactsScreen` (feature `profile`, cote passager)
+ * — R16. Ce sont EUX que le bouton SOS chauffeur alerte : sans contact
+ * enregistre, l'alerte n'a personne a joindre. L'ecran le dit plutot que de
+ * laisser le chauffeur le decouvrir en urgence.
  */
-export function EmergencyContactsScreen({ onClose }: Props) {
+export function DriverEmergencyContactsScreen({ onClose }: Props) {
   const insets = useSafeAreaInsets();
-  const { items, add, remove } = useEmergencyContacts();
+  const { items, add, remove } = useDriverEmergencyContacts();
 
-  const [draft, setDraft] = useState<ContactDraft>(EMPTY_DRAFT);
+  const [draft, setDraft] = useState<DriverContactDraft>(EMPTY_DRAFT);
   const [error, setError] = useState<string | null>(null);
 
   const handleAdd = () => {
-    const message = validateContact(draft);
+    const message = validateDriverContact(draft);
     if (message !== null) {
       setError(message);
       return;
@@ -65,7 +66,7 @@ export function EmergencyContactsScreen({ onClose }: Props) {
           hitSlop={10}
           style={styles.back}
           accessibilityRole="button"
-          accessibilityLabel="Retour aux paramètres"
+          accessibilityLabel="Retour au profil"
         >
           <Ionicons name="arrow-back" size={22} color={colors.text} />
         </Pressable>
@@ -83,8 +84,8 @@ export function EmergencyContactsScreen({ onClose }: Props) {
         showsVerticalScrollIndicator={false}
       >
         <Text style={styles.intro}>
-          Ces personnes reçoivent votre position et les informations du véhicule
-          quand vous déclenchez une alerte pendant une course.
+          Ces personnes reçoivent votre position et la course en cours quand vous
+          déclenchez une alerte, y compris entre deux courses.
         </Text>
 
         {items.length === 0 ? (
@@ -134,7 +135,7 @@ export function EmergencyContactsScreen({ onClose }: Props) {
           style={styles.input}
           value={draft.relation}
           onChangeText={(relation) => setDraft({ ...draft, relation })}
-          placeholder="Lien (sœur, ami…)"
+          placeholder="Lien (épouse, frère…)"
           placeholderTextColor={colors.textMuted}
           accessibilityLabel="Lien avec le contact"
         />
@@ -143,7 +144,7 @@ export function EmergencyContactsScreen({ onClose }: Props) {
           style={styles.input}
           value={draft.phone}
           onChangeText={(phone) => setDraft({ ...draft, phone })}
-          placeholder="+237 6 90 00 00 11"
+          placeholder="+237 6 90 00 00 21"
           placeholderTextColor={colors.textMuted}
           keyboardType="phone-pad"
           accessibilityLabel="Numéro du contact"
@@ -162,7 +163,7 @@ export function EmergencyContactsScreen({ onClose }: Props) {
 
         <Text style={styles.notice}>
           Contacts conservés le temps de la session — ils seront rattachés à
-          votre compte quand le serveur existera.
+          votre compte chauffeur quand le serveur existera.
         </Text>
       </ScrollView>
     </KeyboardAvoidingView>
