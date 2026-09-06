@@ -18,28 +18,19 @@ import { useVehicleMotion } from "./useVehicleMotion";
 import { HomeHeader } from "./components/HomeHeader";
 import { HomeSheets } from "./components/HomeSheets";
 import type { Shortcut } from "./components/DestinationSheet";
-import {
-  DestinationSearchScreen,
-  type DestinationChoice,
-} from "../search/DestinationSearchScreen";
+import { type DestinationChoice } from "../search/DestinationSearchScreen";
 import { useBookingFlow } from "../booking/useBookingFlow";
 import { usePayment } from "../payment/usePayment";
 import { useRideRequest } from "../ride/useRideRequest";
 import { useRideOrder } from "./useRideOrder";
 import { useHomeNavigation } from "./useHomeNavigation";
 import { useRideRating } from "../ride/useRideRating";
-import { RatingCommentScreen } from "../ride/components/RatingCommentScreen";
 import { useDriverApproach } from "../ride/useDriverApproach";
 import { useApproachRoute } from "../ride/useApproachRoute";
 import { useRideCamera } from "../ride/useRideCamera";
 import { useRideSafety } from "../ride/useRideSafety";
-import { TransactionHistoryScreen } from "../history/TransactionHistoryScreen";
-import { ProfileScreen } from "../profile/ProfileScreen";
-import { SupportScreen } from "../support/SupportScreen";
-import { EmergencyContactsScreen } from "../profile/EmergencyContactsScreen";
+import { HomeOverlay } from "./components/HomeOverlay";
 import { useEmergencyContacts } from "../profile/useEmergencyContacts";
-import { NotificationsScreen } from "../notifications/NotificationsScreen";
-import { WalletScreen } from "../wallet/WalletScreen";
 import { useSettlement } from "../payment/useSettlement";
 import { useAuth } from "../../contexts/AuthContext";
 import { LocationNotice } from "./components/LocationNotice";
@@ -324,75 +315,26 @@ export function HomeScreen() {
     order.reset(rating.stars, settlement.state === 'settled' ? 'succeeded' : 'due');
     settlement.reset();
     rating.reset();
+    // La camera est restee sur le dernier cadrage de la course (vehicule et
+    // destination, vus de loin). Sans ce recentrage, l'accueil reapparait avec
+    // un zoom de suivi au lieu de sa vue d'ouverture.
+    setRecenterToken((token) => token + 1);
   };
 
-  // Commentaire : plein ecran pour que le clavier ne recouvre pas la saisie.
+  // Commentaire d'evaluation : plein ecran pour que le clavier ne recouvre pas
+  // la saisie. Il prime sur les autres ecrans pleins (voir `HomeOverlay`).
   const rated = ride.ride;
-  if (isCommenting && rating.stars !== null && rated?.driver != null) {
-    return (
-      <RatingCommentScreen
-        driver={rated.driver}
-        stars={rating.stars}
-        comment={rating.comment}
-        onChangeComment={rating.setComment}
-        isSending={rating.isSending}
-        error={rating.error}
-        onSubmit={async () => {
-          // On ne quitte la saisie que si l'envoi a abouti : en cas d'echec, le
-          // passager reste sur son texte avec le message d'erreur (R8).
-          if (await rating.submit(rated)) setIsCommenting(false);
-        }}
-        onBack={() => setIsCommenting(false)}
-      />
-    );
-  }
+  const isCommentOpen =
+    isCommenting && rating.stars !== null && rated?.driver != null;
 
-  if (nav.route?.name === "contacts") {
-    return <EmergencyContactsScreen onClose={nav.openProfile} />;
-  }
-
-  // Assistance : la fermeture revient au profil, seule porte d'entree.
-  if (nav.route?.name === "support") {
-    return <SupportScreen onClose={nav.openProfile} />;
-  }
-
-  if (nav.route?.name === "profile") {
-    return (
-      <ProfileScreen
-        userName={DEMO_USER_NAME}
-        userInitial={DEMO_USER_INITIAL}
-        onOpenEmergencyContacts={nav.openContacts}
-        onOpenSupport={nav.openSupport}
-        onOpenHistory={nav.openHistory}
-        onOpenWallet={nav.openWallet}
-        onClose={nav.close}
-      />
-    );
-  }
-
-  // Le portefeuille se ferme vers le profil, seule porte d'entree.
-  if (nav.route?.name === "wallet") {
-    return <WalletScreen onClose={nav.openProfile} />;
-  }
-
-  if (nav.route?.name === "history") {
-    return <TransactionHistoryScreen onClose={nav.close} />;
-  }
-
-  if (nav.route?.name === "notifications") {
-    return <NotificationsScreen onClose={nav.close} />;
-  }
-
-  if (nav.route?.name === "search") {
-    return (
-      <DestinationSearchScreen
-        origin={location.coords}
-        initialQuery={nav.route.query}
-        onClose={nav.close}
-        onConfirm={handleDestinationConfirm}
-      />
-    );
-  }
+  /**
+   * Un ecran plein est-il ouvert ?
+   *
+   * Ces ecrans sont rendus PAR-DESSUS l'accueil, jamais a la place : un `return`
+   * anticipe demonterait `MapCanvas`, et le retour a l'accueil rechargerait le
+   * style MapLibre — c'est ce qui produisait un flash de la carte.
+   */
+  const hasOverlay = isCommentOpen || nav.route !== null;
 
   return (
     <View style={styles.root}>
@@ -503,6 +445,42 @@ export function HomeScreen() {
           </>
         )}
       </View>
+
+      {/*
+        Ecran plein pose PAR-DESSUS l'accueil : la carte reste montee dessous et
+        conserve son etat, au lieu d'etre rechargee au retour (flash).
+      */}
+      {hasOverlay && (
+        <View style={styles.overlay}>
+          <HomeOverlay
+            route={nav.route}
+            nav={nav}
+            origin={location.coords}
+            userName={DEMO_USER_NAME}
+            userInitial={DEMO_USER_INITIAL}
+            onConfirmDestination={handleDestinationConfirm}
+            comment={
+              isCommentOpen && rated?.driver != null && rating.stars !== null
+                ? {
+                    driver: rated.driver,
+                    stars: rating.stars,
+                    text: rating.comment,
+                    isSending: rating.isSending,
+                    error: rating.error,
+                    onChangeText: rating.setComment,
+                    // On ne quitte la saisie que si l'envoi a abouti : en cas
+                    // d'echec, le passager reste sur son texte avec le message
+                    // d'erreur (R8).
+                    onSubmit: async () => {
+                      if (await rating.submit(rated)) setIsCommenting(false);
+                    },
+                    onBack: () => setIsCommenting(false),
+                  }
+                : null
+            }
+          />
+        </View>
+      )}
     </View>
   );
 }
@@ -513,6 +491,18 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: colors.mapFallback,
+  },
+  // Calque des ecrans pleins : opaque et par-dessus tout le reste, l'accueil
+  // (et sa carte) restant montes en dessous.
+  overlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: colors.surface,
+    zIndex: 10,
+    elevation: 10,
   },
   // Empile bandeau + bouton recentrer + sheet, ancres en bas de l'ecran.
   bottomStack: {

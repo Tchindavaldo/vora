@@ -132,7 +132,6 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.xl,
-    paddingBottom: spacing.lg,
   },
   // Bloc central : le panneau n'a qu'une chose a dire, elle occupe la place.
   state: {

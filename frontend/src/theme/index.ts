@@ -76,7 +76,7 @@ export const radius = {
  * meme surface visible d'un ecran a l'autre. Sans cela, chaque panneau
  * redimensionnerait la carte en apparaissant, et le trace sauterait.
  */
-export const SHEET_HEIGHT = 330;
+export const SHEET_HEIGHT = 320;
 
 /**
  * Marge basse minimale sous une liste plein ecran.

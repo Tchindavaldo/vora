@@ -184,17 +184,13 @@ export function PaymentSheet({
           Paiement simulé — aucun débit réel n’est effectué.
         </Text>
 
-      </ScrollView>
-
       {/*
         Retour et action principale sur la MEME ligne : le passager avance ou
         recule d'un seul geste, sans chercher une croix en haut du panneau.
 
-        ANCREE HORS DU SCROLL : la capsule est haute et porte le message
-        d'attente. Laissee dans la zone defilante, elle repousserait la
-        destination et les modes hors de vue au moment ou le paiement se lance
-        — c'est-a-dire exactement quand le passager veut verifier ce qu'il
-        paie. Ici, le haut du panneau reste visible pendant toute l'operation.
+        DANS le scroll : la barre suit le contenu au lieu d'occuper une bande
+        fixe en bas du panneau. La marge systeme est portee une seule fois, par
+        le conteneur du sheet.
       */}
       <View style={styles.actions}>
         <Pressable
@@ -240,7 +236,8 @@ export function PaymentSheet({
                   : actionLabel}
             </Text>
         </Pressable>
-      </View>
+        </View>
+      </ScrollView>
     </View>
   );
 }
@@ -350,9 +347,6 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
-    // La mention « paiement simule » est la derniere ligne du scroll : sans
-    // cette marge, la barre d'action ancree la coupe en bas de panneau.
-    paddingBottom: spacing.sm,
   },
   header: {
     flexDirection: 'row',
@@ -433,9 +427,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    paddingHorizontal: spacing.lg,
+    // Pas de marge laterale : la barre defile avec le contenu, qui la porte
+    // deja via `content`.
     paddingTop: spacing.sm,
-    paddingBottom: spacing.sm,
   },
   back: {
     flexDirection: 'row',

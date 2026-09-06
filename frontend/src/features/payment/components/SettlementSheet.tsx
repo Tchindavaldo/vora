@@ -157,7 +157,6 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.lg,
-    paddingBottom: spacing.lg,
     gap: spacing.sm,
   },
   eyebrow: {

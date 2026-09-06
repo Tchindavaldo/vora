@@ -25,6 +25,7 @@ HomeScreen
 | `useUserLocation.ts` | Permission + position, avec repli sur Douala |
 | `useVehicleMotion.ts` | Fait avancer chaque véhicule le long du tracé de sa rue |
 | `demoData.ts` | Véhicules simulés, raccourcis, quartier — **temporaire** |
+| `components/HomeOverlay.tsx` | Routage des écrans pleins, **superposés** à l'accueil (voir ci-dessous) |
 | `components/HomeHeader.tsx` | Barre supérieure flottante |
 | `components/DestinationSheet.tsx` | Bottom sheet de saisie de destination |
 | `components/VehicleMarker.tsx` | Véhicule vu de dessus, orienté, sur halo **rouge** qui bat en boucle |
@@ -51,10 +52,26 @@ HomeScreen
 6. Le bouton recentrer incrémente un `recenterToken` passé à `MapCanvas`, ce
    qui ramène la caméra sur la position courante — pas de `ref` impérative
    exposée à l'écran (R11).
-7. Appui sur le champ de recherche ou un raccourci → `HomeScreen` affiche
-   `DestinationSearchScreen` à la place de l'accueil (voir `search.md`). Un
-   raccourci pré-remplit la saisie avec son libellé. Pas de librairie de
-   navigation tant que l'app n'a que deux écrans (R18).
+7. Appui sur le champ de recherche ou un raccourci → `DestinationSearchScreen`
+   (voir `search.md`). Un raccourci pré-remplit la saisie avec son libellé. Pas
+   de librairie de navigation tant que l'app reste sur un écran (R18).
+8. Fin de course : après l'évaluation, `handleRatingClose` incrémente
+   `recenterToken` — sans cela la caméra resterait sur le dernier cadrage du
+   suivi (véhicule et destination, vus de loin) au lieu de la vue d'ouverture.
+
+## Écrans pleins : superposés, jamais substitués
+
+Les écrans pleins (recherche, historique, profil, portefeuille, contacts,
+assistance, notifications, commentaire d'évaluation) sont rendus par
+`components/HomeOverlay.tsx` dans un calque opaque posé **par-dessus** l'accueil,
+qui reste monté dessous.
+
+**Pourquoi** : un `return` anticipé dans `HomeScreen` démontait `MapCanvas`. Au
+retour, MapLibre rechargeait son style — d'où un flash de la carte et la perte
+du cadrage courant. Monté en permanence, le canevas conserve son état.
+
+Le commentaire d'évaluation prime sur les écrans de navigation : la course n'est
+pas encore close.
 
 ## Ancrage local (brief §11)
 
