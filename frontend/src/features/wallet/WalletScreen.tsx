@@ -24,7 +24,7 @@ import {
 } from '../../services/wallet';
 import { useWallet } from './useWallet';
 import { SimulatedPaymentBadge } from './components/SimulatedPaymentBadge';
-import { AnimatedBorderGlow } from '../payment/components/AnimatedBorderGlow';
+import { WalletBorderGlow } from './components/WalletBorderGlow';
 
 /**
  * Hauteur de la capsule de recharge.
@@ -234,7 +234,7 @@ export function WalletScreen({ onClose }: Props) {
             accessibilityRole="button"
             accessibilityLabel={submitLabel}
           >
-            <AnimatedBorderGlow
+            <WalletBorderGlow
               active={wallet.isProcessing}
               borderRadius={SUBMIT_HEIGHT / 2}
             />
