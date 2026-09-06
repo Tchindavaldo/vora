@@ -67,10 +67,10 @@ const AMBIENT_VEHICLES_MOVE = false;
  */
 type Props = {
   /** Bascule vers l'ecran chauffeur, pour la demonstration (R17 etape 9). */
-  onSwitchToDriver: () => void;
+  onSignOut: () => void;
 };
 
-export function HomeScreen({ onSwitchToDriver }: Props) {
+export function HomeScreen({ onSignOut }: Props) {
   const location = useUserLocation();
   const insets = useSafeAreaInsets();
 
@@ -320,7 +320,7 @@ export function HomeScreen({ onSwitchToDriver }: Props) {
         onOpenEmergencyContacts={nav.openContacts}
         onOpenHistory={nav.openHistory}
         onClose={nav.close}
-        onSwitchToDriver={onSwitchToDriver}
+        onSignOut={onSignOut}
       />
     );
   }

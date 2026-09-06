@@ -14,8 +14,8 @@ type Props = {
   onOpenEmergencyContacts: () => void;
   onOpenHistory: () => void;
   onClose: () => void;
-  /** Bascule vers l'écran chauffeur, pour la démonstration (R17 étape 9). */
-  onSwitchToDriver: () => void;
+  /** Déconnecte et renvoie à l'écran de connexion : le rôle vient du compte. */
+  onSignOut: () => void;
 };
 
 /**
@@ -36,7 +36,7 @@ export function ProfileScreen({
   onOpenEmergencyContacts,
   onOpenHistory,
   onClose,
-  onSwitchToDriver,
+  onSignOut,
 }: Props) {
   const insets = useSafeAreaInsets();
   const { items } = useEmergencyContacts();
@@ -139,18 +139,16 @@ export function ProfileScreen({
           disabled
         />
 
-        <Text style={styles.section}>Démonstration</Text>
-
         <Row
-          icon="swap-horizontal-outline"
+          icon="log-out-outline"
           label="Changer de compte"
-          hint="Basculer sur le mode chauffeur"
-          onPress={onSwitchToDriver}
+          hint="Déconnexion, puis retour à l’écran de connexion"
+          onPress={onSignOut}
         />
 
         <Text style={styles.notice}>
-          Profil de démonstration — le compte et l’authentification arriveront
-          avec le serveur.
+          Profil de démonstration — les informations affichées arriveront avec
+          le serveur.
         </Text>
       </ScrollView>
     </View>

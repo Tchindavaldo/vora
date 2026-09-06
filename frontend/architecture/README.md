@@ -62,6 +62,14 @@ src/
   theme/index.ts           design system : couleurs, espacements, ombres,
                            SHEET_HEIGHT (hauteur commune des bottom sheets)
   features/
+    auth/                  ouverture de l'application (R17 étape 1)
+      SplashScreen.tsx     logo 1,5 s, couvre la vérification de session
+      LoginScreen.tsx      conteneur : mise en page, clavier, retour arrière
+      useAuthFlow.ts       étape, numéro, code, rôle, chargement, erreur, rebours
+      components/          PhoneStep (numéro +237), CodeStep (4 cases, renvoi 30 s)
+    onboarding/            3 écrans de première ouverture
+      OnboardingScreen.tsx pager balayable, « Passer », vu une seule fois
+      slides.tsx           textes et illustrations SVG maison
     map/                   encapsulation MapLibre (R11) — seuls fichiers qui l'importent
       MapCanvas.tsx        carte, caméra, marqueurs, cadrages
       RouteLayers.tsx      tracés : course (plein) et approche (pointillés)
@@ -135,6 +143,7 @@ src/
 
 | Doc | Feature |
 |---|---|
+| `auth.md` | `src/features/auth/` + `src/features/onboarding/` — splash, onboarding, connexion |
 | `home.md` | `src/features/home/` — écran d'accueil |
 | `search.md` | `src/features/search/` — recherche de destination |
 | `booking.md` | `src/features/booking/` — itinéraire et estimation |

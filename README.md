@@ -51,17 +51,19 @@ Se déplacer à Douala ou Yaoundé aujourd'hui, c'est :
 
 **Parcours principal**
 
-1. Carte plein écran, véhicules disponibles circulant sur de vraies rues
-2. Géolocalisation du passager (avec repli si elle est refusée)
-3. Recherche de destination + point de repère libre
-4. Calcul d'itinéraire réel et tracé sur la carte
-5. Estimation du prix pour Moto / Eco / Confort
-6. Choix du mode de paiement : espèces, portefeuille, mobile money
-7. Rendu de monnaie annoncé à l'avance sur le mode espèces
-8. Création de la course et recherche d'un chauffeur
-9. Suivi de l'approche du chauffeur puis de la course
-10. Évaluation du chauffeur (note + commentaire)
-11. Historique des courses et reçus, total dépensé
+1. Ouverture : splash, onboarding (vu une seule fois), connexion par numéro
+   `+237` et code à 4 chiffres — session persistée, rôle porté par le compte
+2. Carte plein écran, véhicules disponibles circulant sur de vraies rues
+3. Géolocalisation du passager (avec repli si elle est refusée)
+4. Recherche de destination + point de repère libre
+5. Calcul d'itinéraire réel et tracé sur la carte
+6. Estimation du prix pour Moto / Eco / Confort
+7. Choix du mode de paiement : espèces, portefeuille, mobile money
+8. Rendu de monnaie annoncé à l'avance sur le mode espèces
+9. Création de la course et recherche d'un chauffeur
+10. Suivi de l'approche du chauffeur puis de la course
+11. Évaluation du chauffeur (note + commentaire)
+12. Historique des courses et reçus, total dépensé
 
 **Sécurité** — partage de course, SOS, contacts d'urgence, appel assistance,
 signalement du chauffeur (disponible aussi **après** la descente).
@@ -168,6 +170,11 @@ npm install
 Prérequis : **Node.js 20+**, **npm**, et le SDK Android (Android Studio) ou
 Xcode sur macOS.
 
+L'application utilise des **modules natifs** (MapLibre, géolocalisation,
+stockage de session) : elle ne tourne pas dans Expo Go. Il faut construire le
+client de développement une fois — voir §13. Un simple `npm start` sur une
+installation neuve afficherait une erreur de module natif manquant.
+
 ## 10. Configuration
 
 ```bash
@@ -230,11 +237,38 @@ Lancements suivants :
 npx expo start --dev-client
 ```
 
+⚠️ Après un `git pull` qui ajoute une **dépendance native** (le stockage de
+session, par exemple), refaire `npx expo run:android` : un simple rechargement
+ne suffit pas, le module natif n'est pas dans le binaire déjà installé.
+
 ## 14. Comptes de démonstration
 
-**Aucun compte n'est requis.** L'authentification n'est pas branchée dans ce
-livrable (voir §17) : l'app s'ouvre directement sur l'écran passager, prête à
-démontrer le parcours complet.
+**Aucune inscription n'est requise.** L'authentification est simulée pour ce
+livrable (voir §17) : aucun SMS n'est envoyé et le code est toujours le même.
+
+**Code de vérification : `1234`** — pour tous les comptes.
+
+Un numéro par rôle, pour matérialiser la séparation stricte des rôles (§6).
+Seuls les trois derniers chiffres comptent : composez n'importe quel numéro
+camerounais à 9 chiffres se terminant par le suffixe voulu.
+
+| Numéro | Rôle | Ce qui s'ouvre |
+|---|---|---|
+| `+237 6XX XXX 001` | Passager | Accueil, course, paiement, évaluation |
+| `+237 6XX XXX 002` | Chauffeur | Tableau de bord, demande, course, revenus |
+| `+237 6XX XXX 003` | Administrateur | _Réservé_ — dashboard web non livré, ouvre le compte passager |
+
+Tout autre numéro à 9 chiffres ouvre un compte **passager** : la démonstration
+ne doit jamais être bloquée par un numéro mal retenu.
+
+**Raccourci** : le lien **« Continuer comme chauffeur »** sous le bouton de
+connexion force le rôle chauffeur quel que soit le numéro saisi — pratique en
+démonstration pour ne pas avoir à retenir les suffixes.
+
+La session est **persistée** : après une première connexion, l'application
+s'ouvre directement sur le compte concerné. Pour changer de rôle, utilisez
+« Changer de compte » depuis le profil — cela déconnecte et renvoie à l'écran
+de connexion.
 
 ## 15. Structure du projet
 
@@ -251,6 +285,8 @@ vora/
         ├── config/env.ts        lecture des variables d'environnement
         ├── theme/               design system : couleurs, espacements, ombres
         ├── features/
+        │   ├── auth/            splash et connexion par numéro et code
+        │   ├── onboarding/      trois écrans de première ouverture
         │   ├── map/             encapsulation MapLibre — seuls fichiers qui l'importent
         │   ├── home/            écran d'accueil : carte, header, bottom sheets
         │   ├── search/          recherche de destination + point de repère
@@ -265,6 +301,7 @@ vora/
             ├── routing.ts       OpenRouteService
             ├── roadsFromMap.ts  rues lues dans les tuiles déjà affichées
             ├── pricing.ts       grille tarifaire (service pur)
+            ├── session.ts       session persistée, comptes de démo   [SIMULÉ]
             └── rides · payment · ratings · transactions · safety   [SIMULÉS]
 ```
 
@@ -287,8 +324,12 @@ l'indique.
 
 Limites connues, énoncées franchement (brief §23) :
 
-- **Authentification non branchée.** L'app s'ouvre sur l'écran passager. Les
-  écrans d'inscription/connexion et `AuthContext` restent à faire.
+- **Authentification simulée.** Les écrans existent (splash, onboarding,
+  connexion par numéro et code) et la session est persistée sur l'appareil,
+  mais aucun SMS n'est envoyé : le code `1234` est vérifié côté client et le
+  rôle est déduit du numéro (§14). La vérification, l'émission du token et
+  l'attribution du rôle devront passer côté serveur (§6). `AuthContext` reste
+  à faire : l'aiguillage vit pour l'instant dans `App.tsx`.
 - **Tableau de bord administration non livré.** Le brief décrit trois systèmes ;
   nous avons livré le passager complet et le mode chauffeur plutôt que trois
   partiels (brief §27).
