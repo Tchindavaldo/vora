@@ -15,6 +15,7 @@ import { IncomingRequestOverlay } from './IncomingRequestOverlay';
 import { DriverTripScreen } from './DriverTripScreen';
 import { DriverProfileScreen } from './DriverProfileScreen';
 import { DriverEarningsScreen } from './DriverEarningsScreen';
+import { DriverRideHistoryScreen } from './DriverRideHistoryScreen';
 import { DriverEmergencySheet } from './DriverEmergencySheet';
 import { DriverReportSheet } from './DriverReportSheet';
 import { useDriverSafety } from './useDriverSafety';
@@ -75,7 +76,17 @@ export function DriverApp() {
   // Revenus du jour : ecran plein, comme le profil. La carte est demontee le
   // temps de la consultation — le chauffeur lit une liste, pas un plan.
   if (session.route === 'earnings') {
-    return <DriverEarningsScreen onClose={session.closeEarnings} />;
+    return (
+      <DriverEarningsScreen
+        onClose={session.closeEarnings}
+        onOpenHistory={() => session.openRideHistory('earnings')}
+      />
+    );
+  }
+
+  // Historique des courses : meme parti pris plein ecran que les revenus.
+  if (session.route === 'ride_history') {
+    return <DriverRideHistoryScreen onClose={session.closeRideHistory} />;
   }
 
   if (session.route === 'emergency_contacts') {
@@ -91,6 +102,7 @@ export function DriverApp() {
         ridesToday={session.ridesToday}
         onClose={session.closeProfile}
         onOpenEarnings={() => session.openEarnings('profile')}
+        onOpenRideHistory={() => session.openRideHistory('profile')}
         onOpenEmergencyContacts={session.openEmergencyContacts}
       />
     );

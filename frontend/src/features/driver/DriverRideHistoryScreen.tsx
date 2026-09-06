@@ -1,8 +1,8 @@
 import React from 'react';
 import {
   ActivityIndicator,
-  FlatList,
   Pressable,
+  SectionList,
   StyleSheet,
   Text,
   View,
@@ -13,35 +13,50 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors, radius, spacing, typography } from '../../theme';
 import { formatDistance, formatXaf } from '../../services/pricing';
-import { totalEarned, totalEarnedDistance } from '../../services/driverEarnings';
-import { useDriverEarnings } from './useDriverEarnings';
-import { DriverEarningRow } from './DriverEarningRow';
+import {
+  averageRating,
+  groupRidesByDay,
+  PERIOD_LABELS,
+  totalRidesAmount,
+  totalRidesDistance,
+  type DriverRidePeriod,
+} from '../../services/driverRides';
+import { useDriverRides } from './useDriverRides';
+import { DriverRideRow } from './DriverRideRow';
 
 type Props = {
   onClose: () => void;
-  /** Ouvre l'historique des courses passees, au-dela du jour courant. */
-  onOpenHistory: () => void;
 };
 
-/**
- * Revenus du jour du chauffeur (brief §6, §14) : total encaisse en tete, puis
- * la liste des courses qui le composent.
- *
- * Copie dediee de `TransactionHistoryScreen` cote passager (R16) : meme
- * gabarit plein ecran — la liste se parcourt et n'a pas a partager la hauteur
- * avec la carte — mais le contenu repond a une autre question. Le passager
- * demande "combien j'ai depense et sur quoi", le chauffeur "combien j'ai gagne
- * aujourd'hui et d'ou ca vient".
- *
- * Le total est en HAUT et non en pied de liste : c'est la seule chose que le
- * chauffeur regarde entre deux courses, il ne doit pas avoir a defiler.
- */
-export function DriverEarningsScreen({ onClose, onOpenHistory }: Props) {
-  const insets = useSafeAreaInsets();
-  const { items, isLoading, error, retry } = useDriverEarnings();
+const PERIODS: DriverRidePeriod[] = ['week', 'month'];
 
-  const total = totalEarned(items);
-  const distance = totalEarnedDistance(items);
+/**
+ * Historique des courses du chauffeur (brief §6, §14) — dernier ecran du
+ * parcours chauffeur.
+ *
+ * Copie dediee de `DriverEarningsScreen` (R16), qui repond a une autre
+ * question : les revenus disent "combien j'ai gagne aujourd'hui", l'historique
+ * "qu'est-ce que j'ai fait cette semaine". D'ou trois differences assumees —
+ * une periode selectionnable, un groupement PAR JOUR, et la note moyenne recue
+ * dans le bilan.
+ *
+ * `SectionList` et non `FlatList` : les en-tetes de jour restent colles en haut
+ * pendant le defilement, le chauffeur sait toujours quelle journee il lit.
+ */
+export function DriverRideHistoryScreen({ onClose }: Props) {
+  const insets = useSafeAreaInsets();
+  const { items, period, setPeriod, isLoading, error, retry } = useDriverRides();
+
+  const total = totalRidesAmount(items);
+  const distance = totalRidesDistance(items);
+  const rating = averageRating(items);
+
+  const sections = groupRidesByDay(items).map((day) => ({
+    key: day.key,
+    label: day.label,
+    totalXaf: day.totalXaf,
+    data: day.rides,
+  }));
 
   return (
     <View style={styles.root}>
@@ -58,29 +73,43 @@ export function DriverEarningsScreen({ onClose, onOpenHistory }: Props) {
           <Ionicons name="arrow-back" size={22} color={colors.text} />
         </Pressable>
 
-        <Text style={styles.title}>Mes revenus</Text>
+        <Text style={styles.title}>Historique des courses</Text>
+      </View>
 
-        {/* Le jour courant ne repond pas a "et avant ?" : la question se pose
-            sur cet ecran, l'acces a l'historique y est donc directement. */}
-        <Pressable
-          onPress={onOpenHistory}
-          hitSlop={10}
-          style={styles.historyAction}
-          accessibilityRole="button"
-          accessibilityLabel="Voir l’historique des courses"
-        >
-          <Ionicons name="time-outline" size={16} color={colors.text} />
-          <Text style={styles.historyLabel}>Historique</Text>
-        </Pressable>
+      {/* La periode est AU-DESSUS du bilan et non dans un menu : elle change ce
+          que le bilan compte, les deux doivent se lire ensemble. */}
+      <View style={styles.periods}>
+        {PERIODS.map((value) => {
+          const isActive = value === period;
+
+          return (
+            <Pressable
+              key={value}
+              onPress={() => setPeriod(value)}
+              style={[styles.period, isActive && styles.periodActive]}
+              accessibilityRole="button"
+              accessibilityState={{ selected: isActive }}
+              accessibilityLabel={PERIOD_LABELS[value]}
+            >
+              <Text style={[styles.periodLabel, isActive && styles.periodLabelActive]}>
+                {PERIOD_LABELS[value]}
+              </Text>
+            </Pressable>
+          );
+        })}
       </View>
 
       {!isLoading && error === null && items.length > 0 && (
         <View style={styles.summary}>
-          <Text style={styles.summaryLabel}>Gains du jour</Text>
-          <Text style={styles.summaryAmount}>{formatXaf(total)}</Text>
+          <View style={styles.summaryMain}>
+            <Text style={styles.summaryLabel}>Total encaissé</Text>
+            <Text style={styles.summaryAmount}>{formatXaf(total)}</Text>
+          </View>
+
           <Text style={styles.summaryMeta}>
             {items.length} course{items.length > 1 ? 's' : ''} ·{' '}
             {formatDistance(distance)} parcourus
+            {rating !== null && ` · ${rating.toFixed(1)} de moyenne`}
           </Text>
         </View>
       )}
@@ -103,17 +132,24 @@ export function DriverEarningsScreen({ onClose, onOpenHistory }: Props) {
         </View>
       ) : items.length === 0 ? (
         <View style={styles.center}>
-          <Text style={styles.emptyTitle}>Aucune course aujourd’hui</Text>
+          <Text style={styles.emptyTitle}>Aucune course sur cette période</Text>
           <Text style={styles.emptyBody}>
-            Passez en ligne pour recevoir des demandes : vos courses et vos gains
-            de la journée apparaîtront ici.
+            Vos courses terminées apparaîtront ici, groupées par journée.
+            Essayez une période plus large.
           </Text>
         </View>
       ) : (
-        <FlatList
-          data={items}
+        <SectionList
+          sections={sections}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <DriverEarningRow item={item} />}
+          renderItem={({ item }) => <DriverRideRow item={item} />}
+          renderSectionHeader={({ section }) => (
+            <View style={styles.day}>
+              <Text style={styles.dayLabel}>{section.label}</Text>
+              <Text style={styles.dayTotal}>{formatXaf(section.totalXaf)}</Text>
+            </View>
+          )}
+          stickySectionHeadersEnabled
           contentContainerStyle={[
             styles.list,
             { paddingBottom: insets.bottom + spacing.xl },
@@ -123,7 +159,7 @@ export function DriverEarningsScreen({ onClose, onOpenHistory }: Props) {
           // (R13, brief §23).
           ListFooterComponent={
             <Text style={styles.notice}>
-              Revenus simulés — aucun paiement réel n’a été effectué.
+              Historique simulé — aucun paiement réel n’a été effectué.
             </Text>
           }
         />
@@ -156,19 +192,29 @@ const styles = StyleSheet.create({
     ...typography.subtitle,
     flex: 1,
   },
-  historyAction: {
+  periods: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.md,
+    gap: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+  },
+  period: {
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
     borderRadius: radius.pill,
     borderWidth: 1,
     borderColor: colors.border,
   },
-  historyLabel: {
+  periodActive: {
+    backgroundColor: colors.text,
+    borderColor: colors.text,
+  },
+  periodLabel: {
     ...typography.caption,
     color: colors.text,
+  },
+  periodLabelActive: {
+    color: colors.surface,
   },
   summary: {
     paddingHorizontal: spacing.lg,
@@ -176,12 +222,32 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceAlt,
     gap: spacing.xs,
   },
+  summaryMain: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
   summaryLabel: typography.label,
   summaryAmount: typography.title,
   summaryMeta: typography.caption,
   list: {
     paddingHorizontal: spacing.lg,
   },
+  day: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.sm,
+    backgroundColor: colors.surface,
+  },
+  dayLabel: {
+    ...typography.label,
+    color: colors.text,
+    fontWeight: '600',
+    textTransform: 'capitalize',
+  },
+  dayTotal: typography.caption,
   center: {
     flex: 1,
     alignItems: 'center',

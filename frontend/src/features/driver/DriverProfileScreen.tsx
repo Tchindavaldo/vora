@@ -17,6 +17,8 @@ type Props = {
   onClose: () => void;
   /** Ouvre le detail des revenus du jour. */
   onOpenEarnings: () => void;
+  /** Ouvre l'historique des courses passees (brief §6, §14). */
+  onOpenRideHistory: () => void;
   /** Ouvre la gestion des contacts d'urgence du chauffeur (R10). */
   onOpenEmergencyContacts: () => void;
 };
@@ -36,6 +38,7 @@ export function DriverProfileScreen({
   ridesToday,
   onClose,
   onOpenEarnings,
+  onOpenRideHistory,
   onOpenEmergencyContacts,
 }: Props) {
   const insets = useSafeAreaInsets();
@@ -89,6 +92,17 @@ export function DriverProfileScreen({
           onPress={onOpenEarnings}
         />
         <Row icon="car-sport-outline" label="Courses" hint={String(ridesToday)} />
+
+        <Text style={styles.section}>Activité</Text>
+
+        {/* L'historique vient SOUS les chiffres du jour : le chauffeur lit
+            d'abord sa journee, puis remonte le temps s'il veut comparer. */}
+        <Row
+          icon="time-outline"
+          label="Historique des courses"
+          hint="Vos courses des 7 et 30 derniers jours"
+          onPress={onOpenRideHistory}
+        />
 
         <Text style={styles.section}>Véhicule</Text>
 
