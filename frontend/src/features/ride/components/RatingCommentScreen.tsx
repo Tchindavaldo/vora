@@ -13,7 +13,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { colors, radius, spacing, typography } from '../../../theme';
+import {
+  colors,
+  LIST_BOTTOM_SAFE_GAP,
+  radius,
+  spacing,
+  typography,
+} from '../../../theme';
 import {
   COMMENT_MAX_LENGTH,
   STAR_LABELS,
@@ -120,7 +126,15 @@ export function RatingCommentScreen({
 
       {/* Barre d'action collee au bas : elle remonte avec le clavier, donc
           l'envoi reste atteignable pendant la saisie. */}
-      <View style={[styles.footer, { paddingBottom: insets.bottom + spacing.md }]}>
+      <View
+        style={[
+          styles.footer,
+          {
+            paddingBottom:
+              Math.max(insets.bottom, LIST_BOTTOM_SAFE_GAP) + spacing.md,
+          },
+        ]}
+      >
         <Pressable
           onPress={onSubmit}
           disabled={isSending}

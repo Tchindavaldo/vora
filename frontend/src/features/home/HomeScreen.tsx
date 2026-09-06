@@ -35,6 +35,7 @@ import { useRideCamera } from "../ride/useRideCamera";
 import { useRideSafety } from "../ride/useRideSafety";
 import { TransactionHistoryScreen } from "../history/TransactionHistoryScreen";
 import { ProfileScreen } from "../profile/ProfileScreen";
+import { SupportScreen } from "../support/SupportScreen";
 import { EmergencyContactsScreen } from "../profile/EmergencyContactsScreen";
 import { useEmergencyContacts } from "../profile/useEmergencyContacts";
 import { LocationNotice } from "./components/LocationNotice";
@@ -307,12 +308,18 @@ export function HomeScreen() {
     return <EmergencyContactsScreen onClose={nav.openProfile} />;
   }
 
+  // Assistance : la fermeture revient au profil, seule porte d'entree.
+  if (nav.route?.name === "support") {
+    return <SupportScreen onClose={nav.openProfile} />;
+  }
+
   if (nav.route?.name === "profile") {
     return (
       <ProfileScreen
         userName={DEMO_USER_NAME}
         userInitial={DEMO_USER_INITIAL}
         onOpenEmergencyContacts={nav.openContacts}
+        onOpenSupport={nav.openSupport}
         onOpenHistory={nav.openHistory}
         onClose={nav.close}
       />

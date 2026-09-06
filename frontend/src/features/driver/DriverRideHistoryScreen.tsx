@@ -12,6 +12,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors, radius, spacing, typography } from '../../theme';
+import { SafeBottomArea } from '../../components/SafeBottomArea';
 import { formatDistance, formatXaf } from '../../services/pricing';
 import {
   averageRating,
@@ -63,6 +64,9 @@ export function DriverRideHistoryScreen({ onClose }: Props) {
       <StatusBar style="dark" />
 
       <View style={[styles.header, { paddingTop: insets.top + spacing.md }]}>
+        <Text style={styles.title}>Historique des courses</Text>
+
+        {/* Retour a DROITE, comme sur les ecrans de profil. */}
         <Pressable
           onPress={onClose}
           hitSlop={10}
@@ -72,8 +76,6 @@ export function DriverRideHistoryScreen({ onClose }: Props) {
         >
           <Ionicons name="arrow-back" size={22} color={colors.text} />
         </Pressable>
-
-        <Text style={styles.title}>Historique des courses</Text>
       </View>
 
       {/* La periode est AU-DESSUS du bilan et non dans un menu : elle change ce
@@ -114,56 +116,57 @@ export function DriverRideHistoryScreen({ onClose }: Props) {
         </View>
       )}
 
-      {isLoading ? (
-        <View style={styles.center}>
-          <ActivityIndicator color={colors.primary} />
-        </View>
-      ) : error !== null ? (
-        <View style={styles.center}>
-          <Text style={styles.error}>{error}</Text>
-          <Pressable
-            onPress={retry}
-            style={styles.retry}
-            accessibilityRole="button"
-            accessibilityLabel="Réessayer le chargement"
-          >
-            <Text style={styles.retryLabel}>Réessayer</Text>
-          </Pressable>
-        </View>
-      ) : items.length === 0 ? (
-        <View style={styles.center}>
-          <Text style={styles.emptyTitle}>Aucune course sur cette période</Text>
-          <Text style={styles.emptyBody}>
-            Vos courses terminées apparaîtront ici, groupées par journée.
-            Essayez une période plus large.
-          </Text>
-        </View>
-      ) : (
-        <SectionList
-          sections={sections}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <DriverRideRow item={item} />}
-          renderSectionHeader={({ section }) => (
-            <View style={styles.day}>
-              <Text style={styles.dayLabel}>{section.label}</Text>
-              <Text style={styles.dayTotal}>{formatXaf(section.totalXaf)}</Text>
-            </View>
-          )}
-          stickySectionHeadersEnabled
-          contentContainerStyle={[
-            styles.list,
-            { paddingBottom: insets.bottom + spacing.xl },
-          ]}
-          showsVerticalScrollIndicator={false}
-          // Mention obligatoire : ne jamais presenter du simule comme reel
-          // (R13, brief §23).
-          ListFooterComponent={
-            <Text style={styles.notice}>
-              Historique simulé — aucun paiement réel n’a été effectué.
+      {/* La zone basse est reservee EN DEHORS de la liste : le contenu y est
+          coupe au defilement au lieu de passer sous la barre de gestes. */}
+      <SafeBottomArea>
+        {isLoading ? (
+          <View style={styles.center}>
+            <ActivityIndicator color={colors.primary} />
+          </View>
+        ) : error !== null ? (
+          <View style={styles.center}>
+            <Text style={styles.error}>{error}</Text>
+            <Pressable
+              onPress={retry}
+              style={styles.retry}
+              accessibilityRole="button"
+              accessibilityLabel="Réessayer le chargement"
+            >
+              <Text style={styles.retryLabel}>Réessayer</Text>
+            </Pressable>
+          </View>
+        ) : items.length === 0 ? (
+          <View style={styles.center}>
+            <Text style={styles.emptyTitle}>Aucune course sur cette période</Text>
+            <Text style={styles.emptyBody}>
+              Vos courses terminées apparaîtront ici, groupées par journée.
+              Essayez une période plus large.
             </Text>
-          }
-        />
-      )}
+          </View>
+        ) : (
+          <SectionList
+            sections={sections}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => <DriverRideRow item={item} />}
+            renderSectionHeader={({ section }) => (
+              <View style={styles.day}>
+                <Text style={styles.dayLabel}>{section.label}</Text>
+                <Text style={styles.dayTotal}>{formatXaf(section.totalXaf)}</Text>
+              </View>
+            )}
+            stickySectionHeadersEnabled
+            contentContainerStyle={styles.list}
+            showsVerticalScrollIndicator={false}
+            // Mention obligatoire : ne jamais presenter du simule comme reel
+            // (R13, brief §23).
+            ListFooterComponent={
+              <Text style={styles.notice}>
+                Historique simulé — aucun paiement réel n’a été effectué.
+              </Text>
+            }
+          />
+        )}
+      </SafeBottomArea>
     </View>
   );
 }

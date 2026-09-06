@@ -12,7 +12,13 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { colors, radius, spacing, typography } from '../../theme';
+import {
+  colors,
+  LIST_BOTTOM_SAFE_GAP,
+  radius,
+  spacing,
+  typography,
+} from '../../theme';
 import { markOnboardingSeen } from '../../services/session';
 import { ONBOARDING_SLIDES } from './slides';
 
@@ -95,7 +101,15 @@ export function OnboardingScreen({ onDone }: Props) {
         ))}
       </ScrollView>
 
-      <View style={[styles.footer, { paddingBottom: insets.bottom + spacing.xl }]}>
+      <View
+        style={[
+          styles.footer,
+          {
+            paddingBottom:
+              Math.max(insets.bottom, LIST_BOTTOM_SAFE_GAP) + spacing.xl,
+          },
+        ]}
+      >
         <View style={styles.dots}>
           {ONBOARDING_SLIDES.map((slide, dotIndex) => (
             <View

@@ -60,7 +60,10 @@ un development build (voir « Lancer le projet » plus bas).
 src/
   config/env.ts            lecture des variables d'environnement (R9)
   theme/index.ts           design system : couleurs, espacements, ombres,
-                           SHEET_HEIGHT (hauteur commune des bottom sheets)
+                           SHEET_HEIGHT (hauteur commune des bottom sheets),
+                           LIST_BOTTOM_SAFE_GAP (plancher de la zone basse)
+  components/              composants transverses, sans domaine métier
+    SafeBottomArea.tsx     réserve la zone basse hors du contenu qui défile
   features/
     auth/                  ouverture de l'application (R17 étape 1)
       SplashScreen.tsx     logo 1,5 s, couvre la vérification de session
@@ -158,7 +161,8 @@ src/
 | `payment.md` | `src/features/payment/` — mode de paiement et monnaie en espèces |
 | `history.md` | `src/features/history/` — historique des courses et de leurs reçus |
 | `safety.md` | `src/features/ride/` + `src/features/profile/` — SOS, partage, signalement, contacts d'urgence |
-| `driver.md` | `src/features/driver/` — mode chauffeur : demande, course, encaissement |
+| `driver.md` | `src/features/driver/` — mode chauffeur : demande, course, encaissement, historique |
+| `support.md` | `src/features/support/` — assistance passager : contact, FAQ, litige |
 
 ## Décisions de design notables
 
@@ -192,6 +196,37 @@ la variante Overpass, conservée comme repli documenté mais non branchée.
 **Trois catégories de véhicules** : `moto`, `eco`, `comfort` — les mêmes
 paliers que l'estimation de prix à venir, pour que la carte annonce dès
 l'accueil ce que l'app propose.
+
+**La flèche de retour est à DROITE de l'en-tête** sur tous les écrans pleins
+(profils, historiques, revenus, assistance, contacts d'urgence) : le pouce
+l'atteint sans changer de main sur un grand téléphone, et sur les écrans de
+profil elle ne se confond plus avec l'avatar placé à gauche.
+
+**L'identité vit dans l'en-tête des écrans de profil**, passager comme
+chauffeur : avatar, nom et rôle sont posés à gauche de la barre du haut, et non
+en tête de liste. Ils ne défilent donc pas — un
+utilisateur descendu jusqu'à « Changer de compte » voit toujours de quel compte
+il parle. Le titre (« Profil », « Profil chauffeur ») est supprimé : le nom et
+le rôle le disent déjà, et deux lignes de titre au-dessus d'une liste mangent
+la hauteur utile.
+
+**La zone basse est réservée EN DEHORS de ce qui défile**, via
+`components/SafeBottomArea.tsx` — même parti pris que les bottom sheets, qui
+posent `paddingBottom: insets.bottom` sur leur conteneur et non sur leur
+`contentContainerStyle`. Le contenu s'arrête au-dessus de la bande système et
+y est **coupé** au défilement, au lieu de passer dessous. Une marge posée dans
+le contenu, elle, défile avec lui : au milieu de la liste la dernière ligne
+visible repassait sous la barre de gestes.
+
+La hauteur réservée est `Math.max(insets.bottom, LIST_BOTTOM_SAFE_GAP)` :
+`insets.bottom` seul vaut souvent 0 sur les Android à navigation gestuelle,
+alors que la barre est bien là.
+
+Écrans concernés : profil passager et chauffeur, historique des courses
+(passager et chauffeur), revenus du jour, assistance, contacts d'urgence (les
+deux), recherche de destination. Les écrans à pied de page fixe (évaluation,
+onboarding, connexion) gardent leur footer hors du scroll et appliquent le même
+plancher.
 
 **Le point utilisateur n'est affiché que si la position est réelle.** Un point
 « vous êtes ici » sur une ville par défaut serait un mensonge.

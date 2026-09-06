@@ -5,6 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors, radius, spacing, typography } from '../../theme';
+import { SafeBottomArea } from '../../components/SafeBottomArea';
 import { formatXaf } from '../../services/pricing';
 import { useAuth } from '../../contexts/AuthContext';
 import { DEMO_DRIVER } from './useDriverSession';
@@ -53,6 +54,27 @@ export function DriverProfileScreen({
       <StatusBar style="dark" />
 
       <View style={[styles.header, { paddingTop: insets.top + spacing.md }]}>
+        {/* IDENTITE DANS L'EN-TETE, et non en tete de liste : elle ne defile
+            pas. Le chauffeur qui descend jusqu'a la deconnexion voit toujours
+            de quel compte il parle — c'est la seule information de l'ecran qui
+            doit rester visible en permanence. Le titre "Profil chauffeur"
+            disparait : le nom et le role le disent deja. */}
+        <View style={styles.identity}>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>{DEMO_DRIVER.initial}</Text>
+          </View>
+          <View style={styles.identityBody}>
+            <Text style={styles.name} numberOfLines={1}>
+              {DEMO_DRIVER.name}
+            </Text>
+            <Text style={styles.role} numberOfLines={1}>
+              Chauffeur · {DEMO_DRIVER.plate}
+            </Text>
+          </View>
+        </View>
+
+        {/* Retour a DROITE : le pouce l'atteint sans changer de main sur un
+            grand telephone, et il ne se confond plus avec l'avatar. */}
         <Pressable
           onPress={onClose}
           hitSlop={10}
@@ -62,90 +84,80 @@ export function DriverProfileScreen({
         >
           <Ionicons name="arrow-back" size={22} color={colors.text} />
         </Pressable>
-
-        <Text style={styles.title}>Profil chauffeur</Text>
       </View>
 
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + spacing.xl }]}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.identity}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{DEMO_DRIVER.initial}</Text>
-          </View>
-          <View style={styles.identityBody}>
-            <Text style={styles.name}>{DEMO_DRIVER.name}</Text>
-            <Text style={styles.role}>Chauffeur</Text>
-          </View>
-        </View>
-
-        <Text style={styles.section}>Aujourd’hui</Text>
-
-        {/* Second acces aux revenus, apres la card du tableau de bord : le
-            chauffeur qui vient consulter son profil cherche le meme detail. */}
-        <Row
-          icon="cash-outline"
-          label="Gains"
-          hint={formatXaf(earningsTodayXaf)}
-          onPress={onOpenEarnings}
-        />
-        <Row icon="car-sport-outline" label="Courses" hint={String(ridesToday)} />
-
-        <Text style={styles.section}>Activité</Text>
-
-        {/* L'historique vient SOUS les chiffres du jour : le chauffeur lit
-            d'abord sa journee, puis remonte le temps s'il veut comparer. */}
-        <Row
-          icon="time-outline"
-          label="Historique des courses"
-          hint="Vos courses des 7 et 30 derniers jours"
-          onPress={onOpenRideHistory}
-        />
-
-        <Text style={styles.section}>Véhicule</Text>
-
-        <Row icon="car-outline" label={DEMO_DRIVER.vehicleModel} hint={DEMO_DRIVER.plate} />
-        <Row icon="call-outline" label="Téléphone" hint={DEMO_DRIVER.phone} />
-
-        <Text style={styles.section}>Sécurité</Text>
-
-        <Row
-          icon="shield-checkmark-outline"
-          label="Contacts d’urgence"
-          hint={
-            contactCount === 0
-              ? 'Aucun — le SOS n’aurait personne à prévenir'
-              : `${contactCount} contact${contactCount > 1 ? 's' : ''}`
-          }
-          onPress={onOpenEmergencyContacts}
-        />
-
-        <Text style={styles.section}>Compte</Text>
-
-        <Row
-          icon="person-outline"
-          label="Informations personnelles"
-          hint="Bientôt : nom, téléphone, mot de passe"
-          disabled
-        />
-
-        <Text style={styles.notice}>
-          Profil de démonstration — les informations affichées arriveront avec
-          le serveur.
-        </Text>
-
-        <Pressable
-          style={styles.exitButton}
-          onPress={signOut}
-          accessibilityRole="button"
-          accessibilityLabel="Se déconnecter et changer de compte"
+      <SafeBottomArea>
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
         >
-          <Ionicons name="log-out-outline" size={18} color={colors.surface} />
-          <Text style={styles.exitLabel}>Changer de compte</Text>
-        </Pressable>
-      </ScrollView>
+          <Text style={styles.sectionFirst}>Aujourd’hui</Text>
+
+          {/* Second acces aux revenus, apres la card du tableau de bord : le
+              chauffeur qui vient consulter son profil cherche le meme detail. */}
+          <Row
+            icon="cash-outline"
+            label="Gains"
+            hint={formatXaf(earningsTodayXaf)}
+            onPress={onOpenEarnings}
+          />
+          <Row icon="car-sport-outline" label="Courses" hint={String(ridesToday)} />
+
+          <Text style={styles.section}>Activité</Text>
+
+          {/* L'historique vient SOUS les chiffres du jour : le chauffeur lit
+              d'abord sa journee, puis remonte le temps s'il veut comparer. */}
+          <Row
+            icon="time-outline"
+            label="Historique des courses"
+            hint="Vos courses des 7 et 30 derniers jours"
+            onPress={onOpenRideHistory}
+          />
+
+          <Text style={styles.section}>Véhicule</Text>
+
+          <Row icon="car-outline" label={DEMO_DRIVER.vehicleModel} hint={DEMO_DRIVER.plate} />
+          <Row icon="call-outline" label="Téléphone" hint={DEMO_DRIVER.phone} />
+
+          <Text style={styles.section}>Sécurité</Text>
+
+          <Row
+            icon="shield-checkmark-outline"
+            label="Contacts d’urgence"
+            hint={
+              contactCount === 0
+                ? 'Aucun — le SOS n’aurait personne à prévenir'
+                : `${contactCount} contact${contactCount > 1 ? 's' : ''}`
+            }
+            onPress={onOpenEmergencyContacts}
+          />
+
+          <Text style={styles.section}>Compte</Text>
+
+          <Row
+            icon="person-outline"
+            label="Informations personnelles"
+            hint="Bientôt : nom, téléphone, mot de passe"
+            disabled
+          />
+
+          <Text style={styles.notice}>
+            Profil de démonstration — les informations affichées arriveront avec
+            le serveur.
+          </Text>
+
+          <Pressable
+            style={styles.exitButton}
+            onPress={signOut}
+            accessibilityRole="button"
+            accessibilityLabel="Se déconnecter et changer de compte"
+          >
+            <Ionicons name="log-out-outline" size={18} color={colors.surface} />
+            <Text style={styles.exitLabel}>Changer de compte</Text>
+          </Pressable>
+        </ScrollView>
+      </SafeBottomArea>
     </View>
   );
 }
@@ -191,7 +203,9 @@ function Row({ icon, label, hint, disabled = false, onPress }: RowProps) {
   );
 }
 
-const AVATAR = 56;
+/** Avatar d'en-tete : plus petit qu'en tete de liste, la barre ne doit pas
+ *  manger la hauteur utile de l'ecran. */
+const AVATAR = 40;
 
 const styles = StyleSheet.create({
   root: {
@@ -213,10 +227,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  title: {
-    ...typography.subtitle,
-    flex: 1,
-  },
   scroll: {
     flex: 1,
   },
@@ -225,6 +235,7 @@ const styles = StyleSheet.create({
     paddingTop: spacing.lg,
   },
   identity: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
@@ -238,7 +249,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   avatarText: {
-    ...typography.title,
+    ...typography.subtitle,
     color: colors.surface,
   },
   identityBody: {
@@ -250,6 +261,12 @@ const styles = StyleSheet.create({
   section: {
     ...typography.caption,
     marginTop: spacing.xl,
+    marginBottom: spacing.xs,
+  },
+  // La premiere section suit directement l'en-tete : pas de marge haute, sinon
+  // l'ecran s'ouvre sur un vide.
+  sectionFirst: {
+    ...typography.caption,
     marginBottom: spacing.xs,
   },
   row: {

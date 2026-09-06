@@ -12,6 +12,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors, radius, spacing, typography } from '../../theme';
+import { SafeBottomArea } from '../../components/SafeBottomArea';
 import { formatDistance, formatXaf } from '../../services/pricing';
 import { totalEarned, totalEarnedDistance } from '../../services/driverEarnings';
 import { useDriverEarnings } from './useDriverEarnings';
@@ -48,16 +49,6 @@ export function DriverEarningsScreen({ onClose, onOpenHistory }: Props) {
       <StatusBar style="dark" />
 
       <View style={[styles.header, { paddingTop: insets.top + spacing.md }]}>
-        <Pressable
-          onPress={onClose}
-          hitSlop={10}
-          style={styles.back}
-          accessibilityRole="button"
-          accessibilityLabel="Retour au tableau de bord"
-        >
-          <Ionicons name="arrow-back" size={22} color={colors.text} />
-        </Pressable>
-
         <Text style={styles.title}>Mes revenus</Text>
 
         {/* Le jour courant ne repond pas a "et avant ?" : la question se pose
@@ -72,6 +63,17 @@ export function DriverEarningsScreen({ onClose, onOpenHistory }: Props) {
           <Ionicons name="time-outline" size={16} color={colors.text} />
           <Text style={styles.historyLabel}>Historique</Text>
         </Pressable>
+
+        {/* Retour a DROITE, comme sur les ecrans de profil. */}
+        <Pressable
+          onPress={onClose}
+          hitSlop={10}
+          style={styles.back}
+          accessibilityRole="button"
+          accessibilityLabel="Retour au tableau de bord"
+        >
+          <Ionicons name="arrow-back" size={22} color={colors.text} />
+        </Pressable>
       </View>
 
       {!isLoading && error === null && items.length > 0 && (
@@ -85,49 +87,50 @@ export function DriverEarningsScreen({ onClose, onOpenHistory }: Props) {
         </View>
       )}
 
-      {isLoading ? (
-        <View style={styles.center}>
-          <ActivityIndicator color={colors.primary} />
-        </View>
-      ) : error !== null ? (
-        <View style={styles.center}>
-          <Text style={styles.error}>{error}</Text>
-          <Pressable
-            onPress={retry}
-            style={styles.retry}
-            accessibilityRole="button"
-            accessibilityLabel="Réessayer le chargement"
-          >
-            <Text style={styles.retryLabel}>Réessayer</Text>
-          </Pressable>
-        </View>
-      ) : items.length === 0 ? (
-        <View style={styles.center}>
-          <Text style={styles.emptyTitle}>Aucune course aujourd’hui</Text>
-          <Text style={styles.emptyBody}>
-            Passez en ligne pour recevoir des demandes : vos courses et vos gains
-            de la journée apparaîtront ici.
-          </Text>
-        </View>
-      ) : (
-        <FlatList
-          data={items}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <DriverEarningRow item={item} />}
-          contentContainerStyle={[
-            styles.list,
-            { paddingBottom: insets.bottom + spacing.xl },
-          ]}
-          showsVerticalScrollIndicator={false}
-          // Mention obligatoire : ne jamais presenter du simule comme reel
-          // (R13, brief §23).
-          ListFooterComponent={
-            <Text style={styles.notice}>
-              Revenus simulés — aucun paiement réel n’a été effectué.
+      {/* La zone basse est reservee EN DEHORS de la liste : le contenu y est
+          coupe au defilement au lieu de passer sous la barre de gestes. */}
+      <SafeBottomArea>
+        {isLoading ? (
+          <View style={styles.center}>
+            <ActivityIndicator color={colors.primary} />
+          </View>
+        ) : error !== null ? (
+          <View style={styles.center}>
+            <Text style={styles.error}>{error}</Text>
+            <Pressable
+              onPress={retry}
+              style={styles.retry}
+              accessibilityRole="button"
+              accessibilityLabel="Réessayer le chargement"
+            >
+              <Text style={styles.retryLabel}>Réessayer</Text>
+            </Pressable>
+          </View>
+        ) : items.length === 0 ? (
+          <View style={styles.center}>
+            <Text style={styles.emptyTitle}>Aucune course aujourd’hui</Text>
+            <Text style={styles.emptyBody}>
+              Passez en ligne pour recevoir des demandes : vos courses et vos gains
+              de la journée apparaîtront ici.
             </Text>
-          }
-        />
-      )}
+          </View>
+        ) : (
+          <FlatList
+            data={items}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => <DriverEarningRow item={item} />}
+            contentContainerStyle={styles.list}
+            showsVerticalScrollIndicator={false}
+            // Mention obligatoire : ne jamais presenter du simule comme reel
+            // (R13, brief §23).
+            ListFooterComponent={
+              <Text style={styles.notice}>
+                Revenus simulés — aucun paiement réel n’a été effectué.
+              </Text>
+            }
+          />
+        )}
+      </SafeBottomArea>
     </View>
   );
 }

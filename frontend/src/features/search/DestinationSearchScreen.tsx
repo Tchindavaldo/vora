@@ -14,6 +14,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors, radius, spacing, typography } from '../../theme';
+import { SafeBottomArea } from '../../components/SafeBottomArea';
 import type { Place } from '../../services/geocoding';
 import { usePlaceSearch } from './usePlaceSearch';
 import { SearchField } from './components/SearchField';
@@ -101,22 +102,20 @@ export function DestinationSearchScreen({
         )}
       </View>
 
-      {selected === null ? (
-        <ResultList
-          state={search}
-          query={query}
-          onSelect={handleSelect}
-          bottomInset={insets.bottom}
-        />
-      ) : (
-        <Confirmation
-          place={selected}
-          landmark={landmark}
-          onLandmarkChange={setLandmark}
-          onConfirm={() => onConfirm({ place: selected, landmark: landmark.trim() })}
-          bottomInset={insets.bottom}
-        />
-      )}
+      {/* La zone basse est reservee EN DEHORS de la liste : les suggestions y
+          sont coupees au defilement au lieu de passer sous la barre de gestes. */}
+      <SafeBottomArea>
+        {selected === null ? (
+          <ResultList state={search} query={query} onSelect={handleSelect} />
+        ) : (
+          <Confirmation
+            place={selected}
+            landmark={landmark}
+            onLandmarkChange={setLandmark}
+            onConfirm={() => onConfirm({ place: selected, landmark: landmark.trim() })}
+          />
+        )}
+      </SafeBottomArea>
     </KeyboardAvoidingView>
   );
 }
@@ -125,11 +124,10 @@ type ResultListProps = {
   state: ReturnType<typeof usePlaceSearch>;
   query: string;
   onSelect: (place: Place) => void;
-  bottomInset: number;
 };
 
 /** Liste des suggestions et ses etats degrades (R8). */
-function ResultList({ state, query, onSelect, bottomInset }: ResultListProps) {
+function ResultList({ state, query, onSelect }: ResultListProps) {
   if (state.error) {
     return <Message icon="cloud-offline" title={state.error} />;
   }
@@ -168,10 +166,7 @@ function ResultList({ state, query, onSelect, bottomInset }: ResultListProps) {
       keyExtractor={(place) => place.id}
       renderItem={({ item }) => <PlaceRow place={item} onPress={onSelect} />}
       keyboardShouldPersistTaps="handled"
-      contentContainerStyle={[
-        styles.list,
-        { paddingBottom: bottomInset + spacing.xxl },
-      ]}
+      contentContainerStyle={styles.list}
     />
   );
 }
@@ -181,7 +176,6 @@ type ConfirmationProps = {
   landmark: string;
   onLandmarkChange: (value: string) => void;
   onConfirm: () => void;
-  bottomInset: number;
 };
 
 /** Destination retenue : recapitulatif, point de repere, validation. */
@@ -190,10 +184,9 @@ function Confirmation({
   landmark,
   onLandmarkChange,
   onConfirm,
-  bottomInset,
 }: ConfirmationProps) {
   return (
-    <View style={[styles.confirm, { paddingBottom: bottomInset + spacing.lg }]}>
+    <View style={styles.confirm}>
       <View style={styles.selected}>
         <Ionicons name="location" size={20} color={colors.primary} />
         <View style={styles.selectedText}>
@@ -283,6 +276,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.lg,
+    paddingBottom: spacing.lg,
   },
   selected: {
     flexDirection: 'row',

@@ -1,6 +1,6 @@
 /**
- * Ecrans pleins superposes a l'accueil : recherche, historique, profil et
- * contacts d'urgence.
+ * Ecrans pleins superposes a l'accueil : recherche, historique, profil,
+ * contacts d'urgence et assistance.
  *
  * L'app n'a pas de librairie de navigation (R18 : aucune dependance sans
  * necessite) — chaque ecran plein est un etat de `HomeScreen` qui remplace son
@@ -19,6 +19,7 @@ export type HomeRoute =
   | { name: 'history' }
   | { name: 'profile' }
   | { name: 'contacts' }
+  | { name: 'support' }
   | null;
 
 export function useHomeNavigation() {
@@ -31,6 +32,7 @@ export function useHomeNavigation() {
     openHistory: () => setRoute({ name: 'history' }),
     openProfile: () => setRoute({ name: 'profile' }),
     openContacts: () => setRoute({ name: 'contacts' }),
+    openSupport: () => setRoute({ name: 'support' }),
     /** Revient a l'accueil. */
     close: () => setRoute(null),
   };
